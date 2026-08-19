@@ -1,12 +1,12 @@
 ---
 title: "NEO Lite Pro (Terraform)"
-description: "Terraform resources and data sources for NEO Lite Pro VPS"
+description: "Resource dan data source Terraform buat VPS NEO Lite Pro"
 ---
 
-NEO Lite Pro is the premium KVM VPS tier (dedicated vCPU/RAM, NVMe SSD), exposed through the `/neolite-pros` API group. The schema mirrors NEO Lite - with its own keypair, disk, and snapshot pools - and drops `migrate_to_pro` (Pro is the migration *destination*).
+NEO Lite Pro itu tier KVM VPS premium (vCPU/RAM dedicated, NVMe SSD), di-expose lewat API group `/neolite-pros`. Schema-nya nyomot dari NEO Lite - bedanya punya pool keypair, disk, sama snapshot sendiri - dan gak ada `migrate_to_pro` (Pro itu *tujuan* migrasinya).
 
 <Info>
-  Every create/upgrade places a **real paid order**. Read the [billing guide](/guides/billing) for `cycle` values and `pay_with_credit_card` semantics.
+  Setiap create/upgrade bikin **order berbayar beneran**. Baca [panduan billing](/guides/billing) buat nilai `cycle` dan semantics `pay_with_credit_card`.
 </Info>
 
 ## `biznetgio_neolite_pro_vm`
@@ -35,41 +35,41 @@ resource "biznetgio_neolite_pro_vm" "main" {
 
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
-| `id` | string | computed | equals `account_id` |
-| `ssh_and_console_user` | string | required | 6–32 chars, `[a-zA-Z0-9\-.]`; create-only |
-| `console_password` | string | required, sensitive | ≥8 chars, alphanumeric with upper+lower+digit; create-only |
-| `product_id` | int64 | required | from `biznetgio_neolite_pro_products`; change triggers change-package |
-| `select_os` | string | required | from `biznetgio_neolite_pro_os_list`; create-only (OS change = `rebuild_os`) |
-| `keypair_id` | int64 | required | from `biznetgio_neolite_pro_keypair`; change triggers change-keypair |
+| `id` | string | computed | sama dengan `account_id` |
+| `ssh_and_console_user` | string | required | 6-32 char, `[a-zA-Z0-9\-.]`; create-only |
+| `console_password` | string | required, sensitive | ≥8 char, alphanumeric dengan upper+lower+digit; create-only |
+| `product_id` | int64 | required | dari `biznetgio_neolite_pro_products`; ganti = change-package |
+| `select_os` | string | required | dari `biznetgio_neolite_pro_os_list`; create-only (ganti OS = `rebuild_os`) |
+| `keypair_id` | int64 | required | dari `biznetgio_neolite_pro_keypair`; ganti = change-keypair |
 | `cycle` | string | required | `m a q s b t p4 p5`; create-only |
-| `vm_name` | string | optional | default `server-name`; 6–16 chars; updatable |
+| `vm_name` | string | optional | default `server-name`; 6-16 char; bisa di-update |
 | `description` | string | optional | default `""`; create-only |
 | `pay_with_credit_card` | bool | optional | default `true` |
 | `promocode` | string | optional | create-only |
-| `power_state` | string | optional | `start stop suspend resume shutdown`; API called only on change |
-| `rebuild_os` | string | optional | one-shot destructive OS reinstall; change value to re-fire |
-| `disk_size` | int64 | optional | absolute GB target, grow-only |
+| `power_state` | string | optional | `start stop suspend resume shutdown`; API dipanggil cuma pas berubah |
+| `rebuild_os` | string | optional | one-shot reinstall OS (destructive); ganti value buat re-fire |
+| `disk_size` | int64 | optional | target GB absolut, cuma bisa naik |
 | `status` | string | computed | `Active` / `Pending` / `Suspended` / `Terminated` |
 | `order_id` | string | computed | |
-| `uptime` | int64 | computed | seconds |
+| `uptime` | int64 | computed | detik |
 | `maxdisk` / `maxmem` / `mem` / `cpus` | int64 | computed | |
 | `ciuser` | string | computed | |
 | `cipassword` | string | computed, sensitive | |
 | `osname` | string | computed | |
 | `region` / `region_label` | string | computed | |
-| `next_due` | string | computed | next billing date |
+| `next_due` | string | computed | tanggal billing berikutnya |
 | `recurring_amount` | int64 | computed | |
 | `billingcycle` | string | computed | |
 | `product_name` | string | computed | |
 | `last_invoice` | block | computed | `id`, `paid_id`, `status`, `date`, `duedate`, `paybefore`, `datepaid`, `invoice_type` |
-| `raw` | string | computed, sensitive | secrets redacted |
-| `timeouts` | block | optional | create/update/delete, defaults 20m/20m/10m |
+| `raw` | string | computed, sensitive | secrets di-redact |
+| `timeouts` | block | optional | create/update/delete, default 20m/20m/10m |
 
-Import with the numeric account id. To migrate a NEO Lite VM into this tier, use `migrate_to_pro` on `biznetgio_neolite_vm` instead of creating here.
+Import pake numeric account id. Buat mindahin VM NEO Lite ke tier ini, pake `migrate_to_pro` di `biznetgio_neolite_vm` aja, jangan create di sini.
 
 ## `biznetgio_neolite_pro_keypair`
 
-Identical to `biznetgio_neolite_keypair`, but in the NEO Lite Pro pool.
+Sama kayak `biznetgio_neolite_keypair`, tapi di pool NEO Lite Pro.
 
 ```hcl
 resource "biznetgio_neolite_pro_keypair" "main" {
@@ -79,17 +79,17 @@ resource "biznetgio_neolite_pro_keypair" "main" {
 
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
-| `id` | string | computed | equals `keypair_id` |
+| `id` | string | computed | sama dengan `keypair_id` |
 | `name` | string | required | create-only |
 | `keypair_id` | int64 | computed | |
 | `public_key` | string | computed | |
-| `private_key` | string | computed, sensitive | returned once at create; preserved in state |
+| `private_key` | string | computed, sensitive | return sekali pas create; disimpen di state |
 
-Updates are rejected. Import with the keypair id.
+Update ditolak. Import pake keypair id.
 
 ## `biznetgio_neolite_pro_snapshot`
 
-Identical to `biznetgio_neolite_snapshot`, for Pro VMs.
+Sama kayak `biznetgio_neolite_snapshot`, buat VM Pro.
 
 ```hcl
 resource "biznetgio_neolite_pro_snapshot" "main" {
@@ -101,7 +101,7 @@ resource "biznetgio_neolite_pro_snapshot" "main" {
 
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
-| `id` | string | computed | equals snapshot `account_id` |
+| `id` | string | computed | sama dengan `account_id` snapshot |
 | `neolite_account_id` | int64 | required | |
 | `cycle` | string | required | `m a q s b t p4 p5` |
 | `name` | string | optional | default `snapshot-name` |
@@ -112,11 +112,11 @@ resource "biznetgio_neolite_pro_snapshot" "main" {
 | `order_id` | string | computed | |
 | `timeouts` | block | optional | create/delete |
 
-All inputs create-only. Import with the snapshot account id.
+Semua input create-only. Import pake snapshot account id.
 
 ## `biznetgio_neolite_pro_disk`
 
-Additional disk for a NEO Lite Pro VM. Same semantics as `biznetgio_neolite_disk`, with a 30 GB minimum.
+Disk tambahan buat VM NEO Lite Pro. Semantics-nya sama kayak `biznetgio_neolite_disk`, minimal 30 GB.
 
 ```hcl
 resource "biznetgio_neolite_pro_disk" "main" {
@@ -130,12 +130,12 @@ resource "biznetgio_neolite_pro_disk" "main" {
 
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
-| `id` | string | computed | equals disk `account_id` |
-| `product_id` | int64 | required | from `GET /neolite-pros/disks/products` |
+| `id` | string | computed | sama dengan `account_id` disk |
+| `product_id` | int64 | required | dari `GET /neolite-pros/disks/products` |
 | `cycle` | string | required | `m a q s b t p4 p5` |
 | `neolite_account_id` | int64 | required | |
 | `service_name` | string | optional | default `service-name` |
-| `size` | int64 | optional | default `30` GB, minimum 30, grow-only |
+| `size` | int64 | optional | default `30` GB, minimal 30, cuma bisa naik |
 | `promocode` | string | optional | |
 | `pay_with_credit_card` | bool | optional | default `true` |
 | `status` | string | computed | |
@@ -143,28 +143,28 @@ resource "biznetgio_neolite_pro_disk" "main" {
 | `raw` | string | computed, sensitive | |
 | `timeouts` | block | optional | create/update/delete |
 
-Import with the disk account id.
+Import pake disk account id.
 
 ## Data sources
 
-All five mirror the NEO Lite data sources, targeting the `/neolite-pros` group:
+Kelima data source ini nyomot dari data source NEO Lite, nargetin group `/neolite-pros`:
 
 ### `biznetgio_neolite_pro_products`
 
-Product catalog; `products` items include `product_id`, `name`, `description`, `category_id`, `category_name`, `options`, and nested `billing`.
+Katalog produk; item `products` ada `product_id`, `name`, `description`, `category_id`, `category_name`, `options`, sama nested `billing`.
 
 ### `biznetgio_neolite_pro_os_list`
 
-OS images for a product (`product_id` argument required); `oss` items: `vmid`, `node`, `name`, `maxmem`, `maxcpu`.
+OS image buat produk (argument `product_id` wajib); item `oss`: `vmid`, `node`, `name`, `maxmem`, `maxcpu`.
 
 ### `biznetgio_neolite_pro_change_package_options`
 
-Raw JSON of change-package options for an account (`account_id` argument).
+JSON `raw` dari opsi change-package buat akun (argument `account_id`).
 
 ### `biznetgio_neolite_pro_storage_upgrade_options`
 
-Raw JSON of storage upgrade pricing for an account (`account_id` argument).
+JSON `raw` dari harga upgrade storage buat akun (argument `account_id`).
 
 ### `biznetgio_neolite_pro_ip_availability`
 
-`product_id` argument; returns `available` (bool).
+Argument `product_id`; return `available` (bool).

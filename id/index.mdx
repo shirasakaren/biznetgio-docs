@@ -1,0 +1,65 @@
+---
+title: "Perkenalan"
+description: "Kelola infra Biznet GIO pake Terraform dan Pulumi"
+---
+
+Biznet GIO itu cloud provider Indonesia yang punya VPS (NEO Lite), server bare-metal (NEO Metal), instance GPU (NEO GPU), dan object storage yang S3-compatible (NEO Object Storage).
+
+<Warning>
+  **Proyek komunitas, bukan official.** Provider dan dokumentasi ini dibangun oleh [Shirasaka Ren](/about) dan **tidak terafiliasi atau diendorse oleh PT Biznet Gio Nusantara** - Biznet GIO dan NEO adalah trademark masing-masing owner. Pakai dengan risiko sendiri; setiap create/upgrade bikin order berbayar beneran di akun lu.
+</Warning>
+
+Situs ini dokumentasiin dua provider Infrastructure-as-Code yang ngewrap [Biznet GIO Portal API](https://api.portal.biznetgio.com/v1/docs):
+
+- **Terraform** - provider `biznetgio` (`registry.terraform.io/shirasakaren/biznetgio`), protocol 6.0 (Plugin Framework), butuh Terraform ≥ 1.0
+- **Pulumi** - provider `biznetgio` (native Go, `pulumi-go-provider`), SDK buat TypeScript, Python, Go, .NET, dan Java
+
+Dua-duanya share API surface yang sama, model authentication yang sama, dan semantics yang sama - tinggal pilih tools yang lu udah biasa.
+
+## Yang bisa lu kelola
+
+| Service | Produk | Resources | Data sources katalog |
+| --- | --- | --- | --- |
+| `neolites` | NEO Lite VPS | VM, keypair, snapshot, VM from snapshot, additional disk | products, OS list, change-package options, storage upgrade options, IP availability |
+| `neolite-pros` | NEO Lite Pro VPS | VM, keypair, snapshot, additional disk | products, OS list, change-package options, storage upgrade options, IP availability |
+| `baremetals` | NEO Metal bare-metal | server, keypair, additional IP, IP assignment, elastic storage | products, rebuild OS list, OpenVPN config |
+| `neo-gpus` | NEO GPU | instance, keypair | products, console access, monitoring graph |
+| `object-storages` | NEO Object Storage | instance, bucket, credential, object | instances, buckets, credentials |
+
+Masing-masing provider punya **20 resources** dan **19 data sources / functions** buat lima API group ini. Produk yang gak punya public API (NEO Virtual Compute, NEO Kubernetes, NEO DNS, web hosting, GIO Private, GIO Enterprise Cloud, NEO Backup) di luar scope.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Terraform" icon="bolt" href="/quickstart">
+    Bikin VM NEO Lite pake Terraform dalam kurleb lima menit.
+  </Card>
+  <Card title="Quickstart Pulumi" icon="rocket" href="/pulumi-quickstart">
+    Bikin VM NEO Lite pake Pulumi dalam kurleb lima menit.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    API token, environment variables, dan cara request diautentikasi.
+  </Card>
+  <Card title="Tentang author" icon="user" href="/about">
+    Shirasaka Ren - yang bikin dan maintain provider ini, plus cara support karyanya.
+  </Card>
+  <Card title="API reference" icon="server" href="https://api.portal.biznetgio.com/v1/docs">
+    Dokumentasi Biznet GIO Portal API upstream (Swagger UI).
+  </Card>
+</CardGroup>
+
+## Repository
+
+| Proyek | Repository | License |
+| --- | --- | --- |
+| Terraform provider | [shirasakaren/terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio) | MPL-2.0 |
+| Pulumi provider | [shirasakaren/pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio) | Apache-2.0 |
+| Dokumentasi ini | [shirasakaren/biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs) | Apache-2.0 |
+
+## Lanjut ke mana
+
+- [Quickstart](/quickstart) - resource pertama pake Terraform
+- [Quickstart Pulumi](/pulumi-quickstart) - resource pertama pake Pulumi
+- [Authentication](/authentication) - ambil API token dari [portal](https://portal.biznetgio.com)
+
+<Warning>
+  Setiap panggilan create atau upgrade bikin **order berbayar beneran** di akun Biznet GIO lu. Baca [panduan billing](/guides/billing) dulu sebelum ngotomatisin apa-apa.
+</Warning>

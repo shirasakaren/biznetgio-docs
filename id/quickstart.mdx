@@ -1,29 +1,29 @@
 ---
 title: "Quickstart (Terraform)"
-description: "Order a NEO Lite VM with the Biznet GIO Terraform provider"
+description: "Order VM NEO Lite pake provider Terraform Biznet GIO"
 ---
 
-From zero to a running NEO Lite VM in about five minutes.
+Dari nol sampe VM NEO Lite jalan, kurleb lima menit.
 
-## Prerequisites
+## Prasyarat
 
 - [Terraform](https://developer.hashicorp.com/terraform/install) ≥ 1.0
-- A [Biznet GIO](https://biznetgio.com) account
-- An API token - see [Authentication](/authentication)
+- Akun [Biznet GIO](https://biznetgio.com)
+- API token - liat [Authentication](/authentication)
 
-## Get started
+## Gas
 
 <Steps>
-  <Step title="Export your API token">
-    The provider reads credentials from environment variables, so no provider block is required:
+  <Step title="Export API token lu">
+    Provider baca credentials dari environment variables, jadi gak butuh provider block:
 
     ```bash
     export BIZNETGIO_API_KEY="<your-token>"
     ```
   </Step>
 
-  <Step title="Write the configuration">
-    Create `main.tf`:
+  <Step title="Tulis konfigurasinya">
+    Bikin `main.tf`:
 
     ```hcl
     terraform {
@@ -61,7 +61,7 @@ From zero to a running NEO Lite VM in about five minutes.
     }
     ```
 
-    This orders the smallest available NEO Lite package on a monthly cycle and waits until the VM reports `Active`.
+    Ini order paket NEO Lite terkecil dengan cycle bulanan dan nunggu sampe VM lapor `Active`.
   </Step>
 
   <Step title="Apply">
@@ -71,32 +71,32 @@ From zero to a running NEO Lite VM in about five minutes.
     terraform apply
     ```
 
-    Confirm the plan with `yes`. Creating the VM places a real order on your account and typically takes 1–5 minutes.
+    Konfirmasi plan dengan `yes`. Bikin VM artinya order beneran di akun lu dan biasanya makan 1-5 menit.
   </Step>
 
-  <Step title="Verify">
+  <Step title="Verifikasi">
     ```bash
     terraform output vm_status
     ```
 
-    You should see `"Active"`. Your VM is also visible under NEO Lite in the [portal](https://portal.biznetgio.com).
+    Harusnya keliatan `"Active"`. VM lu juga keliatan di bagian NEO Lite di [portal](https://portal.biznetgio.com).
   </Step>
 
-  <Step title="Clean up">
+  <Step title="Beresin">
     ```bash
     terraform destroy
     ```
 
-    Destroying the VM resource deletes the server (`DELETE /neolites/{account_id}`).
+    Destroy resource VM berarti hapus server (`DELETE /neolites/{account_id}`).
   </Step>
 </Steps>
 
-## Next steps
+## Lanjut ke mana
 
-- [Terraform installation](/terraform/installation) - full provider configuration reference
-- [NEO Lite resources](/terraform/resources/neolite) - every NEO Lite resource and data source
-- [Billing](/guides/billing) - how orders and payment work
+- [Instalasi Terraform](/terraform/installation) - referensi konfigurasi provider lengkap
+- [Resource NEO Lite](/terraform/resources/neolite) - semua resource dan data source NEO Lite
+- [Billing](/guides/billing) - gimana order dan pembayaran kerja
 
 <Tip>
-  Lost? Reach out to Biznet GIO support at [support@biznetgio.com](mailto:support@biznetgio.com), or open an issue on the [provider repository](https://github.com/shirasakaren/terraform-provider-biznetgio).
+  Nyangkut? Hubungi support Biznet GIO di [support@biznetgio.com](mailto:support@biznetgio.com), atau buka issue di [repository provider](https://github.com/shirasakaren/terraform-provider-biznetgio).
 </Tip>

@@ -9,7 +9,7 @@ Both providers authenticate against the Biznet GIO Portal API with a single API 
 
 1. Log in to the [customer portal](https://portal.biznetgio.com).
 2. Open the **Generate API Key** menu (under your account/profile section).
-3. Generate a key and copy it immediately — it is shown only once. If you lose it, contact [support](mailto:support@biznetgio.com) to regenerate.
+3. Generate a key and copy it immediately - it is shown only once. If you lose it, contact [support](mailto:support@biznetgio.com) to regenerate.
 
 The token is sent on every request as the `x-token` header.
 
@@ -19,9 +19,9 @@ The token is sent on every request as the `x-token` header.
 
 | Setting | Type | Default | Environment variable |
 | --- | --- | --- | --- |
-| `api_key` | string, sensitive | — | `BIZNETGIO_API_KEY` |
+| `api_key` | string, sensitive | - | `BIZNETGIO_API_KEY` |
 | `base_url` | string | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
-| `timeout` | number (seconds) | `30` | — |
+| `timeout` | number (seconds) | `30` | - |
 
 Values set in the provider block take precedence over environment variables. If `api_key` is missing everywhere, configuration fails with an error.
 
@@ -33,13 +33,13 @@ provider "biznetgio" {
 }
 ```
 
-The provider works with no `provider` block at all — export the environment variables and use `provider "biznetgio" {}`.
+The provider works with no `provider` block at all - export the environment variables and use `provider "biznetgio" {}`.
 
 ### Pulumi
 
 | Config key | Type | Required | Default | Environment variable |
 | --- | --- | --- | --- | --- |
-| `biznetgio:apiToken` | string, secret | yes | — | `BIZNETGIO_API_KEY` |
+| `biznetgio:apiToken` | string, secret | yes | - | `BIZNETGIO_API_KEY` |
 | `biznetgio:baseUrl` | string | no | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
 
 ```bash
@@ -72,6 +72,11 @@ The provider errors if `apiToken` is not set via config or environment.
       var token = cfg.RequireSecret("apiToken");
       var baseUrl = cfg.Get("baseUrl");
       ```
+      ```java Java
+      var cfg = ctx.config();
+      var token = cfg.requireSecret("biznetgio:apiToken");
+      var baseUrl = cfg.get("biznetgio:baseUrl");
+      ```
     </CodeGroup>
   </Accordion>
 </AccordionGroup>
@@ -89,7 +94,7 @@ Both are the default when `base_url` / `baseUrl` is omitted. Point the providers
 
 - `api_key` and `apiToken` are marked sensitive; they never appear in plans, diffs, or outputs.
 - The `raw` output on every resource is redacted: values under keys like `password`, `private_key`, `secret_key`, `token`, and `pem` are masked as `***` before entering state.
-- Secrets that the API returns only once (keypair private keys, S3 secret keys) are preserved in state across refreshes — protect your state files with a secure backend.
+- Secrets that the API returns only once (keypair private keys, S3 secret keys) are preserved in state across refreshes - protect your state files with a secure backend.
 
 <Warning>
   The token grants full control of your account. Never commit it to version control; use a secret manager (Terraform Cloud variables, Pulumi ESC, SOPS, Vault) for CI/CD.

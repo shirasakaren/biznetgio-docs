@@ -1,0 +1,82 @@
+---
+title: "Instalasi (Pulumi)"
+description: "Install provider Pulumi Biznet GIO di bahasa apa pun"
+---
+
+Provider Pulumi-nya binary Go native (`pulumi-resource-biznetgio`) dengan SDK buat lima bahasa. Semua resource pake package `biznetgio`; resource token bentuknya kayak `biznetgio:index:NeoliteVm`.
+
+## Install SDK
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```bash
+    npm install @shirasakaren/biznetgio
+    ```
+    Butuh `@pulumi/pulumi` ^3.142.0.
+  </Tab>
+  <Tab title="Python">
+    ```bash
+    pip install pulumi-biznetgio
+    ```
+    Butuh Python ≥ 3.9 dan `pulumi>=3.231.0,<4.0.0`.
+  </Tab>
+  <Tab title="Go">
+    ```bash
+    go get github.com/shirasakaren/pulumi-biznetgio/sdk/go/pulumi-biznetgio
+    ```
+  </Tab>
+  <Tab title=".NET">
+    ```bash
+    dotnet add package Shirasakaren.Biznetgio
+    ```
+  </Tab>
+  <Tab title="Java">
+    Tambahin ke Gradle:
+    ```groovy
+    implementation("ren.shirasaka:biznetgio")
+    ```
+  </Tab>
+</Tabs>
+
+Pulumi download plugin `pulumi-resource-biznetgio` otomatis dari [GitHub Releases](https://github.com/shirasakaren/pulumi-biznetgio/releases) repository ini (via `pluginDownloadURL`) pas pertama dipake.
+
+<Note>
+  Ini provider komunitas unofficial oleh [Shirasaka Ren](/about) - tidak terafiliasi dengan PT Biznet Gio Nusantara.
+</Note>
+
+## Konfigurasi
+
+Set API token (liat [Authentication](/authentication)):
+
+```bash
+pulumi config set --secret biznetgio:apiToken <your-token>
+```
+
+| Config key | Type | Required | Default | Env fallback |
+| --- | --- | --- | --- | --- |
+| `biznetgio:apiToken` | string, secret | ya | - | `BIZNETGIO_API_KEY` |
+| `biznetgio:baseUrl` | string | tidak | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
+
+Kalau `apiToken` gak ada di config maupun environment, provider gagal dengan pesan: `apiToken is required (set via 'pulumi config set --secret biznetgio:apiToken <token>' or BIZNETGIO_API_KEY)`.
+
+## Perilaku provider
+
+- Request HTTP pake timeout 30 detik dengan maksimal 4 retry.
+- Create/update polling tiap 5 detik sampe resource lapor `active` (biasanya 1-5 menit).
+- Kalau timeout, operasi return initialization error dengan partial state - `pulumi up` berikutnya lanjut dari titik terakhir.
+
+<Accordion title="Build dari source">
+  ```bash
+  git clone https://github.com/shirasakaren/pulumi-biznetgio.git
+  cd pulumi-biznetgio
+  make build
+  make install   # install binary provider ke ~/.pulumi/plugins
+  ```
+
+  Package SDK lokal digenerate di `sdk/<lang>`; arahin proyek lu ke sana pake `npm link` / `pip install -e .` sesuai kebutuhan. Liat [Development](/guides/development) buat workflow lengkap.
+</Accordion>
+
+## Versi
+
+- Release sekarang: **0.1.5** (liat [changelog](https://github.com/shirasakaren/pulumi-biznetgio/blob/main/CHANGELOG.md))
+- `pulumi up` resolve versi plugin dari package SDK lu otomatis; pin per-proyek pake `pulumi plugin install resource biznetgio v0.1.5`.

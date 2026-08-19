@@ -9,56 +9,6 @@
   },
   "favicon": "/favicon.png",
   "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart",
-          "pulumi-quickstart",
-          "authentication"
-        ]
-      },
-      {
-        "group": "Terraform Provider",
-        "pages": [
-          "terraform/installation",
-          "terraform/resources/neolite",
-          "terraform/resources/neolite-pro",
-          "terraform/resources/baremetal",
-          "terraform/resources/gpu",
-          "terraform/resources/object-storage",
-          "terraform/importing"
-        ]
-      },
-      {
-        "group": "Pulumi Provider",
-        "pages": [
-          "pulumi/installation",
-          "pulumi/resources/neolite",
-          "pulumi/resources/neolite-pro",
-          "pulumi/resources/baremetal",
-          "pulumi/resources/gpu",
-          "pulumi/resources/object-storage",
-          "pulumi/importing"
-        ]
-      },
-      {
-        "group": "Guides",
-        "pages": [
-          "guides/billing",
-          "guides/triggers",
-          "guides/development",
-          "guides/faq"
-        ]
-      },
-      {
-        "group": "About",
-        "pages": [
-          "about"
-        ]
-      }
-    ],
     "global": {
       "anchors": [
         {
@@ -72,7 +22,115 @@
           "icon": "server"
         }
       ]
-    }
+    },
+    "languages": [
+      {
+        "language": "en",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "index",
+              "quickstart",
+              "pulumi-quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Terraform Provider",
+            "pages": [
+              "terraform/installation",
+              "terraform/resources/neolite",
+              "terraform/resources/neolite-pro",
+              "terraform/resources/baremetal",
+              "terraform/resources/gpu",
+              "terraform/resources/object-storage",
+              "terraform/importing"
+            ]
+          },
+          {
+            "group": "Pulumi Provider",
+            "pages": [
+              "pulumi/installation",
+              "pulumi/resources/neolite",
+              "pulumi/resources/neolite-pro",
+              "pulumi/resources/baremetal",
+              "pulumi/resources/gpu",
+              "pulumi/resources/object-storage",
+              "pulumi/importing"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/billing",
+              "guides/triggers",
+              "guides/development",
+              "guides/faq"
+            ]
+          },
+          {
+            "group": "About",
+            "pages": [
+              "about"
+            ]
+          }
+        ]
+      },
+      {
+        "language": "id",
+        "groups": [
+          {
+            "group": "Mulai",
+            "pages": [
+              "id/index",
+              "id/quickstart",
+              "id/pulumi-quickstart",
+              "id/authentication"
+            ]
+          },
+          {
+            "group": "Provider Terraform",
+            "pages": [
+              "id/terraform/installation",
+              "id/terraform/resources/neolite",
+              "id/terraform/resources/neolite-pro",
+              "id/terraform/resources/baremetal",
+              "id/terraform/resources/gpu",
+              "id/terraform/resources/object-storage",
+              "id/terraform/importing"
+            ]
+          },
+          {
+            "group": "Provider Pulumi",
+            "pages": [
+              "id/pulumi/installation",
+              "id/pulumi/resources/neolite",
+              "id/pulumi/resources/neolite-pro",
+              "id/pulumi/resources/baremetal",
+              "id/pulumi/resources/gpu",
+              "id/pulumi/resources/object-storage",
+              "id/pulumi/importing"
+            ]
+          },
+          {
+            "group": "Panduan",
+            "pages": [
+              "id/guides/billing",
+              "id/guides/triggers",
+              "id/guides/development",
+              "id/guides/faq"
+            ]
+          },
+          {
+            "group": "Tentang",
+            "pages": [
+              "id/about"
+            ]
+          }
+        ]
+      }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",

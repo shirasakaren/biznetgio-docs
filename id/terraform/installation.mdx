@@ -1,0 +1,101 @@
+---
+title: "Instalasi (Terraform)"
+description: "Install dan konfigurasi provider Terraform biznetgio"
+---
+
+## Install
+
+Deklarasiin provider di konfigurasi lu:
+
+```hcl
+terraform {
+  required_providers {
+    biznetgio = {
+      source = "registry.terraform.io/shirasakaren/biznetgio"
+    }
+  }
+}
+```
+
+Jalanin `terraform init` buat download. Provider butuh **Terraform ≥ 1.0** dan pake protocol 6.0.
+
+<Accordion title="Build dari source">
+  Alternatifnya, build dan install dari repository:
+
+  ```bash
+  git clone https://github.com/shirasakaren/terraform-provider-biznetgio.git
+  cd terraform-provider-biznetgio
+  make build
+  make install
+  ```
+
+  Atau arahin Terraform ke binary development pake `dev_overrides` di [CLI config file](https://developer.hashicorp.com/terraform/cli/config/config-file#development-overrides-for-provider-developers) lu:
+
+  ```hcl
+  provider_installation {
+    dev_overrides {
+      "registry.terraform.io/shirasakaren/biznetgio" = "/path/to/terraform-provider-biznetgio"
+    }
+    direct {}
+  }
+  ```
+</Accordion>
+
+## Konfigurasi
+
+<Note>
+  Ini provider komunitas unofficial oleh [Shirasaka Ren](/about) - tidak terafiliasi dengan PT Biznet Gio Nusantara.
+</Note>
+
+Liat [Authentication](/authentication) buat API token. Schema konfigurasi provider:
+
+| Attribute | Type | Required | Default | Env fallback |
+| --- | --- | --- | --- | --- |
+| `api_key` | string, sensitive | tidak | - | `BIZNETGIO_API_KEY` |
+| `base_url` | string | tidak | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
+| `timeout` | number (detik) | tidak | `30` | - |
+
+```hcl
+provider "biznetgio" {
+  api_key = "your-token"          # opsional kalau BIZNETGIO_API_KEY udah di-set
+  base_url = "https://api.portal.biznetgio.com/v1"  # opsional kalau BIZNETGIO_BASE_URL udah di-set
+  timeout  = 60                   # timeout request HTTP dalam detik
+}
+```
+
+`timeout` itu per-request HTTP timeout - dia gak ngecap create polling, yang pake block `timeouts` sendiri (liat di bawah).
+
+## Resource timeouts
+
+Resource yang nunggu provisioning nerima block `timeouts`:
+
+```hcl
+resource "biznetgio_neolite_vm" "main" {
+  # ...
+
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "15m"
+  }
+}
+```
+
+Default: `create = 20m`, `update = 20m`, `delete = 10m`. Keypairs, resource bucket/credential/object, dan IP assignments provisioning-nya synchronous dan gak punya block timeouts.
+
+## Versioning
+
+Pin versinya:
+
+```hcl
+terraform {
+  required_providers {
+    biznetgio = {
+      source  = "registry.terraform.io/shirasakaren/biznetgio"
+      version = "0.1.0"
+    }
+  }
+}
+```
+
+Liat [repository](https://github.com/shirasakaren/terraform-provider-biznetgio) buat releases dan changelog.

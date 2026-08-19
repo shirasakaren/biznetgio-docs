@@ -1,17 +1,17 @@
 ---
 title: "NEO Metal (Terraform)"
-description: "Terraform resources and data sources for NEO Metal bare-metal servers"
+description: "Resource dan data source Terraform buat server bare-metal NEO Metal"
 ---
 
-NEO Metal is Biznet GIO's dedicated bare-metal product (`/baremetals` API group). This page also covers its add-ons: additional (floating) IPs and NEO Elastic Storage.
+NEO Metal itu produk bare-metal dedicated-nya Biznet GIO (`/baremetals` API group). Halaman ini juga bahas add-on-nya: additional (floating) IP sama NEO Elastic Storage.
 
 <Info>
-  Every create/upgrade places a **real paid order**. Read the [billing guide](/guides/billing) for `cycle` values and `pay_with_credit_card` semantics.
+  Setiap create/upgrade bikin **order berbayar beneran**. Baca [panduan billing](/guides/billing) buat nilai `cycle` dan semantics `pay_with_credit_card`.
 </Info>
 
 ## `biznetgio_baremetal`
 
-Orders a bare-metal server, waits until `Active`, and manages the label, power state, reset, and OS rebuild.
+Order server bare-metal, nunggu sampe `Active`, dan manage label, power state, reset, sama rebuild OS.
 
 ```hcl
 data "biznetgio_baremetal_products" "all" {}
@@ -37,30 +37,30 @@ resource "biznetgio_baremetal" "main" {
 
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
-| `id` | string | computed | equals `account_id` |
-| `product_id` | int64 | required | from `biznetgio_baremetal_products` |
-| `cycle` | string | required | `m` monthly / `a` annual |
+| `id` | string | computed | sama dengan `account_id` |
+| `product_id` | int64 | required | dari `biznetgio_baremetal_products` |
+| `cycle` | string | required | `m` bulanan / `a` tahunan |
 | `select_os` | string | optional | default `ubuntu-22`; create-only |
-| `keypair_id` | int64 | required | from `biznetgio_baremetal_keypair`; create-only |
-| `label` | string | required | display name - the only updatable field |
+| `keypair_id` | int64 | required | dari `biznetgio_baremetal_keypair`; create-only |
+| `label` | string | required | display name - satu-satunya field yang bisa di-update |
 | `public_ip` | int64 | optional | default `1`; create-only |
 | `promocode` | string | optional | create-only |
 | `pay_with_credit_card` | bool | optional | default `true` |
-| `power_state` | string | optional | `on` / `off`; API called only on change |
-| `reset_trigger` | string | optional | one-shot reset; change value to re-fire |
-| `rebuild_os` | string | optional | destructive OS reinstall; valid values from `biznetgio_baremetal_rebuild_os_list` |
+| `power_state` | string | optional | `on` / `off`; API dipanggil cuma pas berubah |
+| `reset_trigger` | string | optional | one-shot reset; ganti value buat re-fire |
+| `rebuild_os` | string | optional | reinstall OS (destructive); value valid dari `biznetgio_baremetal_rebuild_os_list` |
 | `status` | string | computed | |
 | `order_id` | string | computed | |
 | `ip_address` | string | computed | |
 | `created_at` | string | computed | |
-| `raw` | string | computed, sensitive | secrets redacted |
+| `raw` | string | computed, sensitive | secrets di-redact |
 | `timeouts` | block | optional | create/update/delete |
 
-Import with the numeric account id.
+Import pake numeric account id.
 
 ## `biznetgio_baremetal_keypair`
 
-SSH keypair in the NEO Metal pool. Set `public_key` to import your own; leave it empty and the keypair is generated server-side.
+SSH keypair di pool NEO Metal. Isi `public_key` buat import keypair sendiri; kalo dikosongin, keypair digenerate server-side.
 
 ```hcl
 resource "biznetgio_baremetal_keypair" "main" {
@@ -71,18 +71,18 @@ resource "biznetgio_baremetal_keypair" "main" {
 
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
-| `id` | string | computed | equals `keypair_id` |
+| `id` | string | computed | sama dengan `keypair_id` |
 | `name` | string | required | create-only |
-| `public_key` | string | optional | set → imported; empty → generated; create-only |
+| `public_key` | string | optional | diisi → import; kosong → digenerate; create-only |
 | `keypair_id` | int64 | computed | |
-| `private_key` | string | computed, sensitive | returned once at create; preserved in state |
+| `private_key` | string | computed, sensitive | return sekali pas create; disimpen di state |
 | `raw` | string | computed, sensitive | |
 
-Update is a no-op - every input is create-only. Import with the keypair id.
+Update gak ngapa-ngapain - semua input create-only. Import pake keypair id.
 
 ## `biznetgio_baremetal_additional_ip`
 
-Orders an additional (floating) IP, independent of any server. Attach it with `biznetgio_baremetal_additional_ip_assignment`.
+Order additional (floating) IP, independen dari server mana pun. Nempelnya pake `biznetgio_baremetal_additional_ip_assignment`.
 
 ```hcl
 resource "biznetgio_baremetal_additional_ip" "main" {
@@ -94,10 +94,10 @@ resource "biznetgio_baremetal_additional_ip" "main" {
 
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
-| `id` | string | computed | equals `account_id` |
-| `product_id` | int64 | required | from `GET /baremetal-additional-ips/products` |
+| `id` | string | computed | sama dengan `account_id` |
+| `product_id` | int64 | required | dari `GET /baremetal-additional-ips/products` |
 | `cycle` | string | required | `m` / `a` |
-| `region` | string | optional | default `wjv-1`; from `GET /baremetal-additional-ips/regions` |
+| `region` | string | optional | default `wjv-1`; dari `GET /baremetal-additional-ips/regions` |
 | `promocode` | string | optional | |
 | `pay_with_credit_card` | bool | optional | default `true` |
 | `status` | string | computed | |
@@ -106,11 +106,11 @@ resource "biznetgio_baremetal_additional_ip" "main" {
 | `raw` | string | computed, sensitive | |
 | `timeouts` | block | optional | create/delete |
 
-Import with the numeric account id.
+Import pake numeric account id.
 
 ## `biznetgio_baremetal_additional_ip_assignment`
 
-Attaches an additional IP to a bare-metal server. Reassigning means destroy + recreate.
+Nempelin additional IP ke server bare-metal. Pindah target = destroy + recreate.
 
 ```hcl
 resource "biznetgio_baremetal_additional_ip_assignment" "main" {
@@ -122,16 +122,16 @@ resource "biznetgio_baremetal_additional_ip_assignment" "main" {
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
 | `id` | string | computed | composite `<metal_account_id>:<additional_ip_id>` |
-| `additional_ip_id` | int64 | required | from `biznetgio_baremetal_additional_ip` |
-| `metal_account_id` | int64 | required | target server account id |
+| `additional_ip_id` | int64 | required | dari `biznetgio_baremetal_additional_ip` |
+| `metal_account_id` | int64 | required | account id server target |
 | `status` | string | computed | |
 | `raw` | string | computed, sensitive | |
 
-**Import ID format:** `<metal_account_id>:<additional_ip_id>`, e.g. `terraform import biznetgio_baremetal_additional_ip_assignment.main 12345:67890`.
+**Format Import ID:** `<metal_account_id>:<additional_ip_id>`, contohnya `terraform import biznetgio_baremetal_additional_ip_assignment.main 12345:67890`.
 
 ## `biznetgio_baremetal_elastic_storage`
 
-NEO Elastic Storage volume, permanently bound to one bare-metal server at creation.
+Volume NEO Elastic Storage, ke-ikat permanen ke satu server bare-metal pas create.
 
 ```hcl
 resource "biznetgio_baremetal_elastic_storage" "main" {
@@ -145,12 +145,12 @@ resource "biznetgio_baremetal_elastic_storage" "main" {
 
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
-| `id` | string | computed | equals storage `account_id` |
-| `product_id` | int64 | required | change triggers change-package |
+| `id` | string | computed | sama dengan `account_id` storage |
+| `product_id` | int64 | required | ganti = change-package |
 | `cycle` | string | required | `m` / `a`; create-only |
 | `storage_name` | string | required | create-only |
-| `metal_account_id` | int64 | required | create-only - no re-attach endpoint |
-| `size` | int64 | optional | default `100` GB, grow-only |
+| `metal_account_id` | int64 | required | create-only - gak ada endpoint re-attach |
+| `size` | int64 | optional | default `100` GB, cuma bisa naik |
 | `promocode` | string | optional | create-only |
 | `pay_with_credit_card` | bool | optional | default `true` |
 | `status` | string | computed | |
@@ -158,17 +158,17 @@ resource "biznetgio_baremetal_elastic_storage" "main" {
 | `raw` | string | computed, sensitive | |
 | `timeouts` | block | optional | create/update/delete |
 
-Import with the numeric account id.
+Import pake numeric account id.
 
 ## Data sources
 
 ### `biznetgio_baremetal_products`
 
-Server catalog (`GET /baremetals/products`). `products` items: `product_id`, `name`, `description`, `raw`.
+Katalog server (`GET /baremetals/products`). Item `products`: `product_id`, `name`, `description`, `raw`.
 
 ### `biznetgio_baremetal_rebuild_os_list`
 
-Valid OS images for rebuilding a server.
+OS image valid buat rebuild server.
 
 ```hcl
 data "biznetgio_baremetal_rebuild_os_list" "ubuntu" {
@@ -176,8 +176,8 @@ data "biznetgio_baremetal_rebuild_os_list" "ubuntu" {
 }
 ```
 
-Returns `oss` (list of strings, e.g. `centos7-base`) and `raw`.
+Return `oss` (list of strings, contohnya `centos7-base`) dan `raw`.
 
 ### `biznetgio_baremetal_openvpn`
 
-Out-of-band OpenVPN access configuration (`GET /baremetals/openvpn`). Returns `config` (sensitive) and `raw`.
+Konfigurasi akses OpenVPN out-of-band (`GET /baremetals/openvpn`). Return `config` (sensitive) dan `raw`.

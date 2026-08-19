@@ -6,15 +6,15 @@ description: "Manage Biznet GIO cloud infrastructure with Terraform and Pulumi"
 Biznet GIO is an Indonesian cloud provider offering VPS (NEO Lite), bare-metal servers (NEO Metal), GPU instances (NEO GPU), and S3-compatible object storage (NEO Object Storage).
 
 <Warning>
-  **Unofficial, community-maintained project.** These providers and this documentation are built by [Shirasaka Ren](/about) and are **not affiliated with or endorsed by PT Biznet Gio Nusantara** — Biznet GIO and NEO are trademarks of their respective owners. Use at your own risk; every create/upgrade places a real paid order on your account.
+  **Unofficial, community-maintained project.** These providers and this documentation are built by [Shirasaka Ren](/about) and are **not affiliated with or endorsed by PT Biznet Gio Nusantara** - Biznet GIO and NEO are trademarks of their respective owners. Use at your own risk; every create/upgrade places a real paid order on your account.
 </Warning>
 
 This site documents two Infrastructure-as-Code providers that wrap the [Biznet GIO Portal API](https://api.portal.biznetgio.com/v1/docs):
 
-- **Terraform** — `biznetgio` provider (`registry.terraform.io/shirasakaren/biznetgio`), protocol 6.0 (Plugin Framework), requires Terraform ≥ 1.0
-- **Pulumi** — `biznetgio` provider (native Go, `pulumi-go-provider`), SDKs for TypeScript, Python, Go, .NET, and Java
+- **Terraform** - `biznetgio` provider (`registry.terraform.io/shirasakaren/biznetgio`), protocol 6.0 (Plugin Framework), requires Terraform ≥ 1.0
+- **Pulumi** - `biznetgio` provider (native Go, `pulumi-go-provider`), SDKs for TypeScript, Python, Go, .NET, and Java
 
-Both providers share the same API surface, the same authentication model, and the same semantics — pick the tool you already use.
+Both providers share the same API surface, the same authentication model, and the same semantics - pick the tool you already use.
 
 ## What you can manage
 
@@ -39,7 +39,7 @@ Each provider exposes **20 resources** and **19 data sources / functions** cover
     API tokens, environment variables, and how requests are authenticated.
   </Card>
   <Card title="About the author" icon="user" href="/about">
-    Shirasaka Ren — who builds and maintains these providers, and how to support the work.
+    Shirasaka Ren - who builds and maintains these providers, and how to support the work.
   </Card>
   <Card title="API reference" icon="server" href="https://api.portal.biznetgio.com/v1/docs">
     The upstream Biznet GIO Portal API documentation (Swagger UI).
@@ -56,9 +56,9 @@ Each provider exposes **20 resources** and **19 data sources / functions** cover
 
 ## Where to go next
 
-- [Quickstart](/quickstart) — first resource with Terraform
-- [Pulumi quickstart](/pulumi-quickstart) — first resource with Pulumi
-- [Authentication](/authentication) — get an API token from the [portal](https://portal.biznetgio.com)
+- [Quickstart](/quickstart) - first resource with Terraform
+- [Pulumi quickstart](/pulumi-quickstart) - first resource with Pulumi
+- [Authentication](/authentication) - get an API token from the [portal](https://portal.biznetgio.com)
 
 <Warning>
   Every create or upgrade call places a **real paid order** on your Biznet GIO account. Read the [billing guide](/guides/billing) before automating anything.

@@ -1,12 +1,12 @@
 ---
 title: "NEO GPU (Pulumi)"
-description: "Pulumi resources and functions for NEO GPU instances"
+description: "Resource dan function Pulumi buat instance NEO GPU"
 ---
 
-NEO GPU rents NVIDIA H200 instances (`/neo-gpus` API group), billed by subscription cycle or on-demand (hourly). Exactly one billing mode must be set - validation fails otherwise.
+NEO GPU nyewain instance NVIDIA H200 (`/neo-gpus` API group), ditagih per cycle subscription atau on-demand (per jam). Harus set tepat satu billing mode - kalau nggak, validation gagal.
 
 <Info>
-  Every create places a **real paid order**. On-demand instances accumulate hourly charges until deleted.
+  Setiap create bikin **order berbayar beneran**. Instance on-demand numpuk biaya per jam sampe di-delete.
 </Info>
 
 ## `biznetgio:index:GpuInstance`
@@ -208,7 +208,7 @@ NEO GPU rents NVIDIA H200 instances (`/neo-gpus` API group), billed by subscript
   </Tab>
 </Tabs>
 
-Hourly billing instead of `subscription`:
+Billing per jam sebagai ganti `subscription`:
 
 <Tabs>
   <Tab title="TypeScript">
@@ -248,9 +248,9 @@ Hourly billing instead of `subscription`:
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | from `gpuProducts` |
-| `selectOs` | string | yes | from the product's select-OS catalog |
-| `keypairId` | int64 | yes | from `GpuKeypair` |
+| `productId` | int64 | yes | dari `gpuProducts` |
+| `selectOs` | string | yes | dari katalog select-OS produk |
+| `keypairId` | int64 | yes | dari `GpuKeypair` |
 | `sshAndConsoleUser` | string | yes | |
 | `consolePassword` | string, secret | yes | |
 | `serviceName` | string | no | create-only |
@@ -258,10 +258,10 @@ Hourly billing instead of `subscription`:
 | `payWithCreditCard` | bool | no | default `true` |
 | `subscription` | object | one-of | `{ cycle: "m" \| "a" }` |
 | `onDemand` | object | one-of | `{ additionalHours?: number }` default 0 |
-| `rebuildTrigger` | string | no | one-shot destructive OS reinstall |
-| `reserveAdditionalHoursTrigger` | string | no | one-shot: reserves additional hour(s) |
+| `rebuildTrigger` | string | no | one-shot reinstall OS (destructive) |
+| `reserveAdditionalHoursTrigger` | string | no | one-shot: reserve additional hour(s) |
 
-Outputs: `status`, `orderId`, `raw` (secret, redacted). Import with the numeric account id.
+Outputs: `status`, `orderId`, `raw` (secret, di-redact). Import pake numeric account id.
 
 ## `biznetgio:index:GpuKeypair`
 
@@ -319,18 +319,18 @@ Outputs: `status`, `orderId`, `raw` (secret, redacted). Import with the numeric 
   </Tab>
 </Tabs>
 
-Input `name`; outputs `publicKey`, `privateKey` (secret - returned only at creation), `raw` (secret). No update.
+Input `name`; outputs `publicKey`, `privateKey` (secret - return cuma pas create), `raw` (secret). Gak ada update.
 
 ## Functions
 
 ### `biznetgio:index:gpuProducts`
 
-No arguments. Returns `products`: `productId`, `name`, `description`, `categoryName`, `flavors` (`flavorId`, `name`, `raw`), `raw` (secret).
+Gak ada argument. Return `products`: `productId`, `name`, `description`, `categoryName`, `flavors` (`flavorId`, `name`, `raw`), `raw` (secret).
 
 ### `biznetgio:index:gpuConsole`
 
-Argument `accountId` (string). Returns `url` (secret) and `raw` (secret). **Side-effecting:** each call mints a new one-time console session - do not use it inside plan diffing.
+Argument `accountId` (string). Return `url` (secret) dan `raw` (secret). **Side-effecting:** tiap call bikin session console one-time baru - jangan dipake di dalam plan diffing.
 
 ### `biznetgio:index:gpuGraph`
 
-Arguments `accountId` (string), `timeframe` (optional, default `hour`; `hour` / `day` / `week` / `month` / `year`). Returns `graph` and `raw` (secret) from `GET /neo-gpus/accounts/{id}/graph-monitor`.
+Arguments `accountId` (string), `timeframe` (optional, default `hour`; `hour` / `day` / `week` / `month` / `year`). Return `graph` dan `raw` (secret) dari `GET /neo-gpus/accounts/{id}/graph-monitor`.

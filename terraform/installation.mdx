@@ -44,16 +44,16 @@ Run `terraform init` to download it. The provider requires **Terraform ≥ 1.0**
 ## Configure
 
 <Note>
-  This is an unofficial, community-maintained provider by [Shirasaka Ren](/about) — not affiliated with PT Biznet Gio Nusantara.
+  This is an unofficial, community-maintained provider by [Shirasaka Ren](/about) - not affiliated with PT Biznet Gio Nusantara.
 </Note>
 
 See [Authentication](/authentication) for the API token. The provider configuration schema:
 
 | Attribute | Type | Required | Default | Env fallback |
 | --- | --- | --- | --- | --- |
-| `api_key` | string, sensitive | no | — | `BIZNETGIO_API_KEY` |
+| `api_key` | string, sensitive | no | - | `BIZNETGIO_API_KEY` |
 | `base_url` | string | no | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
-| `timeout` | number (seconds) | no | `30` | — |
+| `timeout` | number (seconds) | no | `30` | - |
 
 ```hcl
 provider "biznetgio" {
@@ -63,7 +63,7 @@ provider "biznetgio" {
 }
 ```
 
-`timeout` is the per-request HTTP timeout — it does not cap the create polling, which uses its own `timeouts` block (see below).
+`timeout` is the per-request HTTP timeout - it does not cap the create polling, which uses its own `timeouts` block (see below).
 
 ## Resource timeouts
 

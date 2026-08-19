@@ -1,0 +1,101 @@
+---
+title: "Authentication"
+description: "API token, environment variables, dan base URL buat kedua provider"
+---
+
+Dua-duanya provider authenticate ke Biznet GIO Portal API pake satu API token. Gak ada flow username/password, dan tiap product group pake token yang sama.
+
+## Ambil API token
+
+1. Login ke [customer portal](https://portal.biznetgio.com).
+2. Buka menu **Generate API Key** (di bagian akun/profil lu).
+3. Generate key dan copy langsung - tokennya cuma keliatan sekali. Kalau ilang, kontak [support](mailto:support@biznetgio.com) buat regenerate.
+
+Token dikirim di setiap request lewat header `x-token`.
+
+## Konfigurasi
+
+### Terraform
+
+| Setting | Type | Default | Environment variable |
+| --- | --- | --- | --- |
+| `api_key` | string, sensitive | - | `BIZNETGIO_API_KEY` |
+| `base_url` | string | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
+| `timeout` | number (detik) | `30` | - |
+
+Value di provider block menang dari environment variable. Kalau `api_key` gak ketemu di mana-mana, konfigurasi error.
+
+```hcl
+provider "biznetgio" {
+  api_key = "your-token"      # atau: BIZNETGIO_API_KEY
+  base_url = "https://api.portal.biznetgio.com/v1"  # atau: BIZNETGIO_BASE_URL
+  timeout  = 60
+}
+```
+
+Provider jalan tanpa `provider` block sama sekali - tinggal export environment variables terus pake `provider "biznetgio" {}`.
+
+### Pulumi
+
+| Config key | Type | Required | Default | Environment variable |
+| --- | --- | --- | --- | --- |
+| `biznetgio:apiToken` | string, secret | ya | - | `BIZNETGIO_API_KEY` |
+| `biznetgio:baseUrl` | string | nggak | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
+
+```bash
+pulumi config set --secret biznetgio:apiToken <your-token>
+```
+
+Provider error kalau `apiToken` gak di-set lewat config atau environment.
+
+<AccordionGroup>
+  <Accordion title="Config getters di SDK">
+    <CodeGroup>
+      ```ts TypeScript
+      import * as biznetgio from "@shirasakaren/biznetgio";
+      const token = biznetgio.config.apiToken;
+      const baseUrl = biznetgio.config.baseUrl;
+      ```
+      ```python Python
+      import pulumi_biznetgio as biznetgio
+      token = biznetgio.config.api_token
+      base_url = biznetgio.config.base_url
+      ```
+      ```go Go
+      import bngcfg "github.com/shirasakaren/pulumi-biznetgio/sdk/go/pulumi-biznetgio/config"
+
+      token := bngcfg.GetApiToken(ctx)
+      baseURL := bngcfg.GetBaseUrl(ctx)
+      ```
+      ```csharp .NET
+      var cfg = new Pulumi.Config("biznetgio");
+      var token = cfg.RequireSecret("apiToken");
+      var baseUrl = cfg.Get("baseUrl");
+      ```
+      ```java Java
+      var cfg = ctx.config();
+      var token = cfg.requireSecret("biznetgio:apiToken");
+      var baseUrl = cfg.get("biznetgio:baseUrl");
+      ```
+    </CodeGroup>
+  </Accordion>
+</AccordionGroup>
+
+## Base URLs
+
+| Environment | Base URL |
+| --- | --- |
+| Production | `https://api.portal.biznetgio.com/v1` |
+| Staging | `https://api.portal.biznetgio.dev/v1` |
+
+Dua-duanya default kalau `base_url` / `baseUrl` kosong. Arahin ke staging dengan set variable, contoh `export BIZNETGIO_BASE_URL="https://api.portal.biznetgio.dev/v1"`.
+
+## Jaga token lu
+
+- `api_key` dan `apiToken` ditandai sensitive; gak pernah muncul di plans, diffs, atau outputs.
+- Output `raw` di setiap resource udah di-redact: value di bawah keys kayak `password`, `private_key`, `secret_key`, `token`, dan `pem` dimask jadi `***` sebelum masuk state.
+- Secrets yang API kasih cuma sekali (private key keypair, S3 secret keys) disimpen di state lintas refresh - lindungi state file lu pake secure backend.
+
+<Warning>
+  Token ini pegang kontrol penuh akun lu. Jangan pernah commit ke version control; pake secret manager (Terraform Cloud variables, Pulumi ESC, SOPS, Vault) buat CI/CD.
+</Warning>

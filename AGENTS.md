@@ -15,18 +15,27 @@
 
 ## Terminology
 
-- "NEO Lite" and "NEO Lite Pro" (capitalized, space-separated) — the VPS products; code-level identifiers are `neolite` / `neolite_pro`
-- "NEO Metal" — bare-metal; "NEO GPU" — GPU instances; "NEO Object Storage" — S3-compatible storage; "NES" — NEO Elastic Storage
+- "NEO Lite" and "NEO Lite Pro" (capitalized, space-separated) - the VPS products; code-level identifiers are `neolite` / `neolite_pro`
+- "NEO Metal" - bare-metal; "NEO GPU" - GPU instances; "NEO Object Storage" - S3-compatible storage; "NES" - NEO Elastic Storage
 - API token, not API key, in prose (config attribute is `api_key` / `apiToken`)
 - Attribute names in code formatting (`disk_size`), Terraform snake_case vs Pulumi camelCase (`diskSize`) as appropriate
+
+## Localization
+
+- Two languages: English (default) and Indonesian (`id/` folder).
+- `docs.json` declares both under `navigation.languages`; every page must exist
+  in both languages with the same relative path (`index.mdx` ↔ `id/index.mdx`).
+- Indonesian pages: casual gen-z tone, short sentences; technical terms stay
+  in English inside backticks. Code blocks are identical across languages.
+- No em-dashes anywhere in either language.
 
 ## Style preferences
 
 - Active voice, second person ("you")
 - Sentence case headings; one idea per sentence
-- Reference pages use tables for schemas — tables carry the detail, prose stays short
+- Reference pages use tables for schemas - tables carry the detail, prose stays short
 - Frontmatter `title` + `description` on every page; descriptions are one sentence
-- Real links only — no placeholders anywhere
+- Real links only - no placeholders anywhere
 
 ## Content boundaries
 

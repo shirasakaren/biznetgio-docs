@@ -1,0 +1,75 @@
+---
+title: "Triggers dan aksi"
+description: "Aksi one-shot dan power state declarative di kedua provider"
+---
+
+Beberapa operasi API itu aksi sekali jalan yang gak punya "get" idempotent - reset, rebuild, migrasi, reservasi jam. Kedua provider nge-model ini sebagai **trigger strings**: aksinya ke-fire cuma pas value-nya *berubah*, dan buat fire lagi, ganti value-nya lagi.
+
+## One-shot triggers
+
+| Aksi | Terraform attribute | Pulumi input | Resource |
+| --- | --- | --- | --- |
+| Reset / reboot | `reset_trigger` | `resetTrigger` | baremetal |
+| OS rebuild (wipe + reinstall) | `rebuild_os` | `rebuildOs` | baremetal, neolite VM, neolite pro VM |
+| GPU OS rebuild | `rebuild_trigger` | `rebuildTrigger` | gpu instance |
+| GPU reserve jam tambahan | `reserve_additional_hours_trigger` | `reserveAdditionalHoursTrigger` | gpu instance |
+| Migrasi ke NEO Lite Pro | `migrate_to_pro` | `migrateToPro` | neolite VM |
+
+### Terraform
+
+```hcl
+resource "biznetgio_neolite_vm" "main" {
+  # ...
+  rebuild_os = "ubuntu-22"   # fires once, when the value changes
+}
+```
+
+Buat rebuild lagi, ganti value-nya - pola umumnya pake timestamp atau counter:
+
+```hcl
+  rebuild_os = "ubuntu-22#${timestamp()}"
+```
+
+<Warning>
+  Rebuild nge-wipe disk VM. Pake dengan sadar.
+</Warning>
+
+### Pulumi
+
+```typescript
+const vm = new biznetgio.NeoliteVm("demo-vm", {
+  // ...
+  rebuildOs: "ubuntu-22",   // fires when this string changes
+});
+```
+
+Ganti string-nya buat fire lagi - contohnya `rebuildOs: "ubuntu-22-" + Date.now()` (di-compute pas program di-evaluate).
+
+## Declarative power state
+
+Aksi power itu *declarative*, bukan trigger: provider manggil API cuma pas state yang diinginkan beda.
+
+| Service | Values | Terraform | Pulumi |
+| --- | --- | --- | --- |
+| NEO Lite / Pro | `start` `stop` `suspend` `resume` `shutdown` | `power_state` | `powerState` |
+| NEO Metal | `on` `off` | `power_state` | `powerState` |
+
+```hcl
+resource "biznetgio_neolite_vm" "main" {
+  # ...
+  power_state = "stop"
+}
+```
+
+```typescript
+const vm = new biznetgio.NeoliteVm("demo-vm", {
+  // ...
+  powerState: "stop",
+});
+```
+
+Kalau portal (atau orang lain) ngubah power state di luar, apply/up berikutnya bakal nyetel ulang.
+
+## Data sources yang nge-side-effect
+
+`gpu_console` / `gpuConsole` mint session console one-time baru di setiap read. Anggep ini aksi, bukan lookup: referensikan di tempat yang butuh session fresh, dan jangan pernah di dalam value yang di-evaluate pas plan diffing.

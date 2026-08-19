@@ -1,12 +1,12 @@
 ---
 title: "Object Storage (Pulumi)"
-description: "Pulumi resources and functions for NEO Object Storage"
+description: "Resource dan function Pulumi buat NEO Object Storage"
 ---
 
-NEO Object Storage is Biznet GIO's S3-compatible storage (`/object-storages` API group). The provider manages the subscription, buckets, S3 credentials, and individual objects through the control-plane API.
+NEO Object Storage itu storage S3-compatible punya Biznet GIO (`/object-storages` API group). Provider manage subscription, bucket, kredensial S3, dan objek individual lewat API control-plane.
 
 <Info>
-  Every create/upgrade places a **real paid order**. Quota upgrades are grow-only and bill the increment.
+  Setiap create/upgrade bikin **order berbayar beneran**. Upgrade quota cuma bisa naik dan ditagih increment.
 </Info>
 
 ## `biznetgio:index:ObjectStorage`
@@ -144,12 +144,12 @@ NEO Object Storage is Biznet GIO's S3-compatible storage (`/object-storages` API
 | --- | --- | --- | --- |
 | `productId` | int64 | yes | |
 | `cycle` | string | yes | `m a q s b t p4 p5` |
-| `label` | string | yes | 6-16 chars, `[a-zA-Z0-9-_]`; create-only |
-| `quota` | int64 | no | default `10` GB, grow-only |
+| `label` | string | yes | 6-16 char, `[a-zA-Z0-9-_]`; create-only |
+| `quota` | int64 | no | default `10` GB, cuma bisa naik |
 | `promocode` | string | no | create-only |
 | `payWithCreditCard` | bool | no | default `true` |
 
-Outputs: `orderId`, `status` (`Active`/`Pending`/`Suspended`/`Terminated`), `raw` (secret). Reads error if the instance status is `terminated`. Import with the numeric account id.
+Outputs: `orderId`, `status` (`Active`/`Pending`/`Suspended`/`Terminated`), `raw` (secret). Read error kalau status instance `terminated`. Import pake numeric account id.
 
 ## `biznetgio:index:ObjectStorageBucket`
 
@@ -216,11 +216,11 @@ Outputs: `orderId`, `status` (`Active`/`Pending`/`Suspended`/`Terminated`), `raw
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `accountId` | string | yes | instance account id |
-| `name` | string | yes | min 3 chars, `[a-zA-Z0-9-_]`; immutable |
-| `acl` | string | no | default `""`; one of `private`, `public-read`, `public-read-write`, `authenticated-read`, `log-delivery-write` |
+| `accountId` | string | yes | account id instance |
+| `name` | string | yes | min 3 char, `[a-zA-Z0-9-_]`; immutable |
+| `acl` | string | no | default `""`; salah satu dari `private`, `public-read`, `public-read-write`, `authenticated-read`, `log-delivery-write` |
 
-Output: `raw` (secret). Composite id `<accountId>:<name>`; only `acl` updates in place.
+Output: `raw` (secret). Composite id `<accountId>:<name>`; cuma `acl` yang update in place.
 
 ## `biznetgio:index:ObjectStorageCredential`
 
@@ -291,15 +291,15 @@ Output: `raw` (secret). Composite id `<accountId>:<name>`; only `acl` updates in
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `accountId` | string | yes | |
-| `active` | bool | no | default `true`; update toggles enable/disable |
+| `active` | bool | no | default `true`; update toggle enable/disable |
 
-Outputs: `accessKey` (secret - returned once at create), `secretKey` (secret - shown only once; last state value kept on refresh), `raw` (secret).
+Outputs: `accessKey` (secret - return sekali pas create), `secretKey` (secret - ditampilin cuma sekali; value state terakhir dipertahankan saat refresh), `raw` (secret).
 
-Composite id `<accountId>:<16-hex sha256 prefix of accessKey>` - the plaintext access key never appears in the id; deletion resolves the key from the credentials list.
+Composite id `<accountId>:<16-hex sha256 prefix of accessKey>` - access key plaintext gak pernah muncul di id; delete resolve key dari list credentials.
 
 ## `biznetgio:index:ObjectStorageObject`
 
-Exactly one of `source` or `content` must be set - validation fails otherwise.
+Harus set tepat satu dari `source` atau `content` - kalau nggak, validation gagal.
 
 <Tabs>
   <Tab title="TypeScript">
@@ -378,27 +378,27 @@ Exactly one of `source` or `content` must be set - validation fails otherwise.
 | --- | --- | --- | --- |
 | `accountId` | string | yes | |
 | `bucket` | string | yes | |
-| `key` | string | yes | object path (directory + filename) |
-| `source` | string | no | local file path; one-of with `content` |
-| `content` | string, secret | no | inline content; one-of with `source` |
-| `acl` | string | no | default `""`; same canned values as bucket ACL |
+| `key` | string | yes | path objek (directory + filename) |
+| `source` | string | no | path file lokal; one-of sama `content` |
+| `content` | string, secret | no | konten inline; one-of sama `source` |
+| `acl` | string | no | default `""`; canned values sama kayak bucket ACL |
 
-Output: `raw` (secret). Composite id `<accountId>:<bucket>:<key>`; content changes replace the object, only `acl` updates in place.
+Output: `raw` (secret). Composite id `<accountId>:<bucket>:<key>`; ganti content = ganti objek, cuma `acl` yang update in place.
 
 <Note>
-  This resource is **not** suited to large objects or bulk sync. For real workloads, use S3-compatible tooling (AWS CLI, rclone, SDKs) with the credential from `ObjectStorageCredential` - Biznet GIO publishes per-region S3 endpoints of the form `nos.<region>.neo.id`.
+  Resource ini **gak** cocok buat objek gede atau bulk sync. Buat workload beneran, pake tooling S3-compatible (AWS CLI, rclone, SDKs) dengan credential dari `ObjectStorageCredential` - Biznet GIO publish S3 endpoint per-region berbentuk `nos.<region>.neo.id`.
 </Note>
 
 ## Functions
 
 ### `biznetgio:index:objectStorageInstances`
 
-Argument `status` (optional filter). Returns `instances`: `id`, `label`, `status`, `productId`, `quota`, `raw` (secret).
+Argument `status` (filter optional). Return `instances`: `id`, `label`, `status`, `productId`, `quota`, `raw` (secret).
 
 ### `biznetgio:index:objectStorageBuckets`
 
-Argument `accountId` (string). Returns `buckets`: `name`, `acl`, `raw` (secret).
+Argument `accountId` (string). Return `buckets`: `name`, `acl`, `raw` (secret).
 
 ### `biznetgio:index:objectStorageCredentials`
 
-Argument `accountId` (string). Returns `credentials`: `accessKey` (secret), `active`. Secret keys are never returned.
+Argument `accountId` (string). Return `credentials`: `accessKey` (secret), `active`. Secret key gak pernah di-return.

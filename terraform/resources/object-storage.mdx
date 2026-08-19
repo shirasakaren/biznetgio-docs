@@ -74,14 +74,14 @@ resource "biznetgio_object_storage_credential" "main" {
 
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
-| `id` | string | computed | `<account_id>:<16-hex sha256 prefix of access_key>` — the plaintext access key is never stored in the id |
+| `id` | string | computed | `<account_id>:<16-hex sha256 prefix of access_key>` - the plaintext access key is never stored in the id |
 | `account_id` | string | required | |
 | `access_key` | string | computed, sensitive | returned once at create |
 | `secret_key` | string | computed, sensitive | shown only once; preserved from state on refresh |
 | `active` | bool | optional | default `true`; update toggles enable/disable |
 | `raw` | string | computed, sensitive | |
 
-**Import ID format:** `<account_id>:<access_key>` — the access key may be given literally or in its 16-hex hashed form.
+**Import ID format:** `<account_id>:<access_key>` - the access key may be given literally or in its 16-hex hashed form.
 
 ## `biznetgio_object_storage_object`
 
@@ -111,7 +111,7 @@ resource "biznetgio_object_storage_object" "index" {
 Content changes replace the object; only `acl` updates in place.
 
 <Note>
-  This resource is **not** suited to large objects or bulk sync. For real workloads, use S3-compatible tooling (AWS CLI, rclone, SDKs) with the credential from `biznetgio_object_storage_credential` — Biznet GIO publishes per-region S3 endpoints of the form `nos.<region>.neo.id`.
+  This resource is **not** suited to large objects or bulk sync. For real workloads, use S3-compatible tooling (AWS CLI, rclone, SDKs) with the credential from `biznetgio_object_storage_credential` - Biznet GIO publishes per-region S3 endpoints of the form `nos.<region>.neo.id`.
 </Note>
 
 **Import ID format:** `<account_id>:<bucket>:<key>`, e.g. `terraform import biznetgio_object_storage_object.index 12345:my-assets:site/index.html`.

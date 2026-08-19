@@ -1,0 +1,137 @@
+---
+title: "Object Storage (Terraform)"
+description: "Resource dan data source Terraform buat NEO Object Storage"
+---
+
+NEO Object Storage itu storage S3-compatible-nya Biznet GIO (`/object-storages` API group). Provider manage subscription-nya, buckets, S3 credentials, sama object per-item lewat control-plane API.
+
+<Info>
+  Setiap create/upgrade bikin **order berbayar beneran**. Upgrade quota cuma bisa naik dan nge-billing increment-nya.
+</Info>
+
+## `biznetgio_object_storage`
+
+Instance Object Storage yang ke-subscribe (S3 tenant). Quota cuma bisa naik; update ngirim increment.
+
+```hcl
+resource "biznetgio_object_storage" "example" {
+  product_id           = 8
+  cycle                = "m"
+  label                = "data-archive"
+  quota                = 10
+  pay_with_credit_card = true
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | sama dengan numeric `account_id` |
+| `product_id` | int64 | required | create-only |
+| `cycle` | string | required | `m a q s b t p4 p5`; create-only |
+| `label` | string | required | 6-16 char, `[a-zA-Z0-9\-_]`; create-only |
+| `quota` | int64 | optional | default `10` GB, minimal 10, cuma bisa naik |
+| `promocode` | string | optional | create-only |
+| `pay_with_credit_card` | bool | optional | default `true` |
+| `order_id` | string | computed | |
+| `status` | string | computed | `Active` / `Pending` / `Suspended` / `Terminated` |
+| `raw` | string | computed, sensitive | |
+| `timeouts` | block | optional | create/update/delete |
+
+Import pake numeric account id.
+
+## `biznetgio_object_storage_bucket`
+
+Bucket di dalam instance. Cuma ACL yang bisa diubah.
+
+```hcl
+resource "biznetgio_object_storage_bucket" "assets" {
+  account_id = biznetgio_object_storage.example.id
+  name       = "my-assets"
+  acl        = "private"
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | composite `<account_id>:<bucket_name>` |
+| `account_id` | string | required | account id instance |
+| `name` | string | required | min 3 char, `[a-zA-Z0-9\-_]`; immutable |
+| `acl` | string | optional | default `""`; salah satu dari `private`, `public-read`, `public-read-write`, `authenticated-read`, `log-delivery-write` |
+| `raw` | string | computed, sensitive | |
+
+**Format Import ID:** `<account_id>:<bucket_name>`, contohnya `terraform import biznetgio_object_storage_bucket.assets 12345:my-assets`.
+
+## `biznetgio_object_storage_credential`
+
+Sepasang S3 access/secret key. Secret key cuma muncul sekali pas create dan gak bisa di-fetch lagi.
+
+```hcl
+resource "biznetgio_object_storage_credential" "main" {
+  account_id = biznetgio_object_storage.example.id
+  active     = true   # set false to disable without deleting
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | `<account_id>:<16-hex sha256 prefix dari access_key>` - access key plaintext-nya gak pernah disimpen di id |
+| `account_id` | string | required | |
+| `access_key` | string | computed, sensitive | return sekali pas create |
+| `secret_key` | string | computed, sensitive | muncul cuma sekali; dipertahanin dari state pas refresh |
+| `active` | bool | optional | default `true`; update buat enable/disable |
+| `raw` | string | computed, sensitive | |
+
+**Format Import ID:** `<account_id>:<access_key>` - access key boleh ditulis langsung atau pake bentuk hashed 16-hex-nya.
+
+## `biznetgio_object_storage_object`
+
+Wrapper praktis buat upload satu object lewat control-plane API. Salah satu dari `source` atau `content` wajib diisi.
+
+```hcl
+resource "biznetgio_object_storage_object" "index" {
+  account_id = biznetgio_object_storage.example.id
+  bucket     = biznetgio_object_storage_bucket.assets.name
+  key        = "site/index.html"
+  source     = "./index.html"
+  acl        = "public-read"
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | composite `<account_id>:<bucket>:<key>` |
+| `account_id` | string | required | |
+| `bucket` | string | required | |
+| `key` | string | required | path object |
+| `source` | string | optional | path file lokal; one-of sama `content` |
+| `content` | string | optional, sensitive | content inline; one-of sama `source` |
+| `acl` | string | optional | default `""`; nilai canned sama kayak ACL bucket |
+| `raw` | string | computed, sensitive | |
+
+Ganti content = replace object; cuma `acl` yang update in place.
+
+<Note>
+  Resource ini **bukan** buat object gede atau bulk sync. Buat workload beneran, pake tooling S3-compatible (AWS CLI, rclone, SDKs) dengan credential dari `biznetgio_object_storage_credential` - Biznet GIO punya S3 endpoint per-region dengan format `nos.<region>.neo.id`.
+</Note>
+
+**Format Import ID:** `<account_id>:<bucket>:<key>`, contohnya `terraform import biznetgio_object_storage_object.index 12345:my-assets:site/index.html`.
+
+## Data sources
+
+### `biznetgio_object_storage_instances`
+
+```hcl
+data "biznetgio_object_storage_instances" "all" {
+  status = "Active"   # optional filter: Active | Pending | Suspended | Terminated
+}
+```
+
+Item `instances`: `id`, `label`, `status`, `product_id`, `quota`, `raw`.
+
+### `biznetgio_object_storage_buckets`
+
+Bucket di dalam instance (argument `account_id` wajib). Item: `name`, `acl`, `raw`.
+
+### `biznetgio_object_storage_credentials`
+
+Credential sebuah instance (argument `account_id` wajib). Item: `access_key` (sensitive), `active`. Secret keys gak pernah di-return.

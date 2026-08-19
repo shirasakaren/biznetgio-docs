@@ -1,0 +1,118 @@
+---
+title: "NEO GPU (Terraform)"
+description: "Resource dan data source Terraform buat instance NEO GPU"
+---
+
+NEO GPU nyewain instance NVIDIA H200 lewat API group `/neo-gpus`, dibayar per subscription cycle atau on-demand (per jam). Satu instance cuma pake satu billing mode.
+
+<Info>
+  Setiap create bikin **order berbayar beneran**. Instance on-demand nambah tagihan per jam sampe ke-delete.
+</Info>
+
+## `biznetgio_gpu_instance`
+
+```hcl
+data "biznetgio_gpu_products" "all" {}
+
+resource "biznetgio_gpu_keypair" "main" {
+  name = "gpu-key"
+}
+
+resource "biznetgio_gpu_instance" "example" {
+  product_id           = data.biznetgio_gpu_products.all.products[0].product_id
+  select_os            = "ubuntu-22"
+  keypair_id           = biznetgio_gpu_keypair.main.keypair_id
+  service_name         = "neo-gpu-1"
+  ssh_and_console_user = "root"
+  console_password     = "s3cretP4ssw0rd"
+  pay_with_credit_card = true
+
+  subscription {
+    cycle = "m"
+  }
+
+  # one-shot actions (change value to fire):
+  # rebuild_trigger = "rebuild-1"
+  # reserve_additional_hours_trigger = "reserve-1"
+}
+```
+
+Buat billing per jam, ganti `subscription` dengan:
+
+```hcl
+  on_demand {
+    additional_hours = 0
+  }
+```
+
+Salah satu dari `subscription` atau `on_demand` wajib diisi - kalau gak, validation gagal.
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | sama dengan GPU account id |
+| `product_id` | int64 | required | dari `biznetgio_gpu_products` |
+| `select_os` | string | required | dari katalog select-OS produk |
+| `keypair_id` | int64 | required | dari `biznetgio_gpu_keypair` |
+| `ssh_and_console_user` | string | required | |
+| `console_password` | string | required, sensitive | create-only |
+| `service_name` | string | optional | create-only |
+| `promocode` | string | optional | create-only |
+| `pay_with_credit_card` | bool | optional | default `true` |
+| `subscription` | block | optional | `cycle` (`m` / `a`); one-of sama `on_demand` |
+| `on_demand` | block | optional | `additional_hours` (default `0`); one-of sama `subscription` |
+| `rebuild_trigger` | string | optional | one-shot reinstall OS (destructive) |
+| `reserve_additional_hours_trigger` | string | optional | one-shot: reserve tambahan jam di instance on-demand |
+| `status` | string | computed | |
+| `order_id` | string | computed | |
+| `raw` | string | computed, sensitive | secrets di-redact |
+| `timeouts` | block | optional | create/update/delete |
+
+Import pake numeric account id.
+
+## `biznetgio_gpu_keypair`
+
+```hcl
+resource "biznetgio_gpu_keypair" "main" {
+  name = "gpu-key"
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | sama dengan `keypair_id` |
+| `name` | string | required | create-only |
+| `public_key` | string | computed | digenerate server |
+| `private_key` | string | computed, sensitive | return sekali pas create; disimpen di state |
+
+Update gak ngapa-ngapain. Import pake keypair id.
+
+## Data sources
+
+### `biznetgio_gpu_products`
+
+Katalog GPU dengan flavors per-produk. Item `products`: `product_id`, `name`, `description`, `category_name`, dan `flavors` (`flavor_id`, `name`).
+
+### `biznetgio_gpu_console`
+
+Bikin session akses console buat instance.
+
+```hcl
+data "biznetgio_gpu_console" "console" {
+  account_id = biznetgio_gpu_instance.example.id
+}
+```
+
+Return `url` (sensitive). **Side-effecting:** setiap read bisa bikin session baru - jangan dipake di tempat yang ke-evaluate pas plan diffs.
+
+### `biznetgio_gpu_graph`
+
+Data graph monitoring buat instance.
+
+```hcl
+data "biznetgio_gpu_graph" "graph" {
+  account_id = biznetgio_gpu_instance.example.id
+  timeframe  = "hour"   # hour | day | week | month | year
+}
+```
+
+Return `graph` dan `raw` (sensitive).

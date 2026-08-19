@@ -1,12 +1,12 @@
 ---
 title: "NEO Metal (Pulumi)"
-description: "Pulumi resources and functions for NEO Metal bare-metal servers"
+description: "Resource dan function Pulumi buat server bare-metal NEO Metal"
 ---
 
-NEO Metal dedicated servers (`/baremetals` API group) plus their add-ons: additional (floating) IPs and NEO Elastic Storage.
+Server dedicated NEO Metal (`/baremetals` API group) plus add-onnya: additional (floating) IP dan NEO Elastic Storage.
 
 <Info>
-  Every create/upgrade places a **real paid order**. Read the [billing guide](/guides/billing) for `cycle` values and `payWithCreditCard` semantics.
+  Setiap create/upgrade bikin **order berbayar beneran**. Baca [panduan billing](/guides/billing) buat nilai `cycle` dan semantics `payWithCreditCard`.
 </Info>
 
 ## `biznetgio:index:Baremetal`
@@ -206,19 +206,19 @@ NEO Metal dedicated servers (`/baremetals` API group) plus their add-ons: additi
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | from `baremetalProducts` |
-| `cycle` | string | yes | `m` monthly / `a` annual |
+| `productId` | int64 | yes | dari `baremetalProducts` |
+| `cycle` | string | yes | `m` bulanan / `a` tahunan |
 | `selectOs` | string | no | default `ubuntu-22`; create-only |
-| `keypairId` | int64 | yes | from `BaremetalKeypair`; create-only |
-| `label` | string | yes | display name - the only updatable input |
+| `keypairId` | int64 | yes | dari `BaremetalKeypair`; create-only |
+| `label` | string | yes | nama tampilan - satu-satunya input yang bisa di-update |
 | `publicIp` | int64 | no | default `1`; create-only |
 | `promocode` | string | no | create-only |
 | `payWithCreditCard` | bool | no | default `true` |
-| `powerState` | string | no | `on` / `off`; API called only on change |
-| `resetTrigger` | string | no | one-shot reset; change value to re-fire |
-| `rebuildOs` | string | no | destructive rebuild; valid values from `baremetalRebuildOsList` |
+| `powerState` | string | no | `on` / `off`; API dipanggil cuma pas berubah |
+| `resetTrigger` | string | no | one-shot reset; ganti value buat re-fire |
+| `rebuildOs` | string | no | rebuild (destructive); value valid dari `baremetalRebuildOsList` |
 
-Outputs: `status`, `orderId`, `ipAddress`, `createdAt`, `raw` (secret, redacted). Import with the numeric account id.
+Outputs: `status`, `orderId`, `ipAddress`, `createdAt`, `raw` (secret, di-redact). Import pake numeric account id.
 
 ## `biznetgio:index:BaremetalKeypair`
 
@@ -280,9 +280,9 @@ Outputs: `status`, `orderId`, `ipAddress`, `createdAt`, `raw` (secret, redacted)
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `name` | string | yes | |
-| `publicKey` | string | no | set → imported via the import endpoint; empty → server-generated |
+| `publicKey` | string | no | di-set → di-import via endpoint import; kosong → digenerate server |
 
-Outputs: `keypairId`, `privateKey` (secret - create response only, preserved across refreshes), `raw` (secret). No update.
+Outputs: `keypairId`, `privateKey` (secret - cuma ada di response create, dipertahankan saat refresh), `raw` (secret). Gak ada update.
 
 ## `biznetgio:index:BaremetalAdditionalIp`
 
@@ -349,13 +349,13 @@ Outputs: `keypairId`, `privateKey` (secret - create response only, preserved acr
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | from `GET /baremetal-additional-ips/products` |
+| `productId` | int64 | yes | dari `GET /baremetal-additional-ips/products` |
 | `cycle` | string | yes | `m` / `a` |
-| `region` | string | no | default `wjv-1`; from `GET /baremetal-additional-ips/regions` |
+| `region` | string | no | default `wjv-1`; dari `GET /baremetal-additional-ips/regions` |
 | `promocode` | string | no | |
 | `payWithCreditCard` | bool | no | default `true` |
 
-Outputs: `status`, `ipAddress`, `createdAt`, `raw` (secret). No update - input changes replace the resource.
+Outputs: `status`, `ipAddress`, `createdAt`, `raw` (secret). Gak ada update - perubahan input ganti resourcenya.
 
 ## `biznetgio:index:BaremetalAdditionalIpAssignment`
 
@@ -416,10 +416,10 @@ Outputs: `status`, `ipAddress`, `createdAt`, `raw` (secret). No update - input c
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `additionalIpId` | int64 | yes | from `BaremetalAdditionalIp` |
-| `metalAccountId` | int64 | yes | target server |
+| `additionalIpId` | int64 | yes | dari `BaremetalAdditionalIp` |
+| `metalAccountId` | int64 | yes | server target |
 
-Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpId>`; reassigning = replace.
+Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpId>`; reassign = replace.
 
 ## `biznetgio:index:BaremetalElasticStorage`
 
@@ -498,11 +498,11 @@ Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpI
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | change triggers change-package |
+| `productId` | int64 | yes | ganti = trigger change-package |
 | `cycle` | string | yes | `m` / `a` |
 | `storageName` | string | yes | |
-| `metalAccountId` | int64 | yes | create-only - no re-attach endpoint |
-| `size` | int64 | no | default `100` GB, grow-only |
+| `metalAccountId` | int64 | yes | create-only - gak ada endpoint re-attach |
+| `size` | int64 | no | default `100` GB, cuma bisa naik |
 | `promocode` | string | no | |
 | `payWithCreditCard` | bool | no | default `true` |
 
@@ -512,12 +512,12 @@ Outputs: `status`, `createdAt`, `raw` (secret). Update: `size` → upgrade, `pro
 
 ### `biznetgio:index:baremetalProducts`
 
-No arguments. Returns `products`: `productId`, `name`, `description`, `raw` (secret).
+Gak ada argument. Return `products`: `productId`, `name`, `description`, `raw` (secret).
 
 ### `biznetgio:index:baremetalRebuildOsList`
 
-Argument `accountId` (int64). Returns `oss` (string[]) and `raw` (secret) - valid values for `rebuildOs`.
+Argument `accountId` (int64). Return `oss` (string[]) dan `raw` (secret) - value valid buat `rebuildOs`.
 
 ### `biznetgio:index:baremetalOpenvpn`
 
-No arguments. Returns `config` (secret) and `raw` (secret) - out-of-band OpenVPN access configuration.
+Gak ada argument. Return `config` (secret) dan `raw` (secret) - konfigurasi akses OpenVPN out-of-band.

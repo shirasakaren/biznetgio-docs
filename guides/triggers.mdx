@@ -3,7 +3,7 @@ title: "Triggers and actions"
 description: "One-shot actions and declarative power state in both providers"
 ---
 
-Some API operations are one-off actions with no idempotent "get" — reset, rebuild, migration, hour reservation. Both providers model these as **trigger strings**: the action fires only when the value *changes*, and you re-fire it by changing the value again.
+Some API operations are one-off actions with no idempotent "get" - reset, rebuild, migration, hour reservation. Both providers model these as **trigger strings**: the action fires only when the value *changes*, and you re-fire it by changing the value again.
 
 ## One-shot triggers
 
@@ -24,7 +24,7 @@ resource "biznetgio_neolite_vm" "main" {
 }
 ```
 
-To rebuild again, change the value — a common pattern is timestamps or counters:
+To rebuild again, change the value - a common pattern is timestamps or counters:
 
 ```hcl
   rebuild_os = "ubuntu-22#${timestamp()}"
@@ -43,7 +43,7 @@ const vm = new biznetgio.NeoliteVm("demo-vm", {
 });
 ```
 
-Change the string to re-fire — e.g. `rebuildOs: "ubuntu-22-" + Date.now()` (computed at program evaluation).
+Change the string to re-fire - e.g. `rebuildOs: "ubuntu-22-" + Date.now()` (computed at program evaluation).
 
 ## Declarative power state
 

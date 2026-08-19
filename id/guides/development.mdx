@@ -1,9 +1,9 @@
 ---
 title: "Development"
-description: "Build, test, and contribute to the Biznet GIO providers"
+description: "Cara build, test, dan kontribusi ke provider Biznet GIO"
 ---
 
-Both providers are Go projects maintained in separate repositories. This guide covers the local development workflow for each.
+Kedua provider itu project Go yang di-maintain di repo terpisah. Guide ini bahas workflow development lokal buat masing-masing.
 
 ## Terraform provider
 
@@ -20,11 +20,11 @@ make testacc      # acceptance tests (TF_ACC=1, hits the real API, 120m timeout)
 make generate     # regenerate docs/ with terraform-plugin-docs
 ```
 
-Point Terraform at a development binary via `dev_overrides` in your CLI config file (see [Installation](/terraform/installation) for an example).
+Arahin Terraform ke binary development lewat `dev_overrides` di file config CLI lu (cek [Installation](/terraform/installation) buat contohnya).
 
-Layout: `internal/provider/` (resources, data sources, provider schema), `internal/biznetgio/` (API client), `examples/` (provider/resource/data-source examples used to generate docs), `docs/` (generated reference).
+Struktur: `internal/provider/` (resources, data sources, schema provider), `internal/biznetgio/` (API client), `examples/` (contoh provider/resource/data-source yang dipake buat generate docs), `docs/` (referensi hasil generate).
 
-Acceptance tests need `BIZNETGIO_API_KEY` exported; creates place **real orders** on the account.
+Acceptance tests butuh `BIZNETGIO_API_KEY` di-export; create bakal ngebuat **order beneran** di akun.
 
 ## Pulumi provider
 
@@ -40,18 +40,18 @@ make test_provider      # provider unit tests
 make build_nodejs       # regenerate + build the TypeScript SDK
 ```
 
-Layout: `provider/` (resources, functions, config), `provider/client/` (API client), `sdk/` (generated nodejs/python/go/dotnet/java SDKs), `examples/` (one program per language against the local SDK), `tests/` (unit tests).
+Struktur: `provider/` (resources, functions, config), `provider/client/` (API client), `sdk/` (SDK nodejs/python/go/dotnet/java hasil generate), `examples/` (satu program per bahasa yang ngarah ke SDK lokal), `tests/` (unit tests).
 
-Local development uses the language SDKs in `sdk/<lang>` - point example projects at them via `file:../../sdk/nodejs/bin` (Node) or `pip install -e sdk/python`.
+Development lokal pake SDK bahasa di `sdk/<lang>` - arahin contoh project ke situ lewat `file:../../sdk/nodejs/bin` (Node) atau `pip install -e sdk/python`.
 
 ## API reference
 
-Both providers wrap the [Biznet GIO Portal API](https://api.portal.biznetgio.com/v1/docs). The staging environment (`https://api.portal.biznetgio.dev/v1`) is available for testing new endpoints.
+Kedua provider nge-wrap [Biznet GIO Portal API](https://api.portal.biznetgio.com/v1/docs). Environment staging (`https://api.portal.biznetgio.dev/v1`) tersedia buat testing endpoint baru.
 
 ## Contributing
 
-Open issues and pull requests in the respective repository:
+Buka issues dan pull requests di repo masing-masing:
 
 - [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio)
 - [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio)
-- [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs) (this site)
+- [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs) (situs ini)

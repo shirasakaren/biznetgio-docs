@@ -1,0 +1,51 @@
+---
+title: "Billing dan order"
+description: "Gimana cycle, promocode, dan charge kartu kredit jalan di kedua provider"
+---
+
+Setiap call create dan upgrade di provider ini ngebuat **order berbayar beneran** di akun Biznet GIO lu. Gak ada mode dry-run.
+
+## Nilai `cycle`
+
+| Value | Meaning | Where |
+| --- | --- | --- |
+| `m` | bulanan | semua service |
+| `a` | tahunan | semua service |
+| `q` | kuartalan | NEO Lite / Lite Pro, Object Storage |
+| `s` | 6 bulanan | NEO Lite / Lite Pro, Object Storage |
+| `b` | 2 tahunan | NEO Lite / Lite Pro, Object Storage |
+| `t` | 3 tahunan | NEO Lite / Lite Pro, Object Storage |
+| `p4` / `p5` | prepay 4 tahun / 5 tahun | NEO Lite / Lite Pro, Object Storage |
+
+NEO Metal dan NEO GPU cuma nerima `m` dan `a`. Instance GPU bisa billing per jam lewat mode on-demand (block `on_demand` / input `onDemand`) sebagai ganti cycle.
+
+## `pay_with_credit_card`
+
+Kedua provider default `pay_with_credit_card` / `payWithCreditCard` ke `true`: invoice order langsung di-charge ke kartu kredit lu.
+
+Set ke `false` buat order tanpa bayar:
+
+- Resource ke-create tapi tetep `Pending` sampe invoice dibayar di [portal](https://portal.biznetgio.com).
+- Provider polling `Active` dan bakal nunggu (sampe create timeout) pembayaran.
+- Resource yang nyangkut `Pending` lewat timeout munculin create error dengan partial state; setelah lu bayar di portal, apply/up berikutnya lanjut.
+
+## Promocode
+
+Pass `promocode` (Terraform) / `promocode` (Pulumi) pas create buat apply promo portal. Promocode create-only - ganti promocode berarti resource di-replace.
+
+## Sizing yang cuma bisa naik
+
+Atribut yang nyimpen storage cuma bisa naik; nyusutin gagal validasi:
+
+| Resource | Attribute | Unit | Upgrade API call |
+| --- | --- | --- | --- |
+| NEO Lite / Pro VM | `disk_size` / `diskSize` | GB (target absolut) | change-storage |
+| NEO Lite / Pro disk | `size` | GB | ngirim **increment** |
+| NEO Elastic Storage | `size` | GB | upgrade (increment) |
+| Object Storage | `quota` | GB | ngirim **increment** |
+
+Buat nyusutin, lu harus recreate resource-nya (server/disk/instance sama datanya kehapus).
+
+## Output `raw` dan invoice
+
+Setiap resource nge-export output secret `raw` - JSON response API terakhir, dengan credential di-redact. Detail invoice juga muncul di resource VM: `last_invoice` (Terraform) / `lastInvoice` (Pulumi) bawa `id`, `status`, `date`, `duedate`, `paybefore`, `datepaid`, dan `invoice_type`.

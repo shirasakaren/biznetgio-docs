@@ -94,7 +94,7 @@ resource "biznetgio_neolite_keypair" "main" {
 | `public_key` | string | computed | server-generated |
 | `private_key` | string | computed, sensitive | returned once at create; preserved in state |
 
-Updates are rejected — change `name` to recreate. Import with the keypair id. Keypairs are per-service: NEO Lite keypairs cannot be used on NEO Lite Pro, NEO Metal, or NEO GPU.
+Updates are rejected - change `name` to recreate. Import with the keypair id. Keypairs are per-service: NEO Lite keypairs cannot be used on NEO Lite Pro, NEO Metal, or NEO GPU.
 
 ## `biznetgio_neolite_snapshot`
 
@@ -194,7 +194,7 @@ Import with the disk account id.
 
 ### `biznetgio_neolite_products`
 
-The product catalog — use it to fill `product_id`.
+The product catalog - use it to fill `product_id`.
 
 ```hcl
 data "biznetgio_neolite_products" "all" {}
@@ -204,7 +204,7 @@ data "biznetgio_neolite_products" "all" {}
 
 ### `biznetgio_neolite_os_list`
 
-Available OS images for a product — use `oss[].name` to fill `select_os`.
+Available OS images for a product - use `oss[].name` to fill `select_os`.
 
 ```hcl
 data "biznetgio_neolite_os_list" "ubuntu" {

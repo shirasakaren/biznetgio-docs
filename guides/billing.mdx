@@ -31,7 +31,7 @@ Set it to `false` to place the order without paying:
 
 ## Promocodes
 
-Pass `promocode` (Terraform) / `promocode` (Pulumi) at creation to apply a portal promo. Promocodes are create-only — changing one replaces the resource.
+Pass `promocode` (Terraform) / `promocode` (Pulumi) at creation to apply a portal promo. Promocodes are create-only - changing one replaces the resource.
 
 ## Grow-only sizing
 
@@ -48,4 +48,4 @@ To shrink, you must recreate the resource (which deletes the server/disk/instanc
 
 ## `raw` outputs and invoices
 
-Every resource exports a `raw` secret output — the last API response JSON, with credentials redacted. Invoice details also surface on VM resources: `last_invoice` (Terraform) / `lastInvoice` (Pulumi) carries `id`, `status`, `date`, `duedate`, `paybefore`, `datepaid`, and `invoice_type`.
+Every resource exports a `raw` secret output - the last API response JSON, with credentials redacted. Invoice details also surface on VM resources: `last_invoice` (Terraform) / `lastInvoice` (Pulumi) carries `id`, `status`, `date`, `duedate`, `paybefore`, `datepaid`, and `invoice_type`.

@@ -1,0 +1,87 @@
+---
+title: "FAQ"
+description: "Pertanyaan umum dan troubleshooting buat provider Biznet GIO"
+---
+
+## Konfigurasi
+
+<AccordionGroup>
+  <Accordion title="Provider bilang API key ilang">
+    Terraform: set `api_key` di block provider atau export `BIZNETGIO_API_KEY`. Pulumi: jalanin `pulumi config set --secret biznetgio:apiToken <token>` atau export `BIZNETGIO_API_KEY`. Token dikeluarin dari [portal](https://portal.biznetgio.com) - cek [Authentication](/authentication).
+  </Accordion>
+
+  <Accordion title="Bisa arahin provider ke staging API?">
+    Bisa. Set `BIZNETGIO_BASE_URL=https://api.portal.biznetgio.dev/v1` (`base_url` Terraform / `biznetgio:baseUrl` Pulumi bisa override per-konfigurasi).
+  </Accordion>
+
+  <Accordion title="Kenapa resource gue nyangkut di `Pending`?">
+    Invoice yang belum dibayar bikin resource tetep `Pending`. Dengan `pay_with_credit_card = false`, order ke-place tanpa bayar - bayar di [portal](https://portal.biznetgio.com), terus jalanin apply/up lagi; provider lanjut polling. Cek [Billing](/guides/billing).
+  </Accordion>
+</AccordionGroup>
+
+## Secrets dan state
+
+<AccordionGroup>
+  <Accordion title="Private key keypair / secret key S3 gue ilang">
+    API cuma ngembaliin value itu sekali, pas create. Kedua provider nyimpennya di state walau ke-refresh. Kalau ilang dari state (misal abis import baru), gak bisa di-recover - bikin keypair/credential baru.
+  </Accordion>
+
+  <Accordion title="Value secret bocor ke plans atau diffs?">
+    Gak. `api_key`/`apiToken`, password, dan key material di-mark sensitive, dan semua output JSON `raw` di-redact - value di bawah key kayak `password`, `private_key`, `secret_key`, `token`, dan `pem` di-mask jadi `***` sebelum masuk state.
+  </Accordion>
+
+  <Accordion title="Output `raw` buat apa?">
+    `raw` nyimpen JSON response API terakhir (di-redact). API upstream gak publish schema response buat beberapa endpoint, jadi `raw` itu escape hatch buat apa pun yang gak ke-model - contohnya data source change-package dan storage-upgrade options cuma expose `raw`.
+  </Accordion>
+</AccordionGroup>
+
+## Resource
+
+<AccordionGroup>
+  <Accordion title="Bisa pake satu keypair di banyak service?">
+    Gak. Pool keypair itu per-service (NEO Lite, NEO Lite Pro, NEO Metal, NEO GPU), dan id-nya gak bisa dituker-tuker. Bikin satu resource keypair per service.
+  </Accordion>
+
+  <Accordion title="Gimana ganti OS dari VM yang lagi jalan?">
+    Pake aksi rebuild: `rebuild_os` / `rebuildOs` di NEO Lite/Pro/Metal, atau `rebuild_trigger` / `rebuildTrigger` di GPU. Ini destructive - disk-nya ke-wipe. Cek [Triggers](/guides/triggers).
+  </Accordion>
+
+  <Accordion title="Gimana migrasi VM NEO Lite ke NEO Lite Pro?">
+    Set `migrate_to_pro` / `migrateToPro` di NEO Lite VM ke `product_id` NEO Lite Pro target. Itu aksi one-shot - ganti value-nya buat fire lagi.
+  </Accordion>
+
+  <Accordion title="Kenapa nyusutin disk atau quota ditolak?">
+    Storage cuma bisa naik di API ini. Recreate resource buat nyusutin (data kehapus).
+  </Accordion>
+
+  <Accordion title="Harusnya manage objects lewat object resource?">
+    Cuma buat upload kecil sekali-sekali. Jalur upload control-plane emang gak dibikin buat data gede - pake tooling S3-compatible dengan credential resource ke endpoint `nos.<region>.neo.id`.
+  </Accordion>
+
+  <Accordion title="Produk apa aja yang gak di-cover provider ini?">
+    Semua yang gak punya portal API publik: NEO Virtual Compute, NEO Kubernetes, NEO DNS, domains, web hosting, NEO Sense, GIO Private, GIO Enterprise Cloud, dan produk backup. Manage dari [portal](https://portal.biznetgio.com) atau CLI resmi (`npx @biznetgio/cli`).
+  </Accordion>
+</AccordionGroup>
+
+## Operasi
+
+<AccordionGroup>
+  <Accordion title="Berapa lama create?">
+    Mayoritas create polling tiap 5 detik sampe resource lapor `Active` - biasanya 1-5 menit, di-cap sama create timeout (default 20m di Terraform).
+  </Accordion>
+
+  <Accordion title="Update Pulumi gue timeout - aman gak buat retry?">
+    Aman. Pas timeout, provider ngembaliin error initialization dengan partial state, dan `pulumi up` berikutnya lanjut dari posisi terakhir.
+  </Accordion>
+
+  <Accordion title="Data source GPU console kelakuannya aneh pas preview">
+    `gpuConsole` mint session baru di setiap read - itu aksi, bukan lookup murni. Jauhkan dari value yang di-evaluate pas plan diffing.
+  </Accordion>
+</AccordionGroup>
+
+## Dukungan
+
+- Dukungan Biznet GIO: [support@biznetgio.com](mailto:support@biznetgio.com)
+- Issue Terraform provider: [github.com/shirasakaren/terraform-provider-biznetgio/issues](https://github.com/shirasakaren/terraform-provider-biznetgio/issues)
+- Issue Pulumi provider: [github.com/shirasakaren/pulumi-biznetgio/issues](https://github.com/shirasakaren/pulumi-biznetgio/issues)
+- Issue dokumentasi: [github.com/shirasakaren/biznetgio-docs/issues](https://github.com/shirasakaren/biznetgio-docs/issues)

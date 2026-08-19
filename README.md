@@ -1,6 +1,6 @@
 # BiznetGIO Providers Docs
 
-Documentation for the [Biznet GIO](https://biznetgio.com) cloud providers — Terraform and Pulumi — built with [Mintlify](https://mintlify.com).
+Documentation for the [Biznet GIO](https://biznetgio.com) cloud providers - Terraform and Pulumi - built with [Mintlify](https://mintlify.com).
 
 - Deployed at: https://biznetgio.creations.ren
 - Terraform provider: https://github.com/shirasakaren/terraform-provider-biznetgio
@@ -8,12 +8,13 @@ Documentation for the [Biznet GIO](https://biznetgio.com) cloud providers — Te
 
 ## Structure
 
-- `docs.json` — site configuration (navigation, branding, links)
-- `index.mdx`, `quickstart.mdx`, `pulumi-quickstart.mdx`, `authentication.mdx` — getting started
-- `terraform/` — Terraform provider reference (installation, resources per service, importing)
-- `pulumi/` — Pulumi provider reference (installation, resources per service, importing)
-- `guides/` — billing, triggers, development, FAQ
-- `logo/` + `favicon.svg` — brand assets
+- `docs.json` - site configuration (navigation, branding, links)
+- `index.mdx`, `quickstart.mdx`, `pulumi-quickstart.mdx`, `authentication.mdx` - getting started
+- `terraform/` - Terraform provider reference (installation, resources per service, importing)
+- `pulumi/` - Pulumi provider reference (installation, resources per service, importing)
+- `guides/` - billing, triggers, development, FAQ
+- `id/` - Indonesian translations of every page (gen-z casual tone)
+- `logo/` + `favicon.svg` - brand assets
 
 ## Development
 
@@ -37,4 +38,4 @@ Changes pushed to the default branch deploy automatically via the Mintlify GitHu
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE).
+Apache-2.0 - see [LICENSE](LICENSE).

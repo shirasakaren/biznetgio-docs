@@ -1,12 +1,12 @@
 ---
 title: "NEO Lite Pro (Pulumi)"
-description: "Pulumi resources and functions for NEO Lite Pro VPS"
+description: "Resource dan function Pulumi buat VPS NEO Lite Pro"
 ---
 
-NEO Lite Pro is the premium VPS tier (`/neolite-pros` API group). The resource set mirrors NEO Lite with its own keypair, snapshot, and disk pools, and no `migrateToPro` (Pro is the migration *destination*).
+NEO Lite Pro itu tier VPS premium (`/neolite-pros` API group). Set resourcenya mirip NEO Lite dengan pool keypair, snapshot, dan disk sendiri, plus gak ada `migrateToPro` (Pro itu *tujuan* migrasi).
 
 <Info>
-  Every create/upgrade places a **real paid order**. Read the [billing guide](/guides/billing) for `cycle` values and `payWithCreditCard` semantics.
+  Setiap create/upgrade bikin **order berbayar beneran**. Baca [panduan billing](/guides/billing) buat nilai `cycle` dan semantics `payWithCreditCard`.
 </Info>
 
 ## `biznetgio:index:NeoliteProVm`
@@ -228,29 +228,29 @@ NEO Lite Pro is the premium VPS tier (`/neolite-pros` API group). The resource s
   </Tab>
 </Tabs>
 
-Identical inputs to [`NeoliteVm`](/pulumi/resources/neolite#biznetgioindexneolitevm) minus `migrateToPro`:
+Input identik sama [`NeoliteVm`](/pulumi/resources/neolite#biznetgioindexneolitevm) minus `migrateToPro`:
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `sshAndConsoleUser` | string | yes | |
 | `consolePassword` | string, secret | yes | write-only |
-| `productId` | int64 | yes | from `neoliteProProducts`; change triggers change-package |
-| `selectOs` | string | yes | from `neoliteProOsList` |
-| `keypairId` | int64 | yes | from `NeoliteProKeypair`; change triggers change-keypair |
+| `productId` | int64 | yes | dari `neoliteProProducts`; ganti = trigger change-package |
+| `selectOs` | string | yes | dari `neoliteProOsList` |
+| `keypairId` | int64 | yes | dari `NeoliteProKeypair`; ganti = trigger change-keypair |
 | `cycle` | string | yes | `m a q s b t p4 p5` |
-| `vmName` | string | no | default `server-name`; updatable |
+| `vmName` | string | no | default `server-name`; bisa di-update |
 | `description` | string | no | default `""` |
 | `payWithCreditCard` | bool | no | default `true` |
 | `promocode` | string | no | default `""` |
 | `powerState` | string | no | `start` / `stop` / `suspend` / `resume` / `shutdown` |
-| `rebuildOs` | string | no | one-shot destructive reinstall |
-| `diskSize` | int64 | no | absolute GB target, grow-only |
+| `rebuildOs` | string | no | one-shot reinstall (destructive) |
+| `diskSize` | int64 | no | target GB absolut, cuma bisa naik |
 
-Outputs identical to `NeoliteVm` (including `lastInvoice` and redacted `raw`). Import with the numeric account id.
+Outputs identik sama `NeoliteVm` (termasuk `lastInvoice` dan `raw` di-redact). Import pake numeric account id.
 
 ## `biznetgio:index:NeoliteProKeypair`
 
-Same shape as [`NeoliteKeypair`](/pulumi/resources/neolite#biznetgioindexneolitekeypair), in the Pro pool:
+Bentuknya sama kayak [`NeoliteKeypair`](/pulumi/resources/neolite#biznetgioindexneolitekeypair), di pool Pro:
 
 <Tabs>
   <Tab title="TypeScript">
@@ -301,11 +301,11 @@ Same shape as [`NeoliteKeypair`](/pulumi/resources/neolite#biznetgioindexneolite
   </Tab>
 </Tabs>
 
-Input `name`; outputs `keypairId`, `publicKey`, `privateKey` (secret, once). No update.
+Input `name`; outputs `keypairId`, `publicKey`, `privateKey` (secret, sekali). Gak ada update.
 
 ## `biznetgio:index:NeoliteProSnapshot`
 
-Same shape as [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolitesnapshot):
+Bentuknya sama kayak [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolitesnapshot):
 
 <Tabs>
   <Tab title="TypeScript">
@@ -368,11 +368,11 @@ Same shape as [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolit
   </Tab>
 </Tabs>
 
-Inputs `neoliteAccountId` (required), `cycle` (required), `name` (default `snapshot-name`), `description`, `payWithCreditCard` (default `true`), `promocode`; outputs `orderId`, `status`. No update.
+Inputs `neoliteAccountId` (required), `cycle` (required), `name` (default `snapshot-name`), `description`, `payWithCreditCard` (default `true`), `promocode`; outputs `orderId`, `status`. Gak ada update.
 
 ## `biznetgio:index:NeoliteProDisk`
 
-Same shape as [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedisk) with a 30 GB minimum/default:
+Bentuknya sama kayak [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedisk) dengan minimum/default 30 GB:
 
 <Tabs>
   <Tab title="TypeScript">
@@ -447,28 +447,28 @@ Same shape as [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedis
   </Tab>
 </Tabs>
 
-Upgrades send the increment (`additional_size`); shrinking errors.
+Upgrade ngirim increment (`additional_size`); ngecilin error.
 
 ## Functions
 
-All five mirror the NEO Lite functions against `/neolite-pros`:
+Semua lima nge-mirror function NEO Lite ke `/neolite-pros`:
 
 ### `biznetgio:index:neoliteProProducts`
 
-No arguments. Same nested structure as `neoliteProducts` (`options`, `billing`, `components`, `prices`).
+Gak ada argument. Struktur nested sama kayak `neoliteProducts` (`options`, `billing`, `components`, `prices`).
 
 ### `biznetgio:index:neoliteProOsList`
 
-Argument `productId`; returns `oss` (`vmid`, `node`, `name`, `maxmem`, `maxcpu`).
+Argument `productId`; return `oss` (`vmid`, `node`, `name`, `maxmem`, `maxcpu`).
 
 ### `biznetgio:index:neoliteProChangePackageOptions`
 
-Argument `accountId`; returns `raw` (secret).
+Argument `accountId`; return `raw` (secret).
 
 ### `biznetgio:index:neoliteProStorageUpgradeOptions`
 
-Argument `accountId`; returns `raw` (secret).
+Argument `accountId`; return `raw` (secret).
 
 ### `biznetgio:index:neoliteProIPAvailability`
 
-Argument `productId`; returns `available` (bool).
+Argument `productId`; return `available` (bool).

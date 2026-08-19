@@ -1,20 +1,20 @@
 ---
 title: "Quickstart (Pulumi)"
-description: "Order a NEO Lite VM with the Biznet GIO Pulumi provider"
+description: "Order VM NEO Lite pake provider Pulumi Biznet GIO"
 ---
 
-From zero to a running NEO Lite VM in about five minutes, in any supported language.
+Dari nol sampe VM NEO Lite jalan, kurleb lima menit, di bahasa apa pun yang lu suka.
 
-## Prerequisites
+## Prasyarat
 
-- [Pulumi CLI](https://www.pulumi.com/docs/iac/cli/) installed
-- A [Biznet GIO](https://biznetgio.com) account
-- An API token - see [Authentication](/authentication)
+- [Pulumi CLI](https://www.pulumi.com/docs/iac/cli/) keinstall
+- Akun [Biznet GIO](https://biznetgio.com)
+- API token - liat [Authentication](/authentication)
 
-## Get started
+## Gas
 
 <Steps>
-  <Step title="Create a project">
+  <Step title="Bikin proyek">
     ```bash
     mkdir biznetgio-demo && cd biznetgio-demo
     pulumi new typescript
@@ -48,20 +48,20 @@ From zero to a running NEO Lite VM in about five minutes, in any supported langu
         ```
       </Tab>
       <Tab title="YAML">
-        No SDK needed - YAML programs use the provider directly.
+        Gak butuh SDK - program YAML langsung pake providernya.
       </Tab>
     </Tabs>
   </Step>
 
-  <Step title="Set your API token">
+  <Step title="Set API token lu">
     ```bash
     pulumi config set --secret biznetgio:apiToken <your-token>
     ```
 
-    Alternatively export `BIZNETGIO_API_KEY`.
+    Atau export `BIZNETGIO_API_KEY`.
   </Step>
 
-  <Step title="Write the program">
+  <Step title="Tulis programnya">
     <Tabs>
       <Tab title="TypeScript">
         ```typescript
@@ -290,32 +290,32 @@ From zero to a running NEO Lite VM in about five minutes, in any supported langu
     pulumi up
     ```
 
-    Confirm with `yes`. Creating the VM places a real order on your account; the provider polls until the VM reports `Active` (typically 1-5 minutes).
+    Konfirmasi dengan `yes`. Bikin VM artinya order beneran di akun lu; provider polling sampe VM lapor `Active` (biasanya 1-5 menit).
   </Step>
 
-  <Step title="Verify">
+  <Step title="Verifikasi">
     ```bash
     pulumi stack output vmStatus
     ```
 
-    You should see `"Active"`. Your VM is also visible under NEO Lite in the [portal](https://portal.biznetgio.com).
+    Harusnya keliatan `"Active"`. VM lu juga keliatan di bagian NEO Lite di [portal](https://portal.biznetgio.com).
   </Step>
 
-  <Step title="Clean up">
+  <Step title="Beresin">
     ```bash
     pulumi destroy
     ```
 
-    Destroying the VM resource deletes the server.
+    Destroy resource VM berarti hapus servernya.
   </Step>
 </Steps>
 
-## Next steps
+## Lanjut ke mana
 
-- [Pulumi installation](/pulumi/installation) - all five language SDKs and configuration
-- [NEO Lite resources](/pulumi/resources/neolite) - every NEO Lite resource and function
-- [Billing](/guides/billing) - how orders and payment work
+- [Instalasi Pulumi](/pulumi/installation) - kelima bahasa SDK dan konfigurasi
+- [Resource NEO Lite](/pulumi/resources/neolite) - semua resource dan function NEO Lite
+- [Billing](/guides/billing) - gimana order dan pembayaran kerja
 
 <Tip>
-  Stuck? Open an issue on the [provider repository](https://github.com/shirasakaren/pulumi-biznetgio), or contact Biznet GIO support at [support@biznetgio.com](mailto:support@biznetgio.com).
+  Nyangkut? Buka issue di [repository provider](https://github.com/shirasakaren/pulumi-biznetgio), atau kontak support Biznet GIO di [support@biznetgio.com](mailto:support@biznetgio.com).
 </Tip>

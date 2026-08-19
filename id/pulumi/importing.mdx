@@ -1,9 +1,9 @@
 ---
-title: "Importing (Pulumi)"
-description: "Bring existing Biznet GIO resources into a Pulumi stack"
+title: "Import (Pulumi)"
+description: "Bawa resource Biznet GIO yang udah ada ke dalam stack Pulumi"
 ---
 
-Every resource supports `pulumi import` with the resource's account id - or a composite id for bucket/credential/object/assignment resources.
+Semua resource support `pulumi import` pake account id resource-nya - atau composite id buat resource bucket/credential/object/assignment.
 
 ## Import
 
@@ -11,7 +11,7 @@ Every resource supports `pulumi import` with the resource's account id - or a co
 pulumi import biznetgio:index:NeoliteVm demo-vm 12345
 ```
 
-This writes a matching resource declaration into your stack and adopts the live resource. Run `pulumi preview` afterwards and fix any input diffs.
+Ini nulis deklarasi resource yang cocok ke stack lu dan adopt resource yang lagi live. Jalanin `pulumi preview` setelahnya dan fix input diffs yang ada.
 
 ## ID formats
 
@@ -35,11 +35,11 @@ This writes a matching resource declaration into your stack and adopts the live 
 | `biznetgio:index:GpuKeypair` | `<keypair_id>` |
 | `biznetgio:index:ObjectStorage` | `<account_id>` |
 | `biznetgio:index:ObjectStorageBucket` | `<account_id>:<bucket_name>` |
-| `biznetgio:index:ObjectStorageCredential` | `<account_id>:<access_key>` (literal or 16-hex hashed form) |
+| `biznetgio:index:ObjectStorageCredential` | `<account_id>:<access_key>` (literal atau bentuk hash 16-hex) |
 | `biznetgio:index:ObjectStorageObject` | `<account_id>:<bucket>:<key>` |
 
 <Note>
-  Keypair ids are not interchangeable across services - a NEO Lite keypair id imports into `NeoliteKeypair` only.
+  Keypair id gak bisa dituker antar service - keypair id NEO Lite cuma bisa di-import ke `NeoliteKeypair`.
 </Note>
 
 ## Composite id examples
@@ -59,5 +59,5 @@ pulumi import biznetgio:index:ObjectStorageObject index 12345:my-assets:site/ind
 ```
 
 <Warning>
-  Importing a credential stores the **hashed** form of the access key in the id (`<account_id>:<sha256(access_key)>[:16]`) - the plaintext key is never written to state.
+  Import credential nyimpen bentuk **hashed** dari access key di id (`<account_id>:<sha256(access_key)>[:16]`) - key plaintext gak pernah ditulis ke state.
 </Warning>

@@ -1,12 +1,12 @@
 ---
 title: "NEO Lite (Pulumi)"
-description: "Pulumi resources and functions for NEO Lite VPS"
+description: "Resource dan function Pulumi buat VPS NEO Lite"
 ---
 
-NEO Lite resources under the `biznetgio` package (`/neolites` API group). The typical flow chains catalog functions into a create: `neoliteProducts` → `neoliteOsList` → `NeoliteKeypair` → `NeoliteVm`.
+Resource NEO Lite di bawah package `biznetgio` (API group `/neolites`). Alur biasa ngerangkai function katalog ke create: `neoliteProducts` → `neoliteOsList` → `NeoliteKeypair` → `NeoliteVm`.
 
 <Info>
-  Every create/upgrade places a **real paid order**. Read the [billing guide](/guides/billing) for `cycle` values and `payWithCreditCard` semantics.
+  Setiap create/upgrade bikin **order berbayar beneran**. Baca [panduan billing](/guides/billing) buat nilai `cycle` dan semantics `payWithCreditCard`.
 </Info>
 
 ## `biznetgio:index:NeoliteVm`
@@ -243,24 +243,24 @@ NEO Lite resources under the `biznetgio` package (`/neolites` API group). The ty
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `sshAndConsoleUser` | string | yes | set at create |
-| `consolePassword` | string, secret | yes | write-only: never re-fetched from the API |
-| `productId` | int64 | yes | from `neoliteProducts`; change triggers change-package |
-| `selectOs` | string | yes | from `neoliteOsList`; OS change = rebuild |
-| `keypairId` | int64 | yes | from `NeoliteKeypair`; change triggers change-keypair |
+| `sshAndConsoleUser` | string | yes | di-set pas create |
+| `consolePassword` | string, secret | yes | write-only: gak pernah di-fetch ulang dari API |
+| `productId` | int64 | yes | dari `neoliteProducts`; ganti = trigger change-package |
+| `selectOs` | string | yes | dari `neoliteOsList`; ganti OS = rebuild |
+| `keypairId` | int64 | yes | dari `NeoliteKeypair`; ganti = trigger change-keypair |
 | `cycle` | string | yes | `m a q s b t p4 p5` |
-| `vmName` | string | no | default `server-name`; updatable via change-vm-name |
+| `vmName` | string | no | default `server-name`; bisa di-update via change-vm-name |
 | `description` | string | no | default `""` |
-| `payWithCreditCard` | bool | no | default `true`; `false` leaves the invoice unpaid |
+| `payWithCreditCard` | bool | no | default `true`; `false` = invoice gak dibayar |
 | `promocode` | string | no | default `""` |
-| `powerState` | string | no | `start` / `stop` / `suspend` / `resume` / `shutdown`; API called only on change |
-| `rebuildOs` | string | no | one-shot destructive OS reinstall |
-| `migrateToPro` | string | no | one-shot migration; value = NEO Lite Pro `productId` |
-| `diskSize` | int64 | no | absolute GB target, grow-only |
+| `powerState` | string | no | `start` / `stop` / `suspend` / `resume` / `shutdown`; API dipanggil cuma pas berubah |
+| `rebuildOs` | string | no | one-shot reinstall OS (destructive) |
+| `migrateToPro` | string | no | one-shot migrasi; value = `productId` NEO Lite Pro |
+| `diskSize` | int64 | no | target GB absolut, cuma bisa naik |
 
-Outputs: `orderId`, `status` (`Active`/`Pending`/`Suspended`/`Terminated`), `uptime`, `maxDisk`, `maxMem`, `mem`, `cpus`, `ciUser`, `ciPassword` (secret), `osName`, `region`, `regionLabel`, `nextDue`, `recurringAmount`, `billingcycle`, `productName`, `lastInvoice` (`id`, `paidId`, `status`, `date`, `duedate`, `paybefore`, `datepaid`, `invoiceType`), `raw` (secret, redacted).
+Outputs: `orderId`, `status` (`Active`/`Pending`/`Suspended`/`Terminated`), `uptime`, `maxDisk`, `maxMem`, `mem`, `cpus`, `ciUser`, `ciPassword` (secret), `osName`, `region`, `regionLabel`, `nextDue`, `recurringAmount`, `billingcycle`, `productName`, `lastInvoice` (`id`, `paidId`, `status`, `date`, `duedate`, `paybefore`, `datepaid`, `invoiceType`), `raw` (secret, di-redact).
 
-Import with `pulumi import biznetgio:index:NeoliteVm demo-vm <account_id>`.
+Import pake `pulumi import biznetgio:index:NeoliteVm demo-vm <account_id>`.
 
 ## `biznetgio:index:NeoliteKeypair`
 
@@ -320,9 +320,9 @@ Import with `pulumi import biznetgio:index:NeoliteVm demo-vm <account_id>`.
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `name` | string | yes | keypair name |
+| `name` | string | yes | nama keypair |
 
-Outputs: `keypairId`, `publicKey`, `privateKey` (secret - generated server-side, returned only at creation, preserved across refreshes). No update support. Keypairs are per-service: NEO Lite keypairs can't be used on Pro/Metal/GPU.
+Outputs: `keypairId`, `publicKey`, `privateKey` (secret - digenerate server-side, return sekali pas create, dipertahankan saat refresh). Gak ada update. Keypair itu per-service: keypair NEO Lite gak bisa dipake di Pro/Metal/GPU.
 
 ## `biznetgio:index:NeoliteSnapshot`
 
@@ -395,14 +395,14 @@ Outputs: `keypairId`, `publicKey`, `privateKey` (secret - generated server-side,
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `neoliteAccountId` | int64 | yes | VM to snapshot |
+| `neoliteAccountId` | int64 | yes | VM yang di-snapshot |
 | `cycle` | string | yes | `m a q s b t p4 p5` |
 | `name` | string | no | default `snapshot-name` |
 | `description` | string | no | default `""` |
 | `payWithCreditCard` | bool | no | default `true` |
 | `promocode` | string | no | default `""` |
 
-Outputs: `orderId`, `status`. No update - any input change replaces the snapshot.
+Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti snapshotnya.
 
 ## `biznetgio:index:NeoliteVmFromSnapshot`
 
@@ -493,7 +493,7 @@ Outputs: `orderId`, `status`. No update - any input change replaces the snapshot
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `snapshotId` | int64 | yes | from `NeoliteSnapshot` |
+| `snapshotId` | int64 | yes | dari `NeoliteSnapshot` |
 | `productId` | int64 | yes | |
 | `cycle` | string | yes | |
 | `keypairId` | int64 | yes | |
@@ -504,7 +504,7 @@ Outputs: `orderId`, `status`. No update - any input change replaces the snapshot
 | `promocode` | string | no | default `""` |
 | `payWithCreditCard` | bool | no | default `true` |
 
-Outputs: `orderId`, `status`. **Deleting this resource deletes the restored VM - never the snapshot.** No update support.
+Outputs: `orderId`, `status`. **Hapus resource ini = hapus VM hasil restore - bukan snapshotnya.** Gak ada update.
 
 ## `biznetgio:index:NeoliteDisk`
 
@@ -583,25 +583,25 @@ Outputs: `orderId`, `status`. **Deleting this resource deletes the restored VM -
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | from `/neolites/disks/products` |
+| `productId` | int64 | yes | dari `/neolites/disks/products` |
 | `cycle` | string | yes | |
-| `neoliteAccountId` | int64 | yes | target VM |
+| `neoliteAccountId` | int64 | yes | VM target |
 | `serviceName` | string | no | default `service-name` |
-| `size` | int64 | no | default `60` GB, grow-only |
+| `size` | int64 | no | default `60` GB, cuma bisa naik |
 | `promocode` | string | no | |
 | `payWithCreditCard` | bool | no | default `true` |
 
-Outputs: `orderId`, `status`, `raw` (secret). Update upgrades size only - the API receives the increment (`newSize - oldSize`), not the absolute target; shrinking errors.
+Outputs: `orderId`, `status`, `raw` (secret). Update cuma upgrade size - API nerima increment (`newSize - oldSize`), bukan target absolut; ngecilin error.
 
 ## Functions
 
 ### `biznetgio:index:neoliteProducts`
 
-No arguments. Returns `products`: `productId`, `name`, `description`, `categoryId`, `categoryName`, `options` (`type`, `cores`, `memory`, `allowDowngrade`), `billing` (`label`, `cycle`, `price`, `components` with per-quantity `prices`).
+Gak ada argument. Return `products`: `productId`, `name`, `description`, `categoryId`, `categoryName`, `options` (`type`, `cores`, `memory`, `allowDowngrade`), `billing` (`label`, `cycle`, `price`, `components` dengan `prices` per-quantity).
 
 ### `biznetgio:index:neoliteOsList`
 
-Argument `productId` (int64). Returns `oss`: `vmid`, `node`, `name` (use for `selectOs`), `maxmem`, `maxcpu`.
+Argument `productId` (int64). Return `oss`: `vmid`, `node`, `name` (pake buat `selectOs`), `maxmem`, `maxcpu`.
 
 <Tabs>
   <Tab title="TypeScript">
@@ -665,12 +665,12 @@ Argument `productId` (int64). Returns `oss`: `vmid`, `node`, `name` (use for `se
 
 ### `biznetgio:index:neoliteChangePackageOptions`
 
-Argument `accountId`. Returns `raw` (secret) - the upstream response is unmodeled and exported as JSON.
+Argument `accountId`. Return `raw` (secret) - response upstream belum ke-model dan di-export sebagai JSON.
 
 ### `biznetgio:index:neoliteStorageUpgradeOptions`
 
-Argument `accountId`. Returns `raw` (secret).
+Argument `accountId`. Return `raw` (secret).
 
 ### `biznetgio:index:neoliteIPAvailability`
 
-Argument `productId`. Returns `available` (bool).
+Argument `productId`. Return `available` (bool).
