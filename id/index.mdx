@@ -6,7 +6,7 @@ description: "Kelola infra Biznet GIO pake Terraform dan Pulumi"
 Biznet GIO itu cloud provider Indonesia yang punya VPS (NEO Lite), server bare-metal (NEO Metal), instance GPU (NEO GPU), dan object storage yang S3-compatible (NEO Object Storage).
 
 <Warning>
-  **Proyek komunitas, bukan official.** Provider dan dokumentasi ini dibangun oleh [Shirasaka Ren](/about) dan **tidak terafiliasi atau diendorse oleh PT Biznet Gio Nusantara** - Biznet GIO dan NEO adalah trademark masing-masing owner. Pakai dengan risiko sendiri; setiap create/upgrade bikin order berbayar beneran di akun lu.
+  **Proyek komunitas, bukan official.** Provider dan dokumentasi ini dibangun oleh [Shirasaka Ren](/id/about) dan **tidak terafiliasi atau diendorse oleh PT Biznet Gio Nusantara** - Biznet GIO dan NEO adalah trademark masing-masing owner. Pakai dengan risiko sendiri; setiap create/upgrade bikin order berbayar beneran di akun lu.
 </Warning>
 
 Situs ini dokumentasiin dua provider Infrastructure-as-Code yang ngewrap [Biznet GIO Portal API](https://api.portal.biznetgio.com/v1/docs):
@@ -15,6 +15,10 @@ Situs ini dokumentasiin dua provider Infrastructure-as-Code yang ngewrap [Biznet
 - **Pulumi** - provider `biznetgio` (native Go, `pulumi-go-provider`), SDK buat TypeScript, Python, Go, .NET, dan Java
 
 Dua-duanya share API surface yang sama, model authentication yang sama, dan semantics yang sama - tinggal pilih tools yang lu udah biasa.
+
+<Info>
+  **Baru banget di dunia ini?** Mulai dari [Infrastructure as Code tuh apa?](/id/what-is-iac), penjelasan IaC, Terraform, dan Pulumi dari nol.
+</Info>
 
 ## Yang bisa lu kelola
 
@@ -29,16 +33,22 @@ Dua-duanya share API surface yang sama, model authentication yang sama, dan sema
 Masing-masing provider punya **20 resources** dan **19 data sources / functions** buat lima API group ini. Produk yang gak punya public API (NEO Virtual Compute, NEO Kubernetes, NEO DNS, web hosting, GIO Private, GIO Enterprise Cloud, NEO Backup) di luar scope.
 
 <CardGroup cols={2}>
-  <Card title="Quickstart Terraform" icon="bolt" href="/quickstart">
+  <Card title="IaC tuh apa?" icon="graduation-cap" href="/id/what-is-iac">
+    Baru kenal infrastructure as code? Mulai dari sini biar dapet gambarannya.
+  </Card>
+  <Card title="Quickstart Terraform" icon="bolt" href="/id/quickstart">
     Bikin VM NEO Lite pake Terraform dalam kurleb lima menit.
   </Card>
-  <Card title="Quickstart Pulumi" icon="rocket" href="/pulumi-quickstart">
+  <Card title="Quickstart Pulumi" icon="rocket" href="/id/pulumi-quickstart">
     Bikin VM NEO Lite pake Pulumi dalam kurleb lima menit.
   </Card>
-  <Card title="Authentication" icon="key" href="/authentication">
+  <Card title="Authentication" icon="key" href="/id/authentication">
     API token, environment variables, dan cara request diautentikasi.
   </Card>
-  <Card title="Tentang author" icon="user" href="/about">
+  <Card title="Package registries" icon="package" href="/id/registries">
+    npm, PyPI, NuGet, Maven Central, Go, dan Terraform Registry dalam satu halaman.
+  </Card>
+  <Card title="Tentang author" icon="user" href="/id/about">
     Shirasaka Ren - yang bikin dan maintain provider ini, plus cara support karyanya.
   </Card>
   <Card title="API reference" icon="server" href="https://api.portal.biznetgio.com/v1/docs">
@@ -56,10 +66,10 @@ Masing-masing provider punya **20 resources** dan **19 data sources / functions*
 
 ## Lanjut ke mana
 
-- [Quickstart](/quickstart) - resource pertama pake Terraform
-- [Quickstart Pulumi](/pulumi-quickstart) - resource pertama pake Pulumi
-- [Authentication](/authentication) - ambil API token dari [portal](https://portal.biznetgio.com)
+- [Quickstart](/id/quickstart) - resource pertama pake Terraform
+- [Quickstart Pulumi](/id/pulumi-quickstart) - resource pertama pake Pulumi
+- [Authentication](/id/authentication) - ambil API token dari [portal](https://portal.biznetgio.com)
 
 <Warning>
-  Setiap panggilan create atau upgrade bikin **order berbayar beneran** di akun Biznet GIO lu. Baca [panduan billing](/guides/billing) dulu sebelum ngotomatisin apa-apa.
+  Setiap panggilan create atau upgrade bikin **order berbayar beneran** di akun Biznet GIO lu. Baca [panduan billing](/id/guides/billing) dulu sebelum ngotomatisin apa-apa.
 </Warning>

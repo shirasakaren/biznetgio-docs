@@ -28,7 +28,7 @@ resource "biznetgio_object_storage" "example" {
 | `id` | string | computed | equals numeric `account_id` |
 | `product_id` | int64 | required | create-only |
 | `cycle` | string | required | `m a q s b t p4 p5`; create-only |
-| `label` | string | required | 6–16 chars, `[a-zA-Z0-9\-_]`; create-only |
+| `label` | string | required | 6-16 chars, `[a-zA-Z0-9\-_]`; create-only |
 | `quota` | int64 | optional | default `10` GB, minimum 10, grow-only |
 | `promocode` | string | optional | create-only |
 | `pay_with_credit_card` | bool | optional | default `true` |

@@ -1,0 +1,100 @@
+---
+title: "Package registries"
+description: "Every registry the Biznet GIO providers are published to, with install commands"
+---
+
+One page with every package, every registry, and the exact install command for each. If a registry link exists here, the package is live there.
+
+## Terraform
+
+The Terraform provider is published on the [Terraform Registry](https://registry.terraform.io/providers/shirasakaren/biznetgio/latest).
+
+```hcl
+terraform {
+  required_providers {
+    biznetgio = {
+      source = "registry.terraform.io/shirasakaren/biznetgio"
+    }
+  }
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="Terraform Registry" icon="box" href="https://registry.terraform.io/providers/shirasakaren/biznetgio/latest">
+    Provider page with docs and install instructions.
+  </Card>
+  <Card title="Source code" icon="code" href="https://github.com/shirasakaren/terraform-provider-biznetgio">
+    GitHub repository for the provider.
+  </Card>
+</CardGroup>
+
+## Pulumi
+
+The Pulumi provider ships a plugin binary plus one SDK per language. The plugin downloads itself from GitHub Releases automatically on first use, so you only install the SDK.
+
+<Tabs>
+  <Tab title="TypeScript / Node.js">
+    Registry: [npm](https://www.npmjs.com/package/@shirasakaren/biznetgio)
+
+    ```bash
+    npm install @shirasakaren/biznetgio
+    ```
+  </Tab>
+  <Tab title="Python">
+    Registry: [PyPI](https://pypi.org/project/pulumi-biznetgio/)
+
+    ```bash
+    pip install pulumi-biznetgio
+    ```
+  </Tab>
+  <Tab title="Go">
+    Registry: [Go module](https://pkg.go.dev/github.com/shirasakaren/pulumi-biznetgio/sdk/go/pulumi-biznetgio) (resolved straight from GitHub)
+
+    ```bash
+    go get github.com/shirasakaren/pulumi-biznetgio/sdk/go/pulumi-biznetgio
+    ```
+  </Tab>
+  <Tab title=".NET">
+    Registry: [NuGet](https://www.nuget.org/packages/Shirasakaren.Biznetgio)
+
+    ```bash
+    dotnet add package Shirasakaren.Biznetgio
+    ```
+  </Tab>
+  <Tab title="Java">
+    Registry: [Maven Central](https://central.sonatype.com/artifact/ren.shirasaka/biznetgio)
+
+    ```groovy
+    // Gradle
+    implementation("ren.shirasaka:biznetgio")
+    ```
+  </Tab>
+</Tabs>
+
+<CardGroup cols={2}>
+  <Card title="Plugin binaries" icon="download" href="https://github.com/shirasakaren/pulumi-biznetgio/releases">
+    GitHub Releases with `pulumi-resource-biznetgio` for Linux, macOS, and Windows.
+  </Card>
+  <Card title="Pulumi Registry" icon="globe" href="https://www.pulumi.com/registry/packages/biznetgio">
+    Official package listing and API reference.
+  </Card>
+  <Card title="Source code" icon="code" href="https://github.com/shirasakaren/pulumi-biznetgio">
+    GitHub repository for the provider.
+  </Card>
+  <Card title="Docs source" icon="book-open" href="https://github.com/shirasakaren/biznetgio-docs">
+    GitHub repository for this documentation site.
+  </Card>
+</CardGroup>
+
+## Package names at a glance
+
+| Registry | Package | Version scheme |
+| --- | --- | --- |
+| Terraform Registry | `shirasakaren/biznetgio` | `x.y.z` |
+| npm | `@shirasakaren/biznetgio` | `x.y.z` |
+| PyPI | `pulumi-biznetgio` | `x.y.z` |
+| NuGet | `Shirasakaren.Biznetgio` | `x.y.z` |
+| Maven Central | `ren.shirasaka:biznetgio` | `x.y.z` |
+| Go module | `github.com/shirasakaren/pulumi-biznetgio/sdk/go/pulumi-biznetgio` | `vx.y.z` tag |
+
+All packages move in lockstep: one provider release publishes every registry at the same version. See [Development](/guides/development) for how releases work.

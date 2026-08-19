@@ -62,7 +62,7 @@ If `apiToken` is missing from both config and environment, the provider fails wi
 ## Provider behavior
 
 - HTTP requests use a 30-second timeout with up to 4 retries.
-- Create/update operations poll every 5 seconds until the resource reports `active` (typically 1–5 minutes).
+- Create/update operations poll every 5 seconds until the resource reports `active` (typically 1-5 minutes).
 - On timeout, the operation returns an initialization error with partial state - the next `pulumi up` resumes where it left off.
 
 <Accordion title="Building from source">

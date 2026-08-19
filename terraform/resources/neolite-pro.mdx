@@ -36,13 +36,13 @@ resource "biznetgio_neolite_pro_vm" "main" {
 | Name | Type | Mode | Notes |
 | --- | --- | --- | --- |
 | `id` | string | computed | equals `account_id` |
-| `ssh_and_console_user` | string | required | 6–32 chars, `[a-zA-Z0-9\-.]`; create-only |
+| `ssh_and_console_user` | string | required | 6-32 chars, `[a-zA-Z0-9\-.]`; create-only |
 | `console_password` | string | required, sensitive | ≥8 chars, alphanumeric with upper+lower+digit; create-only |
 | `product_id` | int64 | required | from `biznetgio_neolite_pro_products`; change triggers change-package |
 | `select_os` | string | required | from `biznetgio_neolite_pro_os_list`; create-only (OS change = `rebuild_os`) |
 | `keypair_id` | int64 | required | from `biznetgio_neolite_pro_keypair`; change triggers change-keypair |
 | `cycle` | string | required | `m a q s b t p4 p5`; create-only |
-| `vm_name` | string | optional | default `server-name`; 6–16 chars; updatable |
+| `vm_name` | string | optional | default `server-name`; 6-16 chars; updatable |
 | `description` | string | optional | default `""`; create-only |
 | `pay_with_credit_card` | bool | optional | default `true` |
 | `promocode` | string | optional | create-only |

@@ -1,0 +1,112 @@
+---
+title: "What is Infrastructure as Code?"
+description: "A beginner-friendly introduction to IaC, Terraform, and Pulumi"
+---
+
+New to managing servers with code? This page explains the whole idea from scratch: what Infrastructure as Code (IaC) is, why it beats clicking around in a portal, how Terraform and Pulumi work, and how to pick between them. No prior experience needed.
+
+## The problem IaC solves
+
+Without IaC, you provision cloud resources by hand: open a portal, click through forms to order a VPS, wait, repeat for every server, every disk, every keypair. It works, but:
+
+- **No record.** Nothing captures what you clicked last time, so recreating an environment means doing it all again from memory.
+- **No review.** Typos and wrong settings are easy to miss, and nothing is checked before it goes live.
+- **No repeatability.** Two environments drift apart because they were built by hand at different times.
+- **No automation.** Every change needs a human sitting at a browser.
+
+Infrastructure as Code fixes all four by describing your infrastructure in files that tools read and apply, the same way application code describes software.
+
+<Info>
+  Think of it like a recipe instead of cooking from memory. The recipe file is checked into git, anyone can read it, and everyone who follows it gets the same dish.
+</Info>
+
+## The core ideas
+
+Every IaC tool shares a small set of concepts:
+
+| Concept | What it means | Biznet GIO example |
+| --- | --- | --- |
+| **Resource** | One thing you want to exist | A NEO Lite VM, a keypair, an object storage bucket |
+| **Provider** | The plugin that talks to a specific cloud | `biznetgio`, which wraps the Biznet GIO Portal API |
+| **State** | The tool's memory of what it already created | Which VM belongs to which keypair, and their real ids |
+| **Declarative** | You describe the destination, not the journey | "A VM with Ubuntu 22.04", not "POST here, then poll there" |
+
+The workflow is always the same three steps:
+
+1. **Write** configuration files that describe what you want.
+2. **Plan** (Terraform) or **preview** (Pulumi): the tool compares your files against reality and shows what it would change.
+3. **Apply**: the tool calls the cloud API to make reality match your files, and records the result in state.
+
+## What is Terraform?
+
+[Terraform](https://developer.hashicorp.com/terraform) is an IaC tool from HashiCorp that uses its own configuration language, HCL. You write `.tf` files, run `terraform plan` to see changes, then `terraform apply` to make them.
+
+- **Language**: HCL, a purpose-built declarative language (not general purpose code)
+- **State**: stored in a state file, often shared with a team via a remote backend
+- **Ecosystem**: the [Terraform Registry](https://registry.terraform.io) hosts thousands of providers, including [this one](https://registry.terraform.io/providers/shirasakaren/biznetgio)
+- **Best fit**: teams that want one standard tool with the same workflow everywhere
+
+```hcl
+resource "biznetgio_neolite_vm" "web" {
+  vm_name  = "web-1"
+  # ... product, OS, keypair, billing settings
+}
+```
+
+## What is Pulumi?
+
+[Pulumi](https://www.pulumi.com) is an IaC tool that lets you write infrastructure in general purpose programming languages: TypeScript, Python, Go, C#, and Java.
+
+- **Language**: your language, with loops, functions, and types from day one
+- **State**: stored on the Pulumi Cloud service (or a self-hosted backend)
+- **Ecosystem**: the [Pulumi Registry](https://www.pulumi.com/registry) indexes packages, including [this one](https://www.pulumi.com/registry/packages/biznetgio)
+- **Best fit**: teams that want to share code, use abstractions, and write unit tests for their infrastructure
+
+```typescript
+const vm = new biznetgio.NeoliteVm("web", {
+  vmName: "web-1",
+  // ... product, OS, keypair, billing settings
+});
+```
+
+## Terraform vs Pulumi
+
+| | Terraform | Pulumi |
+| --- | --- | --- |
+| Language | HCL (declarative DSL) | TypeScript, Python, Go, C#, Java |
+| Preview command | `terraform plan` | `pulumi preview` |
+| Apply command | `terraform apply` | `pulumi up` |
+| State | file or backend | Pulumi Cloud or self-hosted |
+| Community | larger for HCL examples | stronger for code-first teams |
+| This provider | [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio) | [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio) |
+
+**How to choose**: if your team already writes a lot of Python, Go, or TypeScript, Pulumi fits naturally. If you prefer a minimal language built only for infrastructure, or your company standardizes on HCL, pick Terraform. Both providers here expose the same Biznet GIO resources, so you can switch tools without changing what you can manage.
+
+## How the Biznet GIO providers fit in
+
+Both providers wrap the same [Biznet GIO Portal API](https://api.portal.biznetgio.com/v1/docs). That means:
+
+- You order real services (VPS, bare metal, GPU, storage) through the same API the web portal uses.
+- You authenticate with an API token from the [portal](https://portal.biznetgio.com). See [Authentication](/authentication).
+- Creates and upgrades place real paid orders. Read the [billing guide](/guides/billing) before your first apply.
+
+## Glossary
+
+| Term | One-line meaning |
+| --- | --- |
+| IaC | Infrastructure as Code: describing servers and services in files |
+| HCL | HashiCorp Configuration Language, the Terraform language |
+| Provider | Plugin that translates your config into API calls for one cloud |
+| Resource | One thing under management (VM, keypair, bucket) |
+| Data source | Read-only lookup (product catalogs, OS lists) |
+| State | The tool's record of what it manages and the real ids it knows |
+| Plan / Preview | The before-applying diff between files and reality |
+| Apply / Up | The step that makes the API changes for real |
+| Drift | Reality changed outside the tool; the next plan shows it |
+
+## Next steps
+
+- [Quickstart (Terraform)](/quickstart) - order your first VM in about five minutes
+- [Quickstart (Pulumi)](/pulumi-quickstart) - same, with Pulumi
+- [Authentication](/authentication) - get an API token
+- [Package registries](/registries) - every place these providers are published

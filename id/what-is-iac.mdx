@@ -1,0 +1,112 @@
+---
+title: "Infrastructure as Code tuh apa?"
+description: "Kenalan sama IaC, Terraform, dan Pulumi dari nol"
+---
+
+Baru pertama kali ngurus server pake code? Halaman ini jelasin dari nol: apa itu Infrastructure as Code (IaC), kenapa lebih oke daripada klik-klik di portal, cara kerja Terraform dan Pulumi, dan gimana milihnya. Gak perlu pengalaman sebelumnya.
+
+## Masalah yang IaC selesaikan
+
+Tanpa IaC, lu provisioning resource cloud pake tangan: buka portal, klik-klik form buat order VPS, nunggu, terus ulang buat tiap server, tiap disk, tiap keypair. Bisa jalan, tapi:
+
+- **Gak ada catatan.** Gak ada yang nyimpen apa yang lu klik kemarin, jadi bikin ulang environment artinya ngulang semua dari ingatan.
+- **Gak ada review.** Typo dan setting yang salah gampang kelewat, gak ada yang ngecek sebelum live.
+- **Gak konsisten.** Dua environment beda-beda karena dibangun manual di waktu yang beda.
+- **Gak bisa diautomasi.** Tiap perubahan butuh orang yang duduk di depan browser.
+
+Infrastructure as Code beresin keempatnya dengan ngejelasin infrastruktur di file yang dibaca dan diapply sama tools, persis kayak application code ngejelasin software.
+
+<Info>
+  Anggep aja kayak resep masakan, bukan masak pake feeling. File resepnya masuk git, siapa aja bisa baca, dan semua yang ngikutin dapet masakan yang sama.
+</Info>
+
+## Ide intinya
+
+Semua tools IaC share beberapa konsep dasar:
+
+| Konsep | Artinya | Contoh di Biznet GIO |
+| --- | --- | --- |
+| **Resource** | Satu hal yang pengen lu buat | VM NEO Lite, keypair, bucket object storage |
+| **Provider** | Plugin yang ngomong ke cloud tertentu | `biznetgio`, yang wrap Biznet GIO Portal API |
+| **State** | Ingatan tools soal apa yang udah dia buat | VM mana pake keypair mana, plus id aslinya |
+| **Declarative** | Lu ngejelasin tujuannya, bukan perjalanannya | "VM dengan Ubuntu 22.04", bukan "POST ke sini, terus poll ke sana" |
+
+Workflow-nya selalu tiga langkah yang sama:
+
+1. **Tulis** file konfigurasi yang ngejelasin apa yang lu mau.
+2. **Plan** (Terraform) atau **preview** (Pulumi): tools bandingin file lu sama kenyataan, terus nunjukin apa yang bakal berubah.
+3. **Apply**: tools manggil API cloud biar kenyataan match sama file lu, terus nyimpen hasilnya di state.
+
+## Terraform tuh apa?
+
+[Terraform](https://developer.hashicorp.com/terraform) itu tools IaC dari HashiCorp yang pake bahasa konfigurasi sendiri, namanya HCL. Lu nulis file `.tf`, jalanin `terraform plan` buat liat perubahan, terus `terraform apply` buat benerin.
+
+- **Bahasa**: HCL, bahasa declarative yang memang dibikin buat ini (bukan general purpose)
+- **State**: disimpen di state file, sering dishare sama tim lewat remote backend
+- **Ekosistem**: [Terraform Registry](https://registry.terraform.io) host ribuan provider, termasuk [yang ini](https://registry.terraform.io/providers/shirasakaren/biznetgio)
+- **Cocok buat**: tim yang mau satu tools standar dengan workflow yang sama di mana-mana
+
+```hcl
+resource "biznetgio_neolite_vm" "web" {
+  vm_name  = "web-1"
+  # ... product, OS, keypair, setting billing
+}
+```
+
+## Pulumi tuh apa?
+
+[Pulumi](https://www.pulumi.com) itu tools IaC yang ngebiarin lu nulis infrastruktur pake bahasa programming umum: TypeScript, Python, Go, C#, dan Java.
+
+- **Bahasa**: bahasa lu sendiri, udah dapet loop, function, dan typing dari hari pertama
+- **State**: disimpen di Pulumi Cloud (atau backend self-hosted)
+- **Ekosistem**: [Pulumi Registry](https://www.pulumi.com/registry) ngeindeks package, termasuk [yang ini](https://www.pulumi.com/registry/packages/biznetgio)
+- **Cocok buat**: tim yang mau share code, pake abstraksi, dan nulis unit test buat infrastrukturnya
+
+```typescript
+const vm = new biznetgio.NeoliteVm("web", {
+  vmName: "web-1",
+  // ... product, OS, keypair, setting billing
+});
+```
+
+## Terraform vs Pulumi
+
+| | Terraform | Pulumi |
+| --- | --- | --- |
+| Bahasa | HCL (DSL declarative) | TypeScript, Python, Go, C#, Java |
+| Perintah preview | `terraform plan` | `pulumi preview` |
+| Perintah apply | `terraform apply` | `pulumi up` |
+| State | file atau backend | Pulumi Cloud atau self-hosted |
+| Komunitas | lebih gede buat contoh HCL | lebih kuat buat tim code-first |
+| Provider ini | [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio) | [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio) |
+
+**Cara milihnya**: kalau tim lu udah banyak nulis Python, Go, atau TypeScript, Pulumi kerasa natural. Kalau lu lebih suka bahasa minimalis yang khusus buat infrastruktur, atau perusahaan standarnya HCL, pilih Terraform. Dua-duanya nge-expose resource Biznet GIO yang sama, jadi bisa ganti tools tanpa ganti apa yang bisa lu kelola.
+
+## Posisi provider Biznet GIO di sini
+
+Dua-duanya wrap [Biznet GIO Portal API](https://api.portal.biznetgio.com/v1/docs) yang sama. Artinya:
+
+- Lu order layanan beneran (VPS, bare metal, GPU, storage) lewat API yang sama kayak web portal.
+- Lu authenticate pake API token dari [portal](https://portal.biznetgio.com). Liat [Authentication](/authentication).
+- Create dan upgrade bikin order berbayar beneran. Baca [panduan billing](/guides/billing) dulu sebelum apply pertama.
+
+## Glosarium
+
+| Istilah | Arti satu baris |
+| --- | --- |
+| IaC | Infrastructure as Code: ngejelasin server dan layanan di file |
+| HCL | HashiCorp Configuration Language, bahasa Terraform |
+| Provider | Plugin yang nerjemahin config lu jadi API call ke satu cloud |
+| Resource | Satu hal yang di-manage (VM, keypair, bucket) |
+| Data source | Lookup read-only (katalog product, daftar OS) |
+| State | Catatan tools soal apa yang dia manage dan id aslinya |
+| Plan / Preview | Diff antara file dan kenyataan, sebelum apply |
+| Apply / Up | Langkah yang bener-bener manggil API |
+| Drift | Kenyataan berubah di luar tools; plan berikutnya nunjukin |
+
+## Langkah berikutnya
+
+- [Quickstart (Terraform)](/id/quickstart) - order VM pertama dalam kurleb lima menit
+- [Quickstart (Pulumi)](/id/pulumi-quickstart) - sama, pake Pulumi
+- [Authentication](/id/authentication) - dapetin API token
+- [Package registries](/id/registries) - semua tempat provider ini dipublish

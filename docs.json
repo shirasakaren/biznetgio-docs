@@ -26,106 +26,172 @@
     "languages": [
       {
         "language": "en",
-        "groups": [
+        "tabs": [
           {
-            "group": "Getting Started",
-            "pages": [
-              "index",
-              "quickstart",
-              "pulumi-quickstart",
-              "authentication"
+            "tab": "Docs",
+            "groups": [
+              {
+                "group": "Getting Started",
+                "pages": [
+                  "index",
+                  "what-is-iac",
+                  "quickstart",
+                  "pulumi-quickstart",
+                  "authentication",
+                  "registries"
+                ]
+              },
+              {
+                "group": "Terraform Provider",
+                "pages": [
+                  "terraform/installation",
+                  "terraform/resources/neolite",
+                  "terraform/resources/neolite-pro",
+                  "terraform/resources/baremetal",
+                  "terraform/resources/gpu",
+                  "terraform/resources/object-storage",
+                  "terraform/importing"
+                ]
+              },
+              {
+                "group": "Pulumi Provider",
+                "pages": [
+                  "pulumi/installation",
+                  "pulumi/resources/neolite",
+                  "pulumi/resources/neolite-pro",
+                  "pulumi/resources/baremetal",
+                  "pulumi/resources/gpu",
+                  "pulumi/resources/object-storage",
+                  "pulumi/importing"
+                ]
+              },
+              {
+                "group": "Guides",
+                "pages": [
+                  "guides/billing",
+                  "guides/triggers",
+                  "guides/development",
+                  "guides/faq"
+                ]
+              },
+              {
+                "group": "About",
+                "pages": [
+                  "about"
+                ]
+              }
             ]
           },
           {
-            "group": "Terraform Provider",
-            "pages": [
-              "terraform/installation",
-              "terraform/resources/neolite",
-              "terraform/resources/neolite-pro",
-              "terraform/resources/baremetal",
-              "terraform/resources/gpu",
-              "terraform/resources/object-storage",
-              "terraform/importing"
-            ]
-          },
-          {
-            "group": "Pulumi Provider",
-            "pages": [
-              "pulumi/installation",
-              "pulumi/resources/neolite",
-              "pulumi/resources/neolite-pro",
-              "pulumi/resources/baremetal",
-              "pulumi/resources/gpu",
-              "pulumi/resources/object-storage",
-              "pulumi/importing"
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "guides/billing",
-              "guides/triggers",
-              "guides/development",
-              "guides/faq"
-            ]
-          },
-          {
-            "group": "About",
-            "pages": [
-              "about"
+            "tab": "GitHub",
+            "align": "end",
+            "menu": [
+              {
+                "item": "Terraform provider",
+                "href": "https://github.com/shirasakaren/terraform-provider-biznetgio",
+                "icon": "box"
+              },
+              {
+                "item": "Pulumi provider",
+                "href": "https://github.com/shirasakaren/pulumi-biznetgio",
+                "icon": "zap"
+              },
+              {
+                "item": "Docs source",
+                "href": "https://github.com/shirasakaren/biznetgio-docs",
+                "icon": "book-open"
+              },
+              {
+                "item": "Author on GitHub",
+                "href": "https://github.com/shirasakaren",
+                "icon": "user"
+              }
             ]
           }
         ]
       },
       {
         "language": "id",
-        "groups": [
+        "tabs": [
           {
-            "group": "Mulai",
-            "pages": [
-              "id/index",
-              "id/quickstart",
-              "id/pulumi-quickstart",
-              "id/authentication"
+            "tab": "Docs",
+            "groups": [
+              {
+                "group": "Mulai",
+                "pages": [
+                  "id/index",
+                  "id/what-is-iac",
+                  "id/quickstart",
+                  "id/pulumi-quickstart",
+                  "id/authentication",
+                  "id/registries"
+                ]
+              },
+              {
+                "group": "Provider Terraform",
+                "pages": [
+                  "id/terraform/installation",
+                  "id/terraform/resources/neolite",
+                  "id/terraform/resources/neolite-pro",
+                  "id/terraform/resources/baremetal",
+                  "id/terraform/resources/gpu",
+                  "id/terraform/resources/object-storage",
+                  "id/terraform/importing"
+                ]
+              },
+              {
+                "group": "Provider Pulumi",
+                "pages": [
+                  "id/pulumi/installation",
+                  "id/pulumi/resources/neolite",
+                  "id/pulumi/resources/neolite-pro",
+                  "id/pulumi/resources/baremetal",
+                  "id/pulumi/resources/gpu",
+                  "id/pulumi/resources/object-storage",
+                  "id/pulumi/importing"
+                ]
+              },
+              {
+                "group": "Panduan",
+                "pages": [
+                  "id/guides/billing",
+                  "id/guides/triggers",
+                  "id/guides/development",
+                  "id/guides/faq"
+                ]
+              },
+              {
+                "group": "Tentang",
+                "pages": [
+                  "id/about"
+                ]
+              }
             ]
           },
           {
-            "group": "Provider Terraform",
-            "pages": [
-              "id/terraform/installation",
-              "id/terraform/resources/neolite",
-              "id/terraform/resources/neolite-pro",
-              "id/terraform/resources/baremetal",
-              "id/terraform/resources/gpu",
-              "id/terraform/resources/object-storage",
-              "id/terraform/importing"
-            ]
-          },
-          {
-            "group": "Provider Pulumi",
-            "pages": [
-              "id/pulumi/installation",
-              "id/pulumi/resources/neolite",
-              "id/pulumi/resources/neolite-pro",
-              "id/pulumi/resources/baremetal",
-              "id/pulumi/resources/gpu",
-              "id/pulumi/resources/object-storage",
-              "id/pulumi/importing"
-            ]
-          },
-          {
-            "group": "Panduan",
-            "pages": [
-              "id/guides/billing",
-              "id/guides/triggers",
-              "id/guides/development",
-              "id/guides/faq"
-            ]
-          },
-          {
-            "group": "Tentang",
-            "pages": [
-              "id/about"
+            "tab": "GitHub",
+            "align": "end",
+            "menu": [
+              {
+                "item": "Provider Terraform",
+                "href": "https://github.com/shirasakaren/terraform-provider-biznetgio",
+                "icon": "box"
+              },
+              {
+                "item": "Provider Pulumi",
+                "href": "https://github.com/shirasakaren/pulumi-biznetgio",
+                "icon": "zap"
+              },
+              {
+                "item": "Sumber docs",
+                "href": "https://github.com/shirasakaren/biznetgio-docs",
+                "icon": "book-open"
+              },
+              {
+                "item": "Penulis di GitHub",
+                "href": "https://github.com/shirasakaren",
+                "icon": "user"
+              }
             ]
           }
         ]
@@ -141,18 +207,6 @@
       {
         "label": "Author",
         "href": "https://shirasaka.ren"
-      },
-      {
-        "label": "Terraform Provider",
-        "href": "https://github.com/shirasakaren/terraform-provider-biznetgio"
-      },
-      {
-        "label": "Pulumi Provider",
-        "href": "https://github.com/shirasakaren/pulumi-biznetgio"
-      },
-      {
-        "label": "GitHub",
-        "href": "https://github.com/shirasakaren/biznetgio-docs"
       }
     ],
     "primary": {

@@ -1,41 +1,56 @@
-# BiznetGIO Providers Docs
+<p align="center">
+  <img src="./logo/light.svg" width="220" alt="BiznetGIO Providers docs" />
+</p>
 
-Documentation for the [Biznet GIO](https://biznetgio.com) cloud providers - Terraform and Pulumi - built with [Mintlify](https://mintlify.com).
+<h1 align="center">BiznetGIO Providers Docs</h1>
 
-- Deployed at: https://biznetgio.creations.ren
-- Terraform provider: https://github.com/shirasakaren/terraform-provider-biznetgio
-- Pulumi provider: https://github.com/shirasakaren/pulumi-biznetgio
+<p align="center">
+  Documentation for the Biznet GIO Terraform and Pulumi providers, built with <a href="https://mintlify.com">Mintlify</a>.
+</p>
+
+<p align="center">
+  <a href="https://github.com/shirasakaren/biznetgio-docs/deployments"><img src="https://img.shields.io/github/deployments/shirasakaren/biznetgio-docs/production?label=deploy" alt="Deployment"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/shirasakaren/biznetgio-docs" alt="License"></a>
+  <a href="https://github.com/shirasakaren/biznetgio-docs"><img src="https://img.shields.io/github/stars/shirasakaren/biznetgio-docs?style=social" alt="GitHub stars"></a>
+</p>
+
+<p align="center">
+  <a href="https://biznetgio.creations.ren"><img src="https://img.shields.io/badge/%F0%9F%8C%90%20open%20docs-biznetgio.creations.ren-008541?style=for-the-badge" alt="Documentation site"></a>
+</p>
+
+This repository powers the docs site at [biznetgio.creations.ren](https://biznetgio.creations.ren) for two
+community providers:
+
+| Provider | Repository | Registry |
+| --- | --- | --- |
+| Terraform | [shirasakaren/terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio) | [Terraform Registry](https://registry.terraform.io/providers/shirasakaren/biznetgio) |
+| Pulumi | [shirasakaren/pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio) | [Pulumi Registry](https://www.pulumi.com/registry/packages/biznetgio) |
+
+## What's documented
+
+- [What is Infrastructure as Code?](https://biznetgio.creations.ren/what-is-iac) - beginner friendly explainer of IaC, Terraform, and Pulumi
+- Quickstarts for [Terraform](https://biznetgio.creations.ren/quickstart) and [Pulumi](https://biznetgio.creations.ren/pulumi-quickstart)
+- [Authentication](https://biznetgio.creations.ren/authentication), [package registries](https://biznetgio.creations.ren/registries), and per-resource references for both providers
+- Guides: billing, triggers, development, and FAQ
+- Full Indonesian translation of every page
 
 ## Structure
 
-- `docs.json` - site configuration (navigation, branding, links)
-- `index.mdx`, `quickstart.mdx`, `pulumi-quickstart.mdx`, `authentication.mdx` - getting started
-- `terraform/` - Terraform provider reference (installation, resources per service, importing)
-- `pulumi/` - Pulumi provider reference (installation, resources per service, importing)
+- `docs.json` - site configuration (navigation, branding, navbar)
+- `index.mdx`, `what-is-iac.mdx`, `quickstart.mdx`, `pulumi-quickstart.mdx`, `authentication.mdx`, `registries.mdx` - getting started
+- `terraform/` and `pulumi/` - per-provider references (installation, resources, importing)
 - `guides/` - billing, triggers, development, FAQ
-- `id/` - Indonesian translations of every page (gen-z casual tone)
-- `logo/` + `favicon.svg` - brand assets
+- `id/` - Indonesian translation of every page
 
 ## Development
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint):
-
 ```bash
-npm i -g mint
+npm i -g mint     # install the Mintlify CLI
+mint dev          # preview at http://localhost:3000
 ```
-
-Preview locally (at the repo root, where `docs.json` lives):
-
-```bash
-mint dev
-```
-
-View the preview at http://localhost:3000. Run `mint update` if the dev environment is outdated.
-
-## Publishing
 
 Changes pushed to the default branch deploy automatically via the Mintlify GitHub app.
 
 ## License
 
-Apache-2.0 - see [LICENSE](LICENSE).
+[Apache-2.0](LICENSE)

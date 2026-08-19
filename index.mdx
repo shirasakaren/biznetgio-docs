@@ -16,6 +16,10 @@ This site documents two Infrastructure-as-Code providers that wrap the [Biznet G
 
 Both providers share the same API surface, the same authentication model, and the same semantics - pick the tool you already use.
 
+<Info>
+  **New to all of this?** Start with [What is Infrastructure as Code?](/what-is-iac), a from-scratch explainer of IaC, Terraform, and Pulumi.
+</Info>
+
 ## What you can manage
 
 | Service | Product | Resources | Catalog data sources |
@@ -29,6 +33,9 @@ Both providers share the same API surface, the same authentication model, and th
 Each provider exposes **20 resources** and **19 data sources / functions** covering these five API groups. Products without a public API (NEO Virtual Compute, NEO Kubernetes, NEO DNS, web hosting, GIO Private, GIO Enterprise Cloud, NEO Backup) are out of scope.
 
 <CardGroup cols={2}>
+  <Card title="What is IaC?" icon="graduation-cap" href="/what-is-iac">
+    New to infrastructure as code? Start here for the full picture.
+  </Card>
   <Card title="Terraform quickstart" icon="bolt" href="/quickstart">
     Spin up a NEO Lite VM with Terraform in about five minutes.
   </Card>
@@ -37,6 +44,9 @@ Each provider exposes **20 resources** and **19 data sources / functions** cover
   </Card>
   <Card title="Authentication" icon="key" href="/authentication">
     API tokens, environment variables, and how requests are authenticated.
+  </Card>
+  <Card title="Package registries" icon="package" href="/registries">
+    npm, PyPI, NuGet, Maven Central, Go, and the Terraform Registry, all in one place.
   </Card>
   <Card title="About the author" icon="user" href="/about">
     Shirasaka Ren - who builds and maintains these providers, and how to support the work.
