@@ -1,0 +1,105 @@
+---
+title: "NEO Lite Pro (Pulumi)"
+description: "Pulumi resources and functions for NEO Lite Pro VPS"
+---
+
+NEO Lite Pro is the premium VPS tier (`/neolite-pros` API group). The resource set mirrors NEO Lite with its own keypair, snapshot, and disk pools, and no `migrateToPro` (Pro is the migration *destination*).
+
+<Info>
+  Every create/upgrade places a **real paid order**. Read the [billing guide](/guides/billing) for `cycle` values and `payWithCreditCard` semantics.
+</Info>
+
+## `biznetgio:index:NeoliteProVm`
+
+```typescript
+import * as biznetgio from "@shirasakaren/biznetgio";
+
+const products = biznetgio.neoliteProProductsOutput();
+const osList = biznetgio.neoliteProOsListOutput({
+  productId: products.products[0].productId,
+});
+
+const keypair = new biznetgio.NeoliteProKeypair("pro-keypair", {
+  name: "neo-lite-pro-key",
+});
+
+const vm = new biznetgio.NeoliteProVm("pro-vm", {
+  vmName: "neo-pro-1",
+  productId: products.products[0].productId,
+  selectOs: osList.oss[0].name,
+  keypairId: keypair.keypairId,
+  cycle: "m",
+  sshAndConsoleUser: "admin",
+  consolePassword: "s3cretP4ssw0rd",
+});
+
+export const vmStatus = vm.status;
+```
+
+Identical inputs to [`NeoliteVm`](/pulumi/resources/neolite#biznetgioindexneolitevm) minus `migrateToPro`:
+
+| Input | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `sshAndConsoleUser` | string | yes | |
+| `consolePassword` | string, secret | yes | write-only |
+| `productId` | int64 | yes | from `neoliteProProducts`; change triggers change-package |
+| `selectOs` | string | yes | from `neoliteProOsList` |
+| `keypairId` | int64 | yes | from `NeoliteProKeypair`; change triggers change-keypair |
+| `cycle` | string | yes | `m a q s b t p4 p5` |
+| `vmName` | string | no | default `server-name`; updatable |
+| `description` | string | no | default `""` |
+| `payWithCreditCard` | bool | no | default `true` |
+| `promocode` | string | no | default `""` |
+| `powerState` | string | no | `start` / `stop` / `suspend` / `resume` / `shutdown` |
+| `rebuildOs` | string | no | one-shot destructive reinstall |
+| `diskSize` | int64 | no | absolute GB target, grow-only |
+
+Outputs identical to `NeoliteVm` (including `lastInvoice` and redacted `raw`). Import with the numeric account id.
+
+## `biznetgio:index:NeoliteProKeypair`
+
+Same shape as [`NeoliteKeypair`](/pulumi/resources/neolite#biznetgioindexneolitekeypair), in the Pro pool: input `name`; outputs `keypairId`, `publicKey`, `privateKey` (secret, once). No update.
+
+## `biznetgio:index:NeoliteProSnapshot`
+
+Same shape as [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolitesnapshot): inputs `neoliteAccountId` (required), `cycle` (required), `name` (default `snapshot-name`), `description`, `payWithCreditCard` (default `true`), `promocode`; outputs `orderId`, `status`. No update.
+
+## `biznetgio:index:NeoliteProDisk`
+
+Same shape as [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedisk) with a 30 GB minimum/default:
+
+```typescript
+const disk = new biznetgio.NeoliteProDisk("pro-extra", {
+  productId: 60,
+  cycle: "m",
+  neoliteAccountId: vm.id,
+  serviceName: "pro-extra-disk",
+  size: 30,
+});
+```
+
+Upgrades send the increment (`additional_size`); shrinking errors.
+
+## Functions
+
+All five mirror the NEO Lite functions against `/neolite-pros`:
+
+### `biznetgio:index:neoliteProProducts`
+
+No arguments. Same nested structure as `neoliteProducts` (`options`, `billing`, `components`, `prices`).
+
+### `biznetgio:index:neoliteProOsList`
+
+Argument `productId`; returns `oss` (`vmid`, `node`, `name`, `maxmem`, `maxcpu`).
+
+### `biznetgio:index:neoliteProChangePackageOptions`
+
+Argument `accountId`; returns `raw` (secret).
+
+### `biznetgio:index:neoliteProStorageUpgradeOptions`
+
+Argument `accountId`; returns `raw` (secret).
+
+### `biznetgio:index:neoliteProIPAvailability`
+
+Argument `productId`; returns `available` (bool).

@@ -1,33 +1,34 @@
-> **First-time setup**: Customize this file for your project. Prompt the user to customize this file for their project.
-> For Mintlify product knowledge (components, configuration, writing standards),
-> install the Mintlify skill: `npx skills add https://mintlify.com/docs`
-
 # Documentation project instructions
 
 ## About this project
 
-- This is a documentation site built on [Mintlify](https://mintlify.com)
-- Pages are MDX files with YAML frontmatter
-- Configuration lives in `docs.json`
-- Use the Mintlify MCP server, `https://mcp.mintlify.com`, to edit content and settings via MCP
-- Use the Mintlify docs MCP server, `https://www.mintlify.com/docs/mcp`, to query information about using Mintlify via MCP
+- Documentation site for the Biznet GIO Infrastructure-as-Code providers, built on [Mintlify](https://mintlify.com)
+- Deployed at https://biznetgio.creations.ren
+- Pages are MDX files with YAML frontmatter; configuration lives in `docs.json`
+- Preview locally with `mint dev` (run at the repo root, view at http://localhost:3000)
+
+## Covered products
+
+- Terraform provider: https://github.com/shirasakaren/terraform-provider-biznetgio
+- Pulumi provider: https://github.com/shirasakaren/pulumi-biznetgio
+- Upstream API reference: https://api.portal.biznetgio.com/v1/docs
 
 ## Terminology
 
-{/* Add product-specific terms and preferred usage */}
-{/* Example: Use "workspace" not "project", "member" not "user" */}
+- "NEO Lite" and "NEO Lite Pro" (capitalized, space-separated) — the VPS products; code-level identifiers are `neolite` / `neolite_pro`
+- "NEO Metal" — bare-metal; "NEO GPU" — GPU instances; "NEO Object Storage" — S3-compatible storage; "NES" — NEO Elastic Storage
+- API token, not API key, in prose (config attribute is `api_key` / `apiToken`)
+- Attribute names in code formatting (`disk_size`), Terraform snake_case vs Pulumi camelCase (`diskSize`) as appropriate
 
 ## Style preferences
 
-{/* Add any project-specific style rules below */}
-
-- Use active voice and second person ("you")
-- Keep sentences concise — one idea per sentence
-- Use sentence case for headings
-- Bold for UI elements: Click **Settings**
-- Code formatting for file names, commands, paths, and code references
+- Active voice, second person ("you")
+- Sentence case headings; one idea per sentence
+- Reference pages use tables for schemas — tables carry the detail, prose stays short
+- Frontmatter `title` + `description` on every page; descriptions are one sentence
+- Real links only — no placeholders anywhere
 
 ## Content boundaries
 
-{/* Define what should and shouldn't be documented */}
-{/* Example: Don't document internal admin features */}
+- Document only the five API groups the providers cover: neolites, neolite-pros, baremetals (+additional-ips, +elastic-storages), neo-gpus, object-storages
+- Do not document portal UI-only features or products without a public API

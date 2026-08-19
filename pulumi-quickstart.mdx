@@ -1,0 +1,97 @@
+---
+title: "Quickstart (Pulumi)"
+description: "Order a NEO Lite VM with the Biznet GIO Pulumi provider"
+---
+
+From zero to a running NEO Lite VM in about five minutes. This guide uses TypeScript; the [installation page](/pulumi/installation) covers all five SDK languages.
+
+## Prerequisites
+
+- [Pulumi CLI](https://www.pulumi.com/docs/iac/cli/) installed
+- Node.js 18+
+- A [Biznet GIO](https://biznetgio.com) account
+- An API token — see [Authentication](/authentication)
+
+## Get started
+
+<Steps>
+  <Step title="Create a project">
+    ```bash
+    mkdir biznetgio-demo && cd biznetgio-demo
+    pulumi new typescript
+    npm install @shirasakaren/biznetgio
+    ```
+  </Step>
+
+  <Step title="Set your API token">
+    ```bash
+    pulumi config set --secret biznetgio:apiToken <your-token>
+    ```
+
+    Alternatively export `BIZNETGIO_API_KEY`.
+  </Step>
+
+  <Step title="Write the program">
+    Replace `index.ts`:
+
+    ```typescript
+    import * as pulumi from "@pulumi/pulumi";
+    import * as biznetgio from "@shirasakaren/biznetgio";
+
+    const products = biznetgio.neoliteProductsOutput();
+    const osList = biznetgio.neoliteOsListOutput({
+      productId: products.products[0].productId,
+    });
+
+    const keypair = new biznetgio.NeoliteKeypair("demo-keypair", {
+      name: "neo-lite-key",
+    });
+
+    const vm = new biznetgio.NeoliteVm("demo-vm", {
+      vmName: "neo-lite-1",
+      productId: products.products[0].productId,
+      selectOs: osList.oss[0].name,
+      keypairId: keypair.keypairId,
+      cycle: "m",
+      sshAndConsoleUser: "admin",
+      consolePassword: "s3cretP4ssw0rd",
+    });
+
+    export const vmStatus = vm.status;
+    ```
+  </Step>
+
+  <Step title="Deploy">
+    ```bash
+    pulumi up
+    ```
+
+    Confirm with `yes`. Creating the VM places a real order on your account; the provider polls until the VM reports `Active` (typically 1–5 minutes).
+  </Step>
+
+  <Step title="Verify">
+    ```bash
+    pulumi stack output vmStatus
+    ```
+
+    You should see `"Active"`. Your VM is also visible under NEO Lite in the [portal](https://portal.biznetgio.com).
+  </Step>
+
+  <Step title="Clean up">
+    ```bash
+    pulumi destroy
+    ```
+
+    Destroying the VM resource deletes the server.
+  </Step>
+</Steps>
+
+## Next steps
+
+- [Pulumi installation](/pulumi/installation) — all five language SDKs and configuration
+- [NEO Lite resources](/pulumi/resources/neolite) — every NEO Lite resource and function
+- [Billing](/guides/billing) — how orders and payment work
+
+<Tip>
+  Stuck? Open an issue on the [provider repository](https://github.com/shirasakaren/pulumi-biznetgio), or contact Biznet GIO support at [support@biznetgio.com](mailto:support@biznetgio.com).
+</Tip>

@@ -1,0 +1,82 @@
+---
+title: "Installation (Pulumi)"
+description: "Install the Biznet GIO Pulumi provider in any supported language"
+---
+
+The Pulumi provider is a native Go binary (`pulumi-resource-biznetgio`) with SDKs for five languages. All resources use the `biznetgio` package; resource tokens look like `biznetgio:index:NeoliteVm`.
+
+## Install the SDK
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```bash
+    npm install @shirasakaren/biznetgio
+    ```
+    Requires `@pulumi/pulumi` ^3.142.0.
+  </Tab>
+  <Tab title="Python">
+    ```bash
+    pip install pulumi-biznetgio
+    ```
+    Requires Python ≥ 3.9 and `pulumi>=3.231.0,<4.0.0`.
+  </Tab>
+  <Tab title="Go">
+    ```bash
+    go get github.com/shirasakaren/pulumi-biznetgio/sdk/go/pulumi-biznetgio
+    ```
+  </Tab>
+  <Tab title=".NET">
+    ```bash
+    dotnet add package Shirasakaren.Biznetgio
+    ```
+  </Tab>
+  <Tab title="Java">
+    Add to Gradle:
+    ```groovy
+    implementation("ren.shirasaka:biznetgio")
+    ```
+  </Tab>
+</Tabs>
+
+Pulumi downloads the `pulumi-resource-biznetgio` plugin automatically from the [GitHub Releases](https://github.com/shirasakaren/pulumi-biznetgio/releases) of this repository (configured via `pluginDownloadURL`) on first use.
+
+<Note>
+  This is an unofficial, community-maintained provider by [Shirasaka Ren](/about) — not affiliated with PT Biznet Gio Nusantara.
+</Note>
+
+## Configure
+
+Set the API token (see [Authentication](/authentication)):
+
+```bash
+pulumi config set --secret biznetgio:apiToken <your-token>
+```
+
+| Config key | Type | Required | Default | Env fallback |
+| --- | --- | --- | --- | --- |
+| `biznetgio:apiToken` | string, secret | yes | — | `BIZNETGIO_API_KEY` |
+| `biznetgio:baseUrl` | string | no | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
+
+If `apiToken` is missing from both config and environment, the provider fails with: `apiToken is required (set via 'pulumi config set --secret biznetgio:apiToken <token>' or BIZNETGIO_API_KEY)`.
+
+## Provider behavior
+
+- HTTP requests use a 30-second timeout with up to 4 retries.
+- Create/update operations poll every 5 seconds until the resource reports `active` (typically 1–5 minutes).
+- On timeout, the operation returns an initialization error with partial state — the next `pulumi up` resumes where it left off.
+
+<Accordion title="Building from source">
+  ```bash
+  git clone https://github.com/shirasakaren/pulumi-biznetgio.git
+  cd pulumi-biznetgio
+  make build
+  make install   # installs the provider binary into ~/.pulumi/plugins
+  ```
+
+  Local SDK packages are generated under `sdk/<lang>`; point your project at them with `npm link` / `pip install -e .` as needed. See [Development](/guides/development) for the full workflow.
+</Accordion>
+
+## Versions
+
+- Current release: **0.1.0** (see the [changelog](https://github.com/shirasakaren/pulumi-biznetgio/blob/main/CHANGELOG.md))
+- `pulumi up` resolves the plugin version from your SDK package automatically; pin it per-project with `pulumi plugin install resource biznetgio v0.1.0`.

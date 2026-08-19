@@ -1,0 +1,96 @@
+---
+title: "Authentication"
+description: "API tokens, environment variables, and base URLs for both providers"
+---
+
+Both providers authenticate against the Biznet GIO Portal API with a single API token. There is no username/password flow, and each product group uses the same token.
+
+## Get an API token
+
+1. Log in to the [customer portal](https://portal.biznetgio.com).
+2. Open the **Generate API Key** menu (under your account/profile section).
+3. Generate a key and copy it immediately — it is shown only once. If you lose it, contact [support](mailto:support@biznetgio.com) to regenerate.
+
+The token is sent on every request as the `x-token` header.
+
+## Configuration
+
+### Terraform
+
+| Setting | Type | Default | Environment variable |
+| --- | --- | --- | --- |
+| `api_key` | string, sensitive | — | `BIZNETGIO_API_KEY` |
+| `base_url` | string | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
+| `timeout` | number (seconds) | `30` | — |
+
+Values set in the provider block take precedence over environment variables. If `api_key` is missing everywhere, configuration fails with an error.
+
+```hcl
+provider "biznetgio" {
+  api_key = "your-token"      # or: BIZNETGIO_API_KEY
+  base_url = "https://api.portal.biznetgio.com/v1"  # or: BIZNETGIO_BASE_URL
+  timeout  = 60
+}
+```
+
+The provider works with no `provider` block at all — export the environment variables and use `provider "biznetgio" {}`.
+
+### Pulumi
+
+| Config key | Type | Required | Default | Environment variable |
+| --- | --- | --- | --- | --- |
+| `biznetgio:apiToken` | string, secret | yes | — | `BIZNETGIO_API_KEY` |
+| `biznetgio:baseUrl` | string | no | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
+
+```bash
+pulumi config set --secret biznetgio:apiToken <your-token>
+```
+
+The provider errors if `apiToken` is not set via config or environment.
+
+<AccordionGroup>
+  <Accordion title="SDK config getters">
+    <CodeGroup>
+      ```ts TypeScript
+      import * as biznetgio from "@shirasakaren/biznetgio";
+      const token = biznetgio.config.apiToken;
+      const baseUrl = biznetgio.config.baseUrl;
+      ```
+      ```python Python
+      import pulumi_biznetgio as biznetgio
+      token = biznetgio.config.api_token
+      base_url = biznetgio.config.base_url
+      ```
+      ```go Go
+      import bngcfg "github.com/shirasakaren/pulumi-biznetgio/sdk/go/pulumi-biznetgio/config"
+
+      token := bngcfg.GetApiToken(ctx)
+      baseURL := bngcfg.GetBaseUrl(ctx)
+      ```
+      ```csharp .NET
+      var cfg = new Pulumi.Config("biznetgio");
+      var token = cfg.RequireSecret("apiToken");
+      var baseUrl = cfg.Get("baseUrl");
+      ```
+    </CodeGroup>
+  </Accordion>
+</AccordionGroup>
+
+## Base URLs
+
+| Environment | Base URL |
+| --- | --- |
+| Production | `https://api.portal.biznetgio.com/v1` |
+| Staging | `https://api.portal.biznetgio.dev/v1` |
+
+Both are the default when `base_url` / `baseUrl` is omitted. Point the providers at staging by setting the variable, e.g. `export BIZNETGIO_BASE_URL="https://api.portal.biznetgio.dev/v1"`.
+
+## Keep your token secret
+
+- `api_key` and `apiToken` are marked sensitive; they never appear in plans, diffs, or outputs.
+- The `raw` output on every resource is redacted: values under keys like `password`, `private_key`, `secret_key`, `token`, and `pem` are masked as `***` before entering state.
+- Secrets that the API returns only once (keypair private keys, S3 secret keys) are preserved in state across refreshes — protect your state files with a secure backend.
+
+<Warning>
+  The token grants full control of your account. Never commit it to version control; use a secret manager (Terraform Cloud variables, Pulumi ESC, SOPS, Vault) for CI/CD.
+</Warning>

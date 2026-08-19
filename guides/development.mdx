@@ -1,0 +1,57 @@
+---
+title: "Development"
+description: "Build, test, and contribute to the Biznet GIO providers"
+---
+
+Both providers are Go projects maintained in separate repositories. This guide covers the local development workflow for each.
+
+## Terraform provider
+
+Repository: [shirasakaren/terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio) · Go 1.25 · Terraform Plugin Framework (protocol 6.0) · MPL-2.0
+
+```bash
+git clone https://github.com/shirasakaren/terraform-provider-biznetgio.git
+cd terraform-provider-biznetgio
+make build        # builds bin/terraform-provider-biznetgio
+make install      # installs into the local plugin cache
+make lint         # golangci-lint
+make test         # unit tests
+make testacc      # acceptance tests (TF_ACC=1, hits the real API, 120m timeout)
+make generate     # regenerate docs/ with terraform-plugin-docs
+```
+
+Point Terraform at a development binary via `dev_overrides` in your CLI config file (see [Installation](/terraform/installation) for an example).
+
+Layout: `internal/provider/` (resources, data sources, provider schema), `internal/biznetgio/` (API client), `examples/` (provider/resource/data-source examples used to generate docs), `docs/` (generated reference).
+
+Acceptance tests need `BIZNETGIO_API_KEY` exported; creates place **real orders** on the account.
+
+## Pulumi provider
+
+Repository: [shirasakaren/pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio) · Go 1.25 · `pulumi-go-provider` (native provider) · Apache-2.0
+
+```bash
+git clone https://github.com/shirasakaren/pulumi-biznetgio.git
+cd pulumi-biznetgio
+make build              # builds bin/pulumi-resource-biznetgio
+make install            # installs the plugin into ~/.pulumi/plugins
+make lint
+make test_provider      # provider unit tests
+make build_nodejs       # regenerate + build the TypeScript SDK
+```
+
+Layout: `provider/` (resources, functions, config), `provider/client/` (API client), `sdk/` (generated nodejs/python/go/dotnet/java SDKs), `examples/` (one program per language against the local SDK), `tests/` (unit tests).
+
+Local development uses the language SDKs in `sdk/<lang>` — point example projects at them via `file:../../sdk/nodejs/bin` (Node) or `pip install -e sdk/python`.
+
+## API reference
+
+Both providers wrap the [Biznet GIO Portal API](https://api.portal.biznetgio.com/v1/docs). The staging environment (`https://api.portal.biznetgio.dev/v1`) is available for testing new endpoints.
+
+## Contributing
+
+Open issues and pull requests in the respective repository:
+
+- [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio)
+- [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio)
+- [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs) (this site)

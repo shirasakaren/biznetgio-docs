@@ -1,47 +1,102 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Quickstart (Terraform)"
+description: "Order a NEO Lite VM with the Biznet GIO Terraform provider"
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+From zero to a running NEO Lite VM in about five minutes.
 
 ## Prerequisites
 
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
+- [Terraform](https://developer.hashicorp.com/terraform/install) ≥ 1.0
+- A [Biznet GIO](https://biznetgio.com) account
+- An API token — see [Authentication](/authentication)
 
 ## Get started
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Export your API token">
+    The provider reads credentials from environment variables, so no provider block is required:
 
     ```bash
-    npm install your-package
+    export BIZNETGIO_API_KEY="<your-token>"
     ```
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
+  <Step title="Write the configuration">
+    Create `main.tf`:
+
+    ```hcl
+    terraform {
+      required_providers {
+        biznetgio = {
+          source = "registry.terraform.io/shirasakaren/biznetgio"
+        }
+      }
+    }
+
+    provider "biznetgio" {}
+
+    data "biznetgio_neolite_products" "all" {}
+
+    data "biznetgio_neolite_os_list" "ubuntu" {
+      product_id = data.biznetgio_neolite_products.all.products[0].product_id
+    }
+
+    resource "biznetgio_neolite_keypair" "main" {
+      name = "neo-lite-key"
+    }
+
+    resource "biznetgio_neolite_vm" "main" {
+      ssh_and_console_user = "admin"
+      console_password     = "s3cretP4ssw0rd"
+      vm_name              = "neo-lite-1"
+      product_id           = data.biznetgio_neolite_products.all.products[0].product_id
+      select_os            = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
+      keypair_id           = biznetgio_neolite_keypair.main.keypair_id
+      cycle                = "m"
+    }
+
+    output "vm_status" {
+      value = biznetgio_neolite_vm.main.status
+    }
     ```
+
+    This orders the smallest available NEO Lite package on a monthly cycle and waits until the VM reports `Active`.
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
+  <Step title="Apply">
     ```bash
-    your-cli start
+    terraform init
+    terraform plan
+    terraform apply
     ```
+
+    Confirm the plan with `yes`. Creating the VM places a real order on your account and typically takes 1–5 minutes.
+  </Step>
+
+  <Step title="Verify">
+    ```bash
+    terraform output vm_status
+    ```
+
+    You should see `"Active"`. Your VM is also visible under NEO Lite in the [portal](https://portal.biznetgio.com).
+  </Step>
+
+  <Step title="Clean up">
+    ```bash
+    terraform destroy
+    ```
+
+    Destroying the VM resource deletes the server (`DELETE /neolites/{account_id}`).
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Next steps
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+- [Terraform installation](/terraform/installation) — full provider configuration reference
+- [NEO Lite resources](/terraform/resources/neolite) — every NEO Lite resource and data source
+- [Billing](/guides/billing) — how orders and payment work
+
+<Tip>
+  Lost? Reach out to Biznet GIO support at [support@biznetgio.com](mailto:support@biznetgio.com), or open an issue on the [provider repository](https://github.com/shirasakaren/terraform-provider-biznetgio).
 </Tip>

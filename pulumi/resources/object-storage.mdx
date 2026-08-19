@@ -1,0 +1,118 @@
+---
+title: "Object Storage (Pulumi)"
+description: "Pulumi resources and functions for NEO Object Storage"
+---
+
+NEO Object Storage is Biznet GIO's S3-compatible storage (`/object-storages` API group). The provider manages the subscription, buckets, S3 credentials, and individual objects through the control-plane API.
+
+<Info>
+  Every create/upgrade places a **real paid order**. Quota upgrades are grow-only and bill the increment.
+</Info>
+
+## `biznetgio:index:ObjectStorage`
+
+```typescript
+import * as biznetgio from "@shirasakaren/biznetgio";
+
+const storage = new biznetgio.ObjectStorage("archive", {
+  productId: 8,
+  cycle: "m",
+  label: "data-archive",
+  quota: 10,   // grow-only; upgrade sends the increment
+  payWithCreditCard: true,
+});
+
+export const storageStatus = storage.status;
+```
+
+| Input | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `productId` | int64 | yes | |
+| `cycle` | string | yes | `m a q s b t p4 p5` |
+| `label` | string | yes | 6–16 chars, `[a-zA-Z0-9-_]`; create-only |
+| `quota` | int64 | no | default `10` GB, grow-only |
+| `promocode` | string | no | create-only |
+| `payWithCreditCard` | bool | no | default `true` |
+
+Outputs: `orderId`, `status` (`Active`/`Pending`/`Suspended`/`Terminated`), `raw` (secret). Reads error if the instance status is `terminated`. Import with the numeric account id.
+
+## `biznetgio:index:ObjectStorageBucket`
+
+```typescript
+const bucket = new biznetgio.ObjectStorageBucket("assets", {
+  accountId: storage.id,
+  name: "my-assets",
+  acl: "private",
+});
+```
+
+| Input | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `accountId` | string | yes | instance account id |
+| `name` | string | yes | min 3 chars, `[a-zA-Z0-9-_]`; immutable |
+| `acl` | string | no | default `""`; one of `private`, `public-read`, `public-read-write`, `authenticated-read`, `log-delivery-write` |
+
+Output: `raw` (secret). Composite id `<accountId>:<name>`; only `acl` updates in place.
+
+## `biznetgio:index:ObjectStorageCredential`
+
+```typescript
+const credential = new biznetgio.ObjectStorageCredential("main", {
+  accountId: storage.id,
+  active: true,   // set false to disable without deleting
+});
+export const accessKey = credential.accessKey;
+export const secretKey = credential.secretKey;
+```
+
+| Input | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `accountId` | string | yes | |
+| `active` | bool | no | default `true`; update toggles enable/disable |
+
+Outputs: `accessKey` (secret — returned once at create), `secretKey` (secret — shown only once; last state value kept on refresh), `raw` (secret).
+
+Composite id `<accountId>:<16-hex sha256 prefix of accessKey>` — the plaintext access key never appears in the id; deletion resolves the key from the credentials list.
+
+## `biznetgio:index:ObjectStorageObject`
+
+Exactly one of `source` or `content` must be set — validation fails otherwise.
+
+```typescript
+const obj = new biznetgio.ObjectStorageObject("index", {
+  accountId: storage.id,
+  bucket: bucket.name,
+  key: "site/index.html",
+  source: "./index.html",
+  acl: "public-read",
+});
+```
+
+| Input | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `accountId` | string | yes | |
+| `bucket` | string | yes | |
+| `key` | string | yes | object path (directory + filename) |
+| `source` | string | no | local file path; one-of with `content` |
+| `content` | string, secret | no | inline content; one-of with `source` |
+| `acl` | string | no | default `""`; same canned values as bucket ACL |
+
+Output: `raw` (secret). Composite id `<accountId>:<bucket>:<key>`; content changes replace the object, only `acl` updates in place.
+
+<Note>
+  This resource is **not** suited to large objects or bulk sync. For real workloads, use S3-compatible tooling (AWS CLI, rclone, SDKs) with the credential from `ObjectStorageCredential` — Biznet GIO publishes per-region S3 endpoints of the form `nos.<region>.neo.id`.
+</Note>
+
+## Functions
+
+### `biznetgio:index:objectStorageInstances`
+
+Argument `status` (optional filter). Returns `instances`: `id`, `label`, `status`, `productId`, `quota`, `raw` (secret).
+
+### `biznetgio:index:objectStorageBuckets`
+
+Argument `accountId` (string). Returns `buckets`: `name`, `acl`, `raw` (secret).
+
+### `biznetgio:index:objectStorageCredentials`
+
+Argument `accountId` (string). Returns `credentials`: `accessKey` (secret), `active`. Secret keys are never returned.

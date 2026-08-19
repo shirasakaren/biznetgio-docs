@@ -1,34 +1,75 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "BiznetGIO Providers",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#008541",
+    "light": "#00A651",
+    "dark": "#008541"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.png",
   "navigation": {
     "pages": [
       {
         "group": "Getting Started",
         "pages": [
           "index",
-          "quickstart"
+          "quickstart",
+          "pulumi-quickstart",
+          "authentication"
+        ]
+      },
+      {
+        "group": "Terraform Provider",
+        "pages": [
+          "terraform/installation",
+          "terraform/resources/neolite",
+          "terraform/resources/neolite-pro",
+          "terraform/resources/baremetal",
+          "terraform/resources/gpu",
+          "terraform/resources/object-storage",
+          "terraform/importing"
+        ]
+      },
+      {
+        "group": "Pulumi Provider",
+        "pages": [
+          "pulumi/installation",
+          "pulumi/resources/neolite",
+          "pulumi/resources/neolite-pro",
+          "pulumi/resources/baremetal",
+          "pulumi/resources/gpu",
+          "pulumi/resources/object-storage",
+          "pulumi/importing"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/billing",
+          "guides/triggers",
+          "guides/development",
+          "guides/faq"
+        ]
+      },
+      {
+        "group": "About",
+        "pages": [
+          "about"
         ]
       }
     ],
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Portal",
+          "href": "https://portal.biznetgio.com",
+          "icon": "globe"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "API Reference",
+          "href": "https://api.portal.biznetgio.com/v1/docs",
+          "icon": "server"
         }
       ]
     }
@@ -40,14 +81,26 @@
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Author",
+        "href": "https://shirasaka.ren"
+      },
+      {
+        "label": "Terraform Provider",
+        "href": "https://github.com/shirasakaren/terraform-provider-biznetgio"
+      },
+      {
+        "label": "Pulumi Provider",
+        "href": "https://github.com/shirasakaren/pulumi-biznetgio"
+      },
+      {
+        "label": "GitHub",
+        "href": "https://github.com/shirasakaren/biznetgio-docs"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "Get started",
+      "href": "/quickstart"
     }
   },
   "contextual": {
@@ -64,9 +117,7 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/shirasakaren/biznetgio-docs"
     }
   }
 }

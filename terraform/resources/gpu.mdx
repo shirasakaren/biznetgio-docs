@@ -1,0 +1,118 @@
+---
+title: "NEO GPU (Terraform)"
+description: "Terraform resources and data sources for NEO GPU instances"
+---
+
+NEO GPU rents NVIDIA H200 instances through the `/neo-gpus` API group, billed per subscription cycle or on-demand (hourly). An instance uses exactly one billing mode.
+
+<Info>
+  Every create places a **real paid order**. On-demand instances accumulate hourly charges until deleted.
+</Info>
+
+## `biznetgio_gpu_instance`
+
+```hcl
+data "biznetgio_gpu_products" "all" {}
+
+resource "biznetgio_gpu_keypair" "main" {
+  name = "gpu-key"
+}
+
+resource "biznetgio_gpu_instance" "example" {
+  product_id           = data.biznetgio_gpu_products.all.products[0].product_id
+  select_os            = "ubuntu-22"
+  keypair_id           = biznetgio_gpu_keypair.main.keypair_id
+  service_name         = "neo-gpu-1"
+  ssh_and_console_user = "root"
+  console_password     = "s3cretP4ssw0rd"
+  pay_with_credit_card = true
+
+  subscription {
+    cycle = "m"
+  }
+
+  # one-shot actions (change value to fire):
+  # rebuild_trigger = "rebuild-1"
+  # reserve_additional_hours_trigger = "reserve-1"
+}
+```
+
+For hourly billing, replace `subscription` with:
+
+```hcl
+  on_demand {
+    additional_hours = 0
+  }
+```
+
+Exactly one of `subscription` or `on_demand` must be set — validation fails otherwise.
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | equals GPU account id |
+| `product_id` | int64 | required | from `biznetgio_gpu_products` |
+| `select_os` | string | required | from the product's select-OS catalog |
+| `keypair_id` | int64 | required | from `biznetgio_gpu_keypair` |
+| `ssh_and_console_user` | string | required | |
+| `console_password` | string | required, sensitive | create-only |
+| `service_name` | string | optional | create-only |
+| `promocode` | string | optional | create-only |
+| `pay_with_credit_card` | bool | optional | default `true` |
+| `subscription` | block | optional | `cycle` (`m` / `a`); one-of with `on_demand` |
+| `on_demand` | block | optional | `additional_hours` (default `0`); one-of with `subscription` |
+| `rebuild_trigger` | string | optional | one-shot destructive OS reinstall |
+| `reserve_additional_hours_trigger` | string | optional | one-shot: reserves additional hour(s) on on-demand instances |
+| `status` | string | computed | |
+| `order_id` | string | computed | |
+| `raw` | string | computed, sensitive | secrets redacted |
+| `timeouts` | block | optional | create/update/delete |
+
+Import with the numeric account id.
+
+## `biznetgio_gpu_keypair`
+
+```hcl
+resource "biznetgio_gpu_keypair" "main" {
+  name = "gpu-key"
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | equals `keypair_id` |
+| `name` | string | required | create-only |
+| `public_key` | string | computed | server-generated |
+| `private_key` | string | computed, sensitive | returned once at create; preserved in state |
+
+Update is a no-op. Import with the keypair id.
+
+## Data sources
+
+### `biznetgio_gpu_products`
+
+GPU catalog with per-product flavors. `products` items: `product_id`, `name`, `description`, `category_name`, and `flavors` (`flavor_id`, `name`).
+
+### `biznetgio_gpu_console`
+
+Mints a console access session for an instance.
+
+```hcl
+data "biznetgio_gpu_console" "console" {
+  account_id = biznetgio_gpu_instance.example.id
+}
+```
+
+Returns `url` (sensitive). **Side-effecting:** every read may create a new session — do not use it in places evaluated during plan diffs.
+
+### `biznetgio_gpu_graph`
+
+Monitoring graph data for an instance.
+
+```hcl
+data "biznetgio_gpu_graph" "graph" {
+  account_id = biznetgio_gpu_instance.example.id
+  timeframe  = "hour"   # hour | day | week | month | year
+}
+```
+
+Returns `graph` and `raw` (sensitive).

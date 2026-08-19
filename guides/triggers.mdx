@@ -1,0 +1,75 @@
+---
+title: "Triggers and actions"
+description: "One-shot actions and declarative power state in both providers"
+---
+
+Some API operations are one-off actions with no idempotent "get" — reset, rebuild, migration, hour reservation. Both providers model these as **trigger strings**: the action fires only when the value *changes*, and you re-fire it by changing the value again.
+
+## One-shot triggers
+
+| Action | Terraform attribute | Pulumi input | Resource |
+| --- | --- | --- | --- |
+| Reset / reboot | `reset_trigger` | `resetTrigger` | baremetal |
+| OS rebuild (wipe + reinstall) | `rebuild_os` | `rebuildOs` | baremetal, neolite VM, neolite pro VM |
+| GPU OS rebuild | `rebuild_trigger` | `rebuildTrigger` | gpu instance |
+| GPU reserve additional hours | `reserve_additional_hours_trigger` | `reserveAdditionalHoursTrigger` | gpu instance |
+| Migrate to NEO Lite Pro | `migrate_to_pro` | `migrateToPro` | neolite VM |
+
+### Terraform
+
+```hcl
+resource "biznetgio_neolite_vm" "main" {
+  # ...
+  rebuild_os = "ubuntu-22"   # fires once, when the value changes
+}
+```
+
+To rebuild again, change the value — a common pattern is timestamps or counters:
+
+```hcl
+  rebuild_os = "ubuntu-22#${timestamp()}"
+```
+
+<Warning>
+  Rebuilds wipe the VM disk. Use them deliberately.
+</Warning>
+
+### Pulumi
+
+```typescript
+const vm = new biznetgio.NeoliteVm("demo-vm", {
+  // ...
+  rebuildOs: "ubuntu-22",   // fires when this string changes
+});
+```
+
+Change the string to re-fire — e.g. `rebuildOs: "ubuntu-22-" + Date.now()` (computed at program evaluation).
+
+## Declarative power state
+
+Power actions are *declarative*, not triggers: the provider calls the API only when the desired state differs.
+
+| Service | Values | Terraform | Pulumi |
+| --- | --- | --- | --- |
+| NEO Lite / Pro | `start` `stop` `suspend` `resume` `shutdown` | `power_state` | `powerState` |
+| NEO Metal | `on` `off` | `power_state` | `powerState` |
+
+```hcl
+resource "biznetgio_neolite_vm" "main" {
+  # ...
+  power_state = "stop"
+}
+```
+
+```typescript
+const vm = new biznetgio.NeoliteVm("demo-vm", {
+  // ...
+  powerState: "stop",
+});
+```
+
+If the portal (or someone else) changes the power state out of band, the next apply/up reconciles it.
+
+## Side-effecting data sources
+
+`gpu_console` / `gpuConsole` mints a new one-time console session on every read. Treat it as an action, not as a lookup: reference it where a fresh session is wanted, and never inside values evaluated during plan diffing.

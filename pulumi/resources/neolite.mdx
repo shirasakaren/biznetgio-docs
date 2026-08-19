@@ -1,0 +1,175 @@
+---
+title: "NEO Lite (Pulumi)"
+description: "Pulumi resources and functions for NEO Lite VPS"
+---
+
+NEO Lite resources under the `biznetgio` package (`/neolites` API group). The typical flow chains catalog functions into a create: `neoliteProducts` → `neoliteOsList` → `NeoliteKeypair` → `NeoliteVm`.
+
+<Info>
+  Every create/upgrade places a **real paid order**. Read the [billing guide](/guides/billing) for `cycle` values and `payWithCreditCard` semantics.
+</Info>
+
+## `biznetgio:index:NeoliteVm`
+
+```typescript
+import * as biznetgio from "@shirasakaren/biznetgio";
+
+const products = biznetgio.neoliteProductsOutput();
+const osList = biznetgio.neoliteOsListOutput({
+  productId: products.products[0].productId,
+});
+
+const keypair = new biznetgio.NeoliteKeypair("demo-keypair", {
+  name: "neo-lite-key",
+});
+
+const vm = new biznetgio.NeoliteVm("demo-vm", {
+  vmName: "neo-lite-1",
+  productId: products.products[0].productId,
+  selectOs: osList.oss[0].name,
+  keypairId: keypair.keypairId,
+  cycle: "m",
+  sshAndConsoleUser: "admin",
+  consolePassword: "s3cretP4ssw0rd",
+  // optional in-place actions (change value to fire):
+  // powerState: "stop",
+  // rebuildOs: "ubuntu-22",
+  // migrateToPro: "12345",   // neolite-pro product id
+  // diskSize: 100,           // absolute GB target, grow-only
+});
+
+export const vmStatus = vm.status;
+```
+
+| Input | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `sshAndConsoleUser` | string | yes | set at create |
+| `consolePassword` | string, secret | yes | write-only: never re-fetched from the API |
+| `productId` | int64 | yes | from `neoliteProducts`; change triggers change-package |
+| `selectOs` | string | yes | from `neoliteOsList`; OS change = rebuild |
+| `keypairId` | int64 | yes | from `NeoliteKeypair`; change triggers change-keypair |
+| `cycle` | string | yes | `m a q s b t p4 p5` |
+| `vmName` | string | no | default `server-name`; updatable via change-vm-name |
+| `description` | string | no | default `""` |
+| `payWithCreditCard` | bool | no | default `true`; `false` leaves the invoice unpaid |
+| `promocode` | string | no | default `""` |
+| `powerState` | string | no | `start` / `stop` / `suspend` / `resume` / `shutdown`; API called only on change |
+| `rebuildOs` | string | no | one-shot destructive OS reinstall |
+| `migrateToPro` | string | no | one-shot migration; value = NEO Lite Pro `productId` |
+| `diskSize` | int64 | no | absolute GB target, grow-only |
+
+Outputs: `orderId`, `status` (`Active`/`Pending`/`Suspended`/`Terminated`), `uptime`, `maxDisk`, `maxMem`, `mem`, `cpus`, `ciUser`, `ciPassword` (secret), `osName`, `region`, `regionLabel`, `nextDue`, `recurringAmount`, `billingcycle`, `productName`, `lastInvoice` (`id`, `paidId`, `status`, `date`, `duedate`, `paybefore`, `datepaid`, `invoiceType`), `raw` (secret, redacted).
+
+Import with `pulumi import biznetgio:index:NeoliteVm demo-vm <account_id>`.
+
+## `biznetgio:index:NeoliteKeypair`
+
+```typescript
+const keypair = new biznetgio.NeoliteKeypair("demo-keypair", {
+  name: "neo-lite-key",
+});
+export const privateKey = keypair.privateKey;
+```
+
+| Input | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `name` | string | yes | keypair name |
+
+Outputs: `keypairId`, `publicKey`, `privateKey` (secret — generated server-side, returned only at creation, preserved across refreshes). No update support. Keypairs are per-service: NEO Lite keypairs can't be used on Pro/Metal/GPU.
+
+## `biznetgio:index:NeoliteSnapshot`
+
+```typescript
+const snapshot = new biznetgio.NeoliteSnapshot("pre-upgrade", {
+  neoliteAccountId: vm.id,
+  name: "snapshot-1",
+  description: "before upgrade",
+  cycle: "m",
+});
+```
+
+| Input | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `neoliteAccountId` | int64 | yes | VM to snapshot |
+| `cycle` | string | yes | `m a q s b t p4 p5` |
+| `name` | string | no | default `snapshot-name` |
+| `description` | string | no | default `""` |
+| `payWithCreditCard` | bool | no | default `true` |
+| `promocode` | string | no | default `""` |
+
+Outputs: `orderId`, `status`. No update — any input change replaces the snapshot.
+
+## `biznetgio:index:NeoliteVmFromSnapshot`
+
+```typescript
+const restored = new biznetgio.NeoliteVmFromSnapshot("restored", {
+  snapshotId: snapshot.id,
+  productId: products.products[0].productId,
+  cycle: "m",
+  keypairId: keypair.keypairId,
+  name: "restored-1",
+  sshAndConsoleUser: "admin",
+  consolePassword: "s3cretP4ssw0rd",
+});
+```
+
+| Input | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `snapshotId` | int64 | yes | from `NeoliteSnapshot` |
+| `productId` | int64 | yes | |
+| `cycle` | string | yes | |
+| `keypairId` | int64 | yes | |
+| `name` | string | yes | |
+| `sshAndConsoleUser` | string | yes | |
+| `consolePassword` | string, secret | yes | |
+| `description` | string | no | default `""` |
+| `promocode` | string | no | default `""` |
+| `payWithCreditCard` | bool | no | default `true` |
+
+Outputs: `orderId`, `status`. **Deleting this resource deletes the restored VM — never the snapshot.** No update support.
+
+## `biznetgio:index:NeoliteDisk`
+
+```typescript
+const disk = new biznetgio.NeoliteDisk("extra", {
+  productId: 60,
+  cycle: "m",
+  neoliteAccountId: vm.id,
+  serviceName: "extra-disk",
+  size: 60,   // grow-only; upgrades send the increment
+});
+```
+
+| Input | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `productId` | int64 | yes | from `/neolites/disks/products` |
+| `cycle` | string | yes | |
+| `neoliteAccountId` | int64 | yes | target VM |
+| `serviceName` | string | no | default `service-name` |
+| `size` | int64 | no | default `60` GB, grow-only |
+| `promocode` | string | no | |
+| `payWithCreditCard` | bool | no | default `true` |
+
+Outputs: `orderId`, `status`, `raw` (secret). Update upgrades size only — the API receives the increment (`newSize − oldSize`), not the absolute target; shrinking errors.
+
+## Functions
+
+### `biznetgio:index:neoliteProducts`
+
+No arguments. Returns `products`: `productId`, `name`, `description`, `categoryId`, `categoryName`, `options` (`type`, `cores`, `memory`, `allowDowngrade`), `billing` (`label`, `cycle`, `price`, `components` with per-quantity `prices`).
+
+### `biznetgio:index:neoliteOsList`
+
+Argument `productId` (int64). Returns `oss`: `vmid`, `node`, `name` (use for `selectOs`), `maxmem`, `maxcpu`.
+
+### `biznetgio:index:neoliteChangePackageOptions`
+
+Argument `accountId`. Returns `raw` (secret) — the upstream response is unmodeled and exported as JSON.
+
+### `biznetgio:index:neoliteStorageUpgradeOptions`
+
+Argument `accountId`. Returns `raw` (secret).
+
+### `biznetgio:index:neoliteIPAvailability`
+
+Argument `productId`. Returns `available` (bool).

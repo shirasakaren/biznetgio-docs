@@ -1,0 +1,101 @@
+---
+title: "Installation (Terraform)"
+description: "Install and configure the biznetgio Terraform provider"
+---
+
+## Install
+
+Declare the provider in your configuration:
+
+```hcl
+terraform {
+  required_providers {
+    biznetgio = {
+      source = "registry.terraform.io/shirasakaren/biznetgio"
+    }
+  }
+}
+```
+
+Run `terraform init` to download it. The provider requires **Terraform ≥ 1.0** and speaks protocol 6.0.
+
+<Accordion title="Building from source">
+  Alternatively, build and install from the repository:
+
+  ```bash
+  git clone https://github.com/shirasakaren/terraform-provider-biznetgio.git
+  cd terraform-provider-biznetgio
+  make build
+  make install
+  ```
+
+  Or point Terraform at a development binary with `dev_overrides` in your [CLI config file](https://developer.hashicorp.com/terraform/cli/config/config-file#development-overrides-for-provider-developers):
+
+  ```hcl
+  provider_installation {
+    dev_overrides {
+      "registry.terraform.io/shirasakaren/biznetgio" = "/path/to/terraform-provider-biznetgio"
+    }
+    direct {}
+  }
+  ```
+</Accordion>
+
+## Configure
+
+<Note>
+  This is an unofficial, community-maintained provider by [Shirasaka Ren](/about) — not affiliated with PT Biznet Gio Nusantara.
+</Note>
+
+See [Authentication](/authentication) for the API token. The provider configuration schema:
+
+| Attribute | Type | Required | Default | Env fallback |
+| --- | --- | --- | --- | --- |
+| `api_key` | string, sensitive | no | — | `BIZNETGIO_API_KEY` |
+| `base_url` | string | no | `https://api.portal.biznetgio.com/v1` | `BIZNETGIO_BASE_URL` |
+| `timeout` | number (seconds) | no | `30` | — |
+
+```hcl
+provider "biznetgio" {
+  api_key = "your-token"          # optional if BIZNETGIO_API_KEY is set
+  base_url = "https://api.portal.biznetgio.com/v1"  # optional if BIZNETGIO_BASE_URL is set
+  timeout  = 60                   # HTTP request timeout in seconds
+}
+```
+
+`timeout` is the per-request HTTP timeout — it does not cap the create polling, which uses its own `timeouts` block (see below).
+
+## Resource timeouts
+
+Resources that wait for provisioning accept a `timeouts` block:
+
+```hcl
+resource "biznetgio_neolite_vm" "main" {
+  # ...
+
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "15m"
+  }
+}
+```
+
+Defaults: `create = 20m`, `update = 20m`, `delete = 10m`. Keypairs, bucket/credential/object resources, and IP assignments provision synchronously and have no timeouts block.
+
+## Versioning
+
+Pin the version:
+
+```hcl
+terraform {
+  required_providers {
+    biznetgio = {
+      source  = "registry.terraform.io/shirasakaren/biznetgio"
+      version = "0.1.0"
+    }
+  }
+}
+```
+
+See the [repository](https://github.com/shirasakaren/terraform-provider-biznetgio) for releases and the changelog.

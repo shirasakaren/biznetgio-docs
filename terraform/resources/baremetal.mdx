@@ -1,0 +1,183 @@
+---
+title: "NEO Metal (Terraform)"
+description: "Terraform resources and data sources for NEO Metal bare-metal servers"
+---
+
+NEO Metal is Biznet GIO's dedicated bare-metal product (`/baremetals` API group). This page also covers its add-ons: additional (floating) IPs and NEO Elastic Storage.
+
+<Info>
+  Every create/upgrade places a **real paid order**. Read the [billing guide](/guides/billing) for `cycle` values and `pay_with_credit_card` semantics.
+</Info>
+
+## `biznetgio_baremetal`
+
+Orders a bare-metal server, waits until `Active`, and manages the label, power state, reset, and OS rebuild.
+
+```hcl
+data "biznetgio_baremetal_products" "all" {}
+
+resource "biznetgio_baremetal_keypair" "main" {
+  name = "neo-metal-key"
+}
+
+resource "biznetgio_baremetal" "main" {
+  product_id = data.biznetgio_baremetal_products.all.products[0].product_id
+  cycle      = "m"
+  select_os  = "ubuntu-22"
+  keypair_id = biznetgio_baremetal_keypair.main.keypair_id
+  label      = "neo-metal-main"
+  public_ip  = 1
+
+  # optional in-place actions (change value to fire):
+  # power_state = "off"
+  # reset_trigger = "reboot-1"
+  # rebuild_os   = "centos7-base"
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | equals `account_id` |
+| `product_id` | int64 | required | from `biznetgio_baremetal_products` |
+| `cycle` | string | required | `m` monthly / `a` annual |
+| `select_os` | string | optional | default `ubuntu-22`; create-only |
+| `keypair_id` | int64 | required | from `biznetgio_baremetal_keypair`; create-only |
+| `label` | string | required | display name — the only updatable field |
+| `public_ip` | int64 | optional | default `1`; create-only |
+| `promocode` | string | optional | create-only |
+| `pay_with_credit_card` | bool | optional | default `true` |
+| `power_state` | string | optional | `on` / `off`; API called only on change |
+| `reset_trigger` | string | optional | one-shot reset; change value to re-fire |
+| `rebuild_os` | string | optional | destructive OS reinstall; valid values from `biznetgio_baremetal_rebuild_os_list` |
+| `status` | string | computed | |
+| `order_id` | string | computed | |
+| `ip_address` | string | computed | |
+| `created_at` | string | computed | |
+| `raw` | string | computed, sensitive | secrets redacted |
+| `timeouts` | block | optional | create/update/delete |
+
+Import with the numeric account id.
+
+## `biznetgio_baremetal_keypair`
+
+SSH keypair in the NEO Metal pool. Set `public_key` to import your own; leave it empty and the keypair is generated server-side.
+
+```hcl
+resource "biznetgio_baremetal_keypair" "main" {
+  name       = "neo-metal-key"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2E..."  # optional: import; omit to generate
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | equals `keypair_id` |
+| `name` | string | required | create-only |
+| `public_key` | string | optional | set → imported; empty → generated; create-only |
+| `keypair_id` | int64 | computed | |
+| `private_key` | string | computed, sensitive | returned once at create; preserved in state |
+| `raw` | string | computed, sensitive | |
+
+Update is a no-op — every input is create-only. Import with the keypair id.
+
+## `biznetgio_baremetal_additional_ip`
+
+Orders an additional (floating) IP, independent of any server. Attach it with `biznetgio_baremetal_additional_ip_assignment`.
+
+```hcl
+resource "biznetgio_baremetal_additional_ip" "main" {
+  product_id = 10
+  cycle      = "m"
+  region     = "wjv-1"
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | equals `account_id` |
+| `product_id` | int64 | required | from `GET /baremetal-additional-ips/products` |
+| `cycle` | string | required | `m` / `a` |
+| `region` | string | optional | default `wjv-1`; from `GET /baremetal-additional-ips/regions` |
+| `promocode` | string | optional | |
+| `pay_with_credit_card` | bool | optional | default `true` |
+| `status` | string | computed | |
+| `ip_address` | string | computed | |
+| `created_at` | string | computed | |
+| `raw` | string | computed, sensitive | |
+| `timeouts` | block | optional | create/delete |
+
+Import with the numeric account id.
+
+## `biznetgio_baremetal_additional_ip_assignment`
+
+Attaches an additional IP to a bare-metal server. Reassigning means destroy + recreate.
+
+```hcl
+resource "biznetgio_baremetal_additional_ip_assignment" "main" {
+  additional_ip_id = biznetgio_baremetal_additional_ip.main.id
+  metal_account_id = biznetgio_baremetal.main.id
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | composite `<metal_account_id>:<additional_ip_id>` |
+| `additional_ip_id` | int64 | required | from `biznetgio_baremetal_additional_ip` |
+| `metal_account_id` | int64 | required | target server account id |
+| `status` | string | computed | |
+| `raw` | string | computed, sensitive | |
+
+**Import ID format:** `<metal_account_id>:<additional_ip_id>`, e.g. `terraform import biznetgio_baremetal_additional_ip_assignment.main 12345:67890`.
+
+## `biznetgio_baremetal_elastic_storage`
+
+NEO Elastic Storage volume, permanently bound to one bare-metal server at creation.
+
+```hcl
+resource "biznetgio_baremetal_elastic_storage" "main" {
+  product_id        = 20
+  cycle             = "m"
+  storage_name      = "metal-volume"
+  metal_account_id  = biznetgio_baremetal.main.id
+  size              = 100
+}
+```
+
+| Name | Type | Mode | Notes |
+| --- | --- | --- | --- |
+| `id` | string | computed | equals storage `account_id` |
+| `product_id` | int64 | required | change triggers change-package |
+| `cycle` | string | required | `m` / `a`; create-only |
+| `storage_name` | string | required | create-only |
+| `metal_account_id` | int64 | required | create-only — no re-attach endpoint |
+| `size` | int64 | optional | default `100` GB, grow-only |
+| `promocode` | string | optional | create-only |
+| `pay_with_credit_card` | bool | optional | default `true` |
+| `status` | string | computed | |
+| `created_at` | string | computed | |
+| `raw` | string | computed, sensitive | |
+| `timeouts` | block | optional | create/update/delete |
+
+Import with the numeric account id.
+
+## Data sources
+
+### `biznetgio_baremetal_products`
+
+Server catalog (`GET /baremetals/products`). `products` items: `product_id`, `name`, `description`, `raw`.
+
+### `biznetgio_baremetal_rebuild_os_list`
+
+Valid OS images for rebuilding a server.
+
+```hcl
+data "biznetgio_baremetal_rebuild_os_list" "ubuntu" {
+  account_id = biznetgio_baremetal.main.id
+}
+```
+
+Returns `oss` (list of strings, e.g. `centos7-base`) and `raw`.
+
+### `biznetgio_baremetal_openvpn`
+
+Out-of-band OpenVPN access configuration (`GET /baremetals/openvpn`). Returns `config` (sensitive) and `raw`.

@@ -1,0 +1,51 @@
+---
+title: "Billing and orders"
+description: "How cycles, promocodes, and credit-card charging work in both providers"
+---
+
+Every create and upgrade call in these providers places a **real paid order** on your Biznet GIO account. There is no dry-run mode.
+
+## `cycle` values
+
+| Value | Meaning | Where |
+| --- | --- | --- |
+| `m` | monthly | all services |
+| `a` | annually | all services |
+| `q` | quarterly | NEO Lite / Lite Pro, Object Storage |
+| `s` | semi-annual | NEO Lite / Lite Pro, Object Storage |
+| `b` | biennial | NEO Lite / Lite Pro, Object Storage |
+| `t` | triennial | NEO Lite / Lite Pro, Object Storage |
+| `p4` / `p5` | 4-year / 5-year prepay | NEO Lite / Lite Pro, Object Storage |
+
+NEO Metal and NEO GPU accept only `m` and `a`. GPU instances can bill hourly instead, via the on-demand mode (`on_demand` block / `onDemand` input) instead of a cycle.
+
+## `pay_with_credit_card`
+
+Both providers default `pay_with_credit_card` / `payWithCreditCard` to `true`: the invoice for the order is charged to your credit card immediately.
+
+Set it to `false` to place the order without paying:
+
+- The resource is created but stays `Pending` until the invoice is paid in the [portal](https://portal.biznetgio.com).
+- The providers poll for `Active` and will wait (up to the create timeout) for payment.
+- Resources that stay `Pending` past the timeout surface a create error with partial state; once you pay in the portal, the next apply/up resumes.
+
+## Promocodes
+
+Pass `promocode` (Terraform) / `promocode` (Pulumi) at creation to apply a portal promo. Promocodes are create-only — changing one replaces the resource.
+
+## Grow-only sizing
+
+Storage-sized attributes can only increase; shrinking fails validation:
+
+| Resource | Attribute | Unit | Upgrade API call |
+| --- | --- | --- | --- |
+| NEO Lite / Pro VM | `disk_size` / `diskSize` | GB (absolute target) | change-storage |
+| NEO Lite / Pro disk | `size` | GB | sends the **increment** |
+| NEO Elastic Storage | `size` | GB | upgrade (increment) |
+| Object Storage | `quota` | GB | sends the **increment** |
+
+To shrink, you must recreate the resource (which deletes the server/disk/instance and its data).
+
+## `raw` outputs and invoices
+
+Every resource exports a `raw` secret output — the last API response JSON, with credentials redacted. Invoice details also surface on VM resources: `last_invoice` (Terraform) / `lastInvoice` (Pulumi) carries `id`, `status`, `date`, `duedate`, `paybefore`, `datepaid`, and `invoice_type`.

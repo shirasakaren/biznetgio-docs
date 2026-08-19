@@ -1,0 +1,87 @@
+---
+title: "FAQ"
+description: "Common questions and troubleshooting for the Biznet GIO providers"
+---
+
+## Configuration
+
+<AccordionGroup>
+  <Accordion title="The provider says the API key is missing">
+    Terraform: set `api_key` in the provider block or export `BIZNETGIO_API_KEY`. Pulumi: run `pulumi config set --secret biznetgio:apiToken <token>` or export `BIZNETGIO_API_KEY`. Tokens are issued from the [portal](https://portal.biznetgio.com) — see [Authentication](/authentication).
+  </Accordion>
+
+  <Accordion title="Can I point the providers at the staging API?">
+    Yes. Set `BIZNETGIO_BASE_URL=https://api.portal.biznetgio.dev/v1` (Terraform `base_url` / Pulumi `biznetgio:baseUrl` override it per-configuration).
+  </Accordion>
+
+  <Accordion title="Why is my resource stuck Pending?">
+    An unpaid invoice keeps resources `Pending`. With `pay_with_credit_card = false` the order is placed without payment — pay it in the [portal](https://portal.biznetgio.com), then run apply/up again; the providers resume polling. See [Billing](/guides/billing).
+  </Accordion>
+</AccordionGroup>
+
+## Secrets and state
+
+<AccordionGroup>
+  <Accordion title="My keypair private key / S3 secret key disappeared">
+    The API returns those values only once, at creation. Both providers preserve them in state across refreshes. If they are lost from state (e.g. a fresh import), you cannot recover them — create a new keypair/credential.
+  </Accordion>
+
+  <Accordion title="Do secret values leak into plans or diffs?">
+    No. `api_key`/`apiToken`, passwords, and key material are marked sensitive, and every `raw` JSON output is redacted — values under keys like `password`, `private_key`, `secret_key`, `token`, and `pem` are masked as `***` before entering state.
+  </Accordion>
+
+  <Accordion title="What is the raw output for?">
+    `raw` holds the last API response JSON (redacted). The upstream API publishes no response schemas for some endpoints, so `raw` is the escape hatch for anything unmodeled — e.g. the change-package and storage-upgrade option data sources expose only `raw`.
+  </Accordion>
+</AccordionGroup>
+
+## Resources
+
+<AccordionGroup>
+  <Accordion title="Can I reuse one keypair across services?">
+    No. Keypair pools are per service (NEO Lite, NEO Lite Pro, NEO Metal, NEO GPU), and ids are not interchangeable. Create one keypair resource per service.
+  </Accordion>
+
+  <Accordion title="How do I change the OS of a running VM?">
+    Use the rebuild action: `rebuild_os` / `rebuildOs` on NEO Lite/Pro/Metal, or `rebuild_trigger` / `rebuildTrigger` on GPU. This is destructive — the disk is wiped. See [Triggers](/guides/triggers).
+  </Accordion>
+
+  <Accordion title="How do I migrate a NEO Lite VM to NEO Lite Pro?">
+    Set `migrate_to_pro` / `migrateToPro` on the NEO Lite VM to the target NEO Lite Pro `product_id`. It's a one-shot action — change the value to re-fire.
+  </Accordion>
+
+  <Accordion title="Why is shrinking a disk or quota rejected?">
+    Storage is grow-only on this API. Recreate the resource to shrink (destroys the data).
+  </Accordion>
+
+  <Accordion title="Should I manage objects through the object resource?">
+    Only for small, one-off uploads. The control-plane upload path isn't built for bulk data — use S3-compatible tooling with the credential resource against `nos.<region>.neo.id` endpoints instead.
+  </Accordion>
+
+  <Accordion title="Which products are not covered by these providers?">
+    Anything without a public portal API: NEO Virtual Compute, NEO Kubernetes, NEO DNS, domains, web hosting, NEO Sense, GIO Private, GIO Enterprise Cloud, and backup products. Manage those from the [portal](https://portal.biznetgio.com) or the official CLI (`npx @biznetgio/cli`).
+  </Accordion>
+</AccordionGroup>
+
+## Operations
+
+<AccordionGroup>
+  <Accordion title="How long do creates take?">
+    Most creates poll every 5 seconds until the resource reports `Active` — typically 1–5 minutes, capped by the create timeout (20m default in Terraform).
+  </Accordion>
+
+  <Accordion title="My Pulumi update timed out — is it safe to retry?">
+    Yes. On timeout the provider returns an initialization error with partial state, and the next `pulumi up` resumes from where it left off.
+  </Accordion>
+
+  <Accordion title="The GPU console data source behaves oddly in previews">
+    `gpuConsole` mints a new session on every read — it's an action, not a pure lookup. Keep it out of values evaluated during plan diffing.
+  </Accordion>
+</AccordionGroup>
+
+## Support
+
+- Biznet GIO support: [support@biznetgio.com](mailto:support@biznetgio.com)
+- Terraform provider issues: [github.com/shirasakaren/terraform-provider-biznetgio/issues](https://github.com/shirasakaren/terraform-provider-biznetgio/issues)
+- Pulumi provider issues: [github.com/shirasakaren/pulumi-biznetgio/issues](https://github.com/shirasakaren/pulumi-biznetgio/issues)
+- Documentation issues: [github.com/shirasakaren/biznetgio-docs/issues](https://github.com/shirasakaren/biznetgio-docs/issues)

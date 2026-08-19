@@ -1,0 +1,63 @@
+---
+title: "Importing (Pulumi)"
+description: "Bring existing Biznet GIO resources into a Pulumi stack"
+---
+
+Every resource supports `pulumi import` with the resource's account id — or a composite id for bucket/credential/object/assignment resources.
+
+## Import
+
+```bash
+pulumi import biznetgio:index:NeoliteVm demo-vm 12345
+```
+
+This writes a matching resource declaration into your stack and adopts the live resource. Run `pulumi preview` afterwards and fix any input diffs.
+
+## ID formats
+
+| Resource token | Import ID |
+| --- | --- |
+| `biznetgio:index:NeoliteVm` | `<account_id>` |
+| `biznetgio:index:NeoliteKeypair` | `<keypair_id>` |
+| `biznetgio:index:NeoliteSnapshot` | `<snapshot account_id>` |
+| `biznetgio:index:NeoliteVmFromSnapshot` | `<restored VM account_id>` |
+| `biznetgio:index:NeoliteDisk` | `<disk account_id>` |
+| `biznetgio:index:NeoliteProVm` | `<account_id>` |
+| `biznetgio:index:NeoliteProKeypair` | `<keypair_id>` |
+| `biznetgio:index:NeoliteProSnapshot` | `<snapshot account_id>` |
+| `biznetgio:index:NeoliteProDisk` | `<disk account_id>` |
+| `biznetgio:index:Baremetal` | `<account_id>` |
+| `biznetgio:index:BaremetalKeypair` | `<keypair_id>` |
+| `biznetgio:index:BaremetalAdditionalIp` | `<account_id>` |
+| `biznetgio:index:BaremetalAdditionalIpAssignment` | `<metal_account_id>:<additional_ip_id>` |
+| `biznetgio:index:BaremetalElasticStorage` | `<storage account_id>` |
+| `biznetgio:index:GpuInstance` | `<account_id>` |
+| `biznetgio:index:GpuKeypair` | `<keypair_id>` |
+| `biznetgio:index:ObjectStorage` | `<account_id>` |
+| `biznetgio:index:ObjectStorageBucket` | `<account_id>:<bucket_name>` |
+| `biznetgio:index:ObjectStorageCredential` | `<account_id>:<access_key>` (literal or 16-hex hashed form) |
+| `biznetgio:index:ObjectStorageObject` | `<account_id>:<bucket>:<key>` |
+
+<Note>
+  Keypair ids are not interchangeable across services — a NEO Lite keypair id imports into `NeoliteKeypair` only.
+</Note>
+
+## Composite id examples
+
+```bash
+# additional IP assignment: server 12345 + additional ip 67890
+pulumi import biznetgio:index:BaremetalAdditionalIpAssignment assign 12345:67890
+
+# bucket inside instance 12345
+pulumi import biznetgio:index:ObjectStorageBucket assets 12345:my-assets
+
+# credential: access key given literally
+pulumi import biznetgio:index:ObjectStorageCredential main 12345:ABCDEFGHIJKLMNOP
+
+# object inside bucket my-assets
+pulumi import biznetgio:index:ObjectStorageObject index 12345:my-assets:site/index.html
+```
+
+<Warning>
+  Importing a credential stores the **hashed** form of the access key in the id (`<account_id>:<sha256(access_key)>[:16]`) — the plaintext key is never written to state.
+</Warning>
