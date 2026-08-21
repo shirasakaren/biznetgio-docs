@@ -11,12 +11,13 @@ Kontribusi sekecil mungkin, bagus buat belajar alur fork dan PR.
 
 <Steps>
 <Step title="Fork dan clone">
-  Fork [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs), terus:
+  Fork [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs) kalau lu mau kirim PR, terus clone:
   ```bash
-  git clone git@github.com:YOUR-USERNAME/biznetgio-docs.git
+  git clone https://github.com/shirasakaren/biznetgio-docs.git
   cd biznetgio-docs
   git checkout -b docs/fix-typo
   ```
+  Perintahnya clone upstream; buat push branch, clone fork lu dari halaman fork lu, caranya sama.
 </Step>
 <Step title="Temuin halamannya dan benerin dua bahasa">
   Misal typo-nya ada di `/quickstart`. Copy Inggris-nya `quickstart.mdx`, copy Indonesianya `id/quickstart.mdx`. Benerin Inggris dulu, terus terapin fix yang setara ke halaman Indonesia. Kalau kalimat Indonesianya gak ada persis, benerin maknanya, bukan kata-katanya.
@@ -47,11 +48,11 @@ Misal provider dapet data source baru buat NEO Lite dan lu mau contoh yang nunju
 <Steps>
 <Step title="Branch dari main yang fresh">
   ```bash
-  git clone git@github.com:YOUR-USERNAME/biznetgio-example-terraform.git
+  git clone https://github.com/shirasakaren/biznetgio-example-terraform.git
   cd biznetgio-example-terraform
-  git remote add upstream https://github.com/shirasakaren/biznetgio-example-terraform.git
-  git fetch upstream && git checkout -b feat/neolite-new-datasource upstream/main
+  git checkout -b feat/neolite-new-datasource
   ```
+  Ini clone upstream langsung; fork dulu dan clone fork lu kalau mau push branch.
 </Step>
 <Step title="Edit contohnya">
   Kalau data source-nya masuk ke cerita NEO Lite yang udah ada, tambahin ke `neolite/main.tf` dengan banner dan komen section bilingual, ngikutin [Konvensi](/id/contribute/conventions). Referensikan dari resource atau output biar bener-bener kepake.
@@ -82,11 +83,12 @@ Misal provider dapet data source baru buat NEO Lite dan lu mau contoh yang nunju
 <Steps>
 <Step title="Copy folder yang paling deket">
   ```bash
-  git clone git@github.com:YOUR-USERNAME/biznetgio-example-pulumi.git
+  git clone https://github.com/shirasakaren/biznetgio-example-pulumi.git
   cd biznetgio-example-pulumi
   git checkout -b feat/new-example
   cp -r typescript/object-storage typescript/my-new-thing
   ```
+  Ini clone upstream langsung; fork dulu dan clone fork lu kalau mau push branch.
 </Step>
 <Step title="Tulis ulang programnya">
   Edit `typescript/my-new-thing/index.ts`: banner baru, resource baru, aturan yang sama. Set nama project di `Pulumi.yaml` jadi `biznetgio-example-my-new-thing` dan benerin field `name` di `package.json` biar cocok. Jaga `payWithCreditCard` default ke `false`, opsi one-shot dikomen, dan `toAccountId` di mana pun id ketemu input yang typed number.

@@ -11,12 +11,13 @@ The smallest possible contribution, good for learning the fork and PR flow.
 
 <Steps>
 <Step title="Fork and clone">
-  Fork [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs), then:
+  Fork [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs) if you plan to send a PR, then clone:
   ```bash
-  git clone git@github.com:YOUR-USERNAME/biznetgio-docs.git
+  git clone https://github.com/shirasakaren/biznetgio-docs.git
   cd biznetgio-docs
   git checkout -b docs/fix-typo
   ```
+  The command clones upstream; to push a branch, clone your fork from your fork's page the same way.
 </Step>
 <Step title="Find the page and fix both languages">
   Say the typo is on `/quickstart`. The English copy is `quickstart.mdx`, the Indonesian copy is `id/quickstart.mdx`. Fix the English first, then apply the equivalent fix to the Indonesian page. If the Indonesian sentence does not exist verbatim, fix the meaning, not the words.
@@ -47,11 +48,11 @@ Say the provider gained a new data source for NEO Lite and you want an example s
 <Steps>
 <Step title="Branch from a fresh main">
   ```bash
-  git clone git@github.com:YOUR-USERNAME/biznetgio-example-terraform.git
+  git clone https://github.com/shirasakaren/biznetgio-example-terraform.git
   cd biznetgio-example-terraform
-  git remote add upstream https://github.com/shirasakaren/biznetgio-example-terraform.git
-  git fetch upstream && git checkout -b feat/neolite-new-datasource upstream/main
+  git checkout -b feat/neolite-new-datasource
   ```
+  This clones upstream directly; fork first and clone your fork if you will push a branch.
 </Step>
 <Step title="Edit the example">
   If the data source belongs in the existing NEO Lite story, add it to `neolite/main.tf` with the bilingual banner and section comments, following [Conventions](/contribute/conventions). Reference it from a resource or an output so it is actually exercised.
@@ -82,11 +83,12 @@ Say the provider gained a new data source for NEO Lite and you want an example s
 <Steps>
 <Step title="Copy the closest folder">
   ```bash
-  git clone git@github.com:YOUR-USERNAME/biznetgio-example-pulumi.git
+  git clone https://github.com/shirasakaren/biznetgio-example-pulumi.git
   cd biznetgio-example-pulumi
   git checkout -b feat/new-example
   cp -r typescript/object-storage typescript/my-new-thing
   ```
+  This clones upstream directly; fork first and clone your fork if you will push a branch.
 </Step>
 <Step title="Rewrite the program">
   Edit `typescript/my-new-thing/index.ts`: new banner, new resources, same rules. Set the project name in `Pulumi.yaml` to `biznetgio-example-my-new-thing` and fix the `name` field in `package.json` to match. Keep `payWithCreditCard` defaulting to `false`, one-shot options commented out, and `toAccountId` wherever an id meets a number typed input.
