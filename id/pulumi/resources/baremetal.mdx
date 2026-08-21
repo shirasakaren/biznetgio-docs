@@ -206,8 +206,8 @@ Server dedicated NEO Metal (`/baremetals` API group) plus add-onnya: additional 
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | dari `baremetalProducts` |
-| `cycle` | string | yes | `m` bulanan / `a` tahunan |
+| `productId` | int64 | yes | dari `baremetalProducts`; create-only - kalau berubah, server di-destroy dan direcreate |
+| `cycle` | string | yes | `m` bulanan / `a` tahunan; create-only |
 | `selectOs` | string | no | default `ubuntu-22`; create-only |
 | `keypairId` | int64 | yes | dari `BaremetalKeypair`; create-only |
 | `label` | string | yes | nama tampilan - satu-satunya input yang bisa di-update |
@@ -219,6 +219,10 @@ Server dedicated NEO Metal (`/baremetals` API group) plus add-onnya: additional 
 | `rebuildOs` | string | no | rebuild (destructive); value valid dari `baremetalRebuildOsList` |
 
 Outputs: `status`, `orderId`, `ipAddress`, `createdAt`, `raw` (secret, di-redact). Import pake numeric account id.
+
+<Note>
+  Pulumi nangani perubahan `productId` atau `cycle` dengan aman - destroy dan recreate server-nya. Resource setara di Terraform provider gak gitu - liat [referensi Terraform](/id/terraform/resources/baremetal#biznetgio_baremetal) kalau lu juga pake Terraform buat NEO Metal.
+</Note>
 
 ## `biznetgio:index:BaremetalKeypair`
 

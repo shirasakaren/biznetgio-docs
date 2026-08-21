@@ -77,7 +77,7 @@ resource "biznetgio_neolite_vm" "web" {
 
 ## What is Pulumi?
 
-[Pulumi](https://www.pulumi.com) is an IaC tool that lets you write infrastructure in general purpose programming languages: TypeScript, Python, Go, C#, and Java.
+[Pulumi](https://www.pulumi.com) is an IaC tool that lets you write infrastructure in general purpose programming languages: TypeScript, Python, Go, C#, and Java. It also has a declarative YAML mode for when you want Terraform-style config without a full SDK - see the [Pulumi quickstart](/pulumi-quickstart) for a YAML example next to the five language ones.
 
 - **Language**: your language, with loops, functions, and types from day one
 - **State**: stored on the Pulumi Cloud service (or a self-hosted backend)
@@ -95,7 +95,7 @@ const vm = new biznetgio.NeoliteVm("web", {
 
 | | Terraform | Pulumi |
 | --- | --- | --- |
-| Language | HCL (declarative DSL) | TypeScript, Python, Go, C#, Java |
+| Language | HCL (declarative DSL) | TypeScript, Python, Go, C#, Java, or declarative YAML |
 | Preview command | `terraform plan` | `pulumi preview` |
 | Apply command | `terraform apply` | `pulumi up` |
 | State | file or backend | Pulumi Cloud or self-hosted |

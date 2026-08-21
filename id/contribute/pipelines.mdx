@@ -3,7 +3,7 @@ title: "Pipelines"
 description: "Penjelasan baris per baris soal dua workflow CI manual dispatch, secret yang mereka butuhin, dan cara nge-extend mereka"
 ---
 
-Dua repo contoh nge-ship workflow GitHub Actions yang cuma jalan pas ada manusia yang sengaja nge-trigger. Halaman ini ngejelasin kenapa, tiap step ngapain, dan gimana cara nambahin contoh atau bahasa baru ke matrix. Situs docs gak punya file workflow sama sekali; dia deploy lewat aplikasi Mintlify.
+Dua repo contoh nge-ship workflow GitHub Actions yang cuma jalan pas ada manusia yang sengaja nge-trigger. Halaman ini ngejelasin kenapa, tiap step ngapain, dan gimana cara nambahin contoh atau bahasa baru ke matrix. Situs docs punya workflow sendiri yang jauh lebih kecil - gate validasi, bukan step deploy - dibahas di [Pipeline situs docs](#pipeline-situs-docs) di bawah.
 
 ## Kenapa manual doang
 
@@ -56,4 +56,27 @@ Dua workflow itu YAML biasa yang ngikutin [sintaks workflow GitHub Actions](http
 
 ## Pipeline situs docs
 
-Repo docs gak punya workflow Actions. Perubahan yang di-merge ke `main` di-build dan di-deploy oleh GitHub app Mintlify, yang dikonfigurasi di [deployments](https://github.com/shirasakaren/biznetgio-docs/deployments) repo. Verifikasi lokal sebelum merge itu `mint dev` plus cek link yang teliti, kayak yang dijelasin di [Local setup](/id/contribute/setup). Kalau deploy pernah keliatan basi, halaman riwayat deployment nunjukin commit hash dari situs yang lagi live.
+Beda dari dua repo contoh, `.github/workflows/ci.yml` repo docs **bukan** manual-dispatch doang - dia jalan otomatis tiap push ke `main` dan tiap pull request, soalnya gak ada apa-apa yang destruktif buat digate di sini, cuma build check:
+
+```yaml
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install -g mint
+      - run: mint validate
+      - run: mint broken-links
+```
+
+`mint validate` nangkep `docs.json` yang rusak atau halaman yang gak bisa dibuild Mintlify; `mint broken-links` nangkep link atau anchor internal yang gak resolve, persis jenis bug yang rawan muncul di docs site penuh cross-reference kayak ini. Kedua step itu gak deploy apapun - deployment itu terpisah dan ditangani sama GitHub app Mintlify, yang build dan publish ke [biznetgio.creations.ren](https://biznetgio.creations.ren) setiap ada commit yang landing di `main`, ke-track di [deployments](https://github.com/shirasakaren/biznetgio-docs/deployments) repo. Jalanin `mint validate` dan `mint broken-links` lokal dulu sebelum buka PR - liat [Local setup](/id/contribute/setup) - biar CI itu konfirmasi, bukan pertama kalinya lu tau ada yang rusak. Kalau deploy pernah keliatan basi, halaman riwayat deployment nunjukin commit hash dari situs yang lagi live.

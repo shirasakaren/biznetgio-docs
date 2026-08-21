@@ -25,7 +25,7 @@ Never merge a pull request whose plan or preview you haven't read. That's the en
 ## Guardrails specific to these providers
 
 - **Test with `pay_with_credit_card = false` / `payWithCreditCard: false`.** The resource is created but stays `Pending` until paid in the portal, so a whole plan-to-apply cycle can be rehearsed without a real charge landing. See the [billing guide](/guides/billing).
-- **Read one-shot triggers and create-only fields as irreversible in review.** `rebuild_os`, `reset_trigger`, and the other [triggers](/tutorials/environments) fire destructively the moment their value changes, and Terraform's `fmt`/`validate` or a Pulumi type checker cannot warn you that a plan reinstalls an OS; a human reviewing the diff has to catch that.
+- **Read one-shot triggers and create-only fields as irreversible in review.** `rebuild_os`, `reset_trigger`, and the other [triggers](/guides/triggers) fire destructively the moment their value changes, and Terraform's `fmt`/`validate` or a Pulumi type checker cannot warn you that a plan reinstalls an OS; a human reviewing the diff has to catch that.
 - **Preview a destroy before running one for real.** `terraform plan -destroy` and `pulumi preview --diff` show exactly what disappears, before `destroy`/`down` makes it permanent.
 
 ## Policy as code, once manual review isn't enough

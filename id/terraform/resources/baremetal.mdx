@@ -42,7 +42,7 @@ resource "biznetgio_baremetal" "main" {
 | `cycle` | string | required | `m` bulanan / `a` tahunan |
 | `select_os` | string | optional | default `ubuntu-22`; create-only |
 | `keypair_id` | int64 | required | dari `biznetgio_baremetal_keypair`; create-only |
-| `label` | string | required | display name - satu-satunya field yang bisa di-update |
+| `label` | string | required | display name - satu-satunya field yang beneran dikirim `apply` sebagai update |
 | `public_ip` | int64 | optional | default `1`; create-only |
 | `promocode` | string | optional | create-only |
 | `pay_with_credit_card` | bool | optional | default `true` |
@@ -57,6 +57,10 @@ resource "biznetgio_baremetal" "main" {
 | `timeouts` | block | optional | create/update/delete |
 
 Import pake numeric account id.
+
+<Warning>
+  Ganti `product_id` atau `cycle` setelah create itu **gak ngapa-ngapain** - gak error, gak resize, gak re-billing. `Update` di Terraform cuma manggil API buat `label`, `power_state`, `reset_trigger`, dan `rebuild_os`; `product_id` atau `cycle` yang berubah langsung ditulis ke state tanpa nyentuh server, jadi `terraform apply` lapor sukses dan `plan` *berikutnya* gak nunjukin diff, padahal server bare-metal beneran masih di package dan cycle yang lama. Kalau lu butuh package atau billing cycle yang beda, lu harus destroy dan recreate resource-nya (atau ganti lewat [portal](https://portal.biznetgio.com)) - gak ada resize in-place buat NEO Metal.
+</Warning>
 
 ## `biznetgio_baremetal_keypair`
 

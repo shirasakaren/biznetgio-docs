@@ -42,7 +42,7 @@ resource "biznetgio_baremetal" "main" {
 | `cycle` | string | required | `m` monthly / `a` annual |
 | `select_os` | string | optional | default `ubuntu-22`; create-only |
 | `keypair_id` | int64 | required | from `biznetgio_baremetal_keypair`; create-only |
-| `label` | string | required | display name - the only updatable field |
+| `label` | string | required | display name - the only field `apply` actually sends as an update |
 | `public_ip` | int64 | optional | default `1`; create-only |
 | `promocode` | string | optional | create-only |
 | `pay_with_credit_card` | bool | optional | default `true` |
@@ -57,6 +57,10 @@ resource "biznetgio_baremetal" "main" {
 | `timeouts` | block | optional | create/update/delete |
 
 Import with the numeric account id.
+
+<Warning>
+  Changing `product_id` or `cycle` after creation does **nothing** - no error, no resize, no re-billing. Terraform's `Update` only ever calls the API for `label`, `power_state`, `reset_trigger`, and `rebuild_os`; a changed `product_id` or `cycle` is written straight into state without touching the server, so `terraform apply` reports success and the *next* `plan` shows no diff, even though the real bare-metal server is still on the old package and cycle. If you need a different package or billing cycle, you must destroy and recreate the resource (or change it in the [portal](https://portal.biznetgio.com)) - there is no in-place resize for NEO Metal.
+</Warning>
 
 ## `biznetgio_baremetal_keypair`
 

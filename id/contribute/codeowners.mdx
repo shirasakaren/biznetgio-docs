@@ -3,13 +3,13 @@ title: "CODEOWNERS dan review"
 description: "Gimana file CODEOWNERS ngatur review, aturan matching-nya, dan gimana cara ngakuin kepemilikan sebuah path"
 ---
 
-Setiap repo punya file `CODEOWNERS` di root-nya. File itu ngasih tau GitHub siapa yang punya file mana, terus GitHub otomatis ngubahnya jadi permintaan review. Halaman ini ngejelasin gimana mekanismenya jalan dan gimana cara baca dan ubah file-nya.
+Dua repo contoh - [biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform) dan [biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi) - punya file `CODEOWNERS` di root-nya. File itu ngasih tau GitHub siapa yang punya file mana, terus GitHub otomatis ngubahnya jadi permintaan review. Dua repo provider dan situs docs ini belum punya; PR di situ gak dapet permintaan review otomatis, jadi tag maintainer-nya manual. Halaman ini ngejelasin gimana mekanismenya jalan dan gimana cara baca dan ubah file-nya, buat repo yang punya.
 
 ## Apa yang CODEOWNERS lakukan
 
 Pas ada pull request yang ngubah file yang cocok sama entri di `CODEOWNERS`, GitHub otomatis minta review dari owner yang terdaftar, kayak yang dijelasin di [dokumentasi GitHub](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners). Dia gak ngeblokir merge dan gak ngasih permission; dia cuma tabel routing buat permintaan review.
 
-File di tiga repo itu minimal banget:
+File di dua repo contoh itu minimal banget, dan sama persis di keduanya:
 
 ```text
 * @shirasakaren

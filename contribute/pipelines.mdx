@@ -3,7 +3,7 @@ title: "Pipelines"
 description: "Line by line explanation of the two manual dispatch CI workflows, the secrets they need, and how to extend them"
 ---
 
-Both example repos ship a GitHub Actions workflow that runs only when a human deliberately triggers it. This page explains why, what each step does, and how to add a new example or language to the matrix. The docs site has no workflow file at all; it deploys through the Mintlify app.
+Both example repos ship a GitHub Actions workflow that runs only when a human deliberately triggers it. This page explains why, what each step does, and how to add a new example or language to the matrix. The docs site has a much smaller workflow of its own - a validation gate, not a deploy step - covered in [The docs site pipeline](#the-docs-site-pipeline) below.
 
 ## Why manual only
 
@@ -56,4 +56,27 @@ Both workflows are plain YAML following the [GitHub Actions workflow syntax](htt
 
 ## The docs site pipeline
 
-The docs repo has no Actions workflow. Changes merged to `main` are built and deployed by the Mintlify GitHub app, configured in the repo's [deployments](https://github.com/shirasakaren/biznetgio-docs/deployments). Local verification before merging is `mint dev` plus careful link checks, as described in [Local setup](/contribute/setup). If a deploy ever looks stale, the deployment history page shows the commit hash of the live site.
+Unlike the two example repos, the docs repo's `.github/workflows/ci.yml` is **not** manual-dispatch-only - it runs automatically on every push to `main` and on every pull request, because there is nothing destructive to gate here, only a build check:
+
+```yaml
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install -g mint
+      - run: mint validate
+      - run: mint broken-links
+```
+
+`mint validate` catches a broken `docs.json` or a page Mintlify can't build; `mint broken-links` catches an internal link or anchor that doesn't resolve, which is exactly the class of bug a `[0]`-heavy docs site full of cross-references is prone to. Neither step deploys anything - deployment is separate and handled by the Mintlify GitHub app, which builds and publishes to [biznetgio.creations.ren](https://biznetgio.creations.ren) whenever a commit lands on `main`, tracked in the repo's [deployments](https://github.com/shirasakaren/biznetgio-docs/deployments). Run both `mint validate` and `mint broken-links` locally before opening a PR - see [Local setup](/contribute/setup) - so CI is a confirmation, not the first time you find out something's broken. If a deploy ever looks stale, the deployment history page shows the commit hash of the live site.

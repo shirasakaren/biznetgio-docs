@@ -167,9 +167,11 @@ Match berdasarkan string `name` yang exact itu oke, asal udah lu confirm string 
 Lu bakal liat harga di dua tempat yang wajar kalau beda:
 
 - **Pricelist publik** (`biznetgio.com/pricelist`) itu harga list Biznet GIO. Ini cara paling cepet buat bandingin tier sebelum lu putusin apa yang mau di-order, dan ini yang jadi sumber setiap tabel harga di bagian Katalog Produk ini.
-- **Field `billing`** di item data source katalog (misalnya `biznetgio_neolite_products.all.products[0].billing`) itu yang API bilang akun lu bakal beneran dicharge buat produk itu, di cycle itu. Bisa beda dari harga list publik kalau akun lu punya promo, rate kontrak, atau Biznet GIO udah ganti harga sejak dokumentasi ini ditulis.
+- **Field `billing`** di item data source katalog (misalnya `biznetgio_neolite_products.all.products[0].billing`) itu yang API bilang akun lu bakal beneran dicharge buat produk itu. Bisa beda dari harga list publik kalau akun lu punya promo, rate kontrak, atau Biznet GIO udah ganti harga sejak dokumentasi ini ditulis.
 
-Anggep pricelist sebagai cara buat paham dan bandingin produk. Anggep `billing` sebagai angka otoritatif buat apa yang bener-bener lu bayar - baca dari output katalog akun lu sendiri sebelum order yang harganya lu peduliin.
+`billing` itu sebuah **list**, satu entry per cycle yang didukung (`m`, `a`, dan seterusnya buat product line yang dukung lebih dari bulanan/tahunan) - bukan satu harga tunggal. Filter dulu pake `cycle` yang lu beneran mau order buat dapetin satu angka otoritatif, sama kayak lu filter `products` pake nama atau spec, bukan asal ambil `[0]`.
+
+Anggep pricelist sebagai cara buat paham dan bandingin produk. Anggep entry yang matching di `billing` sebagai angka otoritatif buat apa yang bener-bener lu bayar - baca dari output katalog akun lu sendiri sebelum order yang harganya lu peduliin.
 
 ## Apa yang dikasih tiap product line
 

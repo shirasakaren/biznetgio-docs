@@ -206,8 +206,8 @@ NEO Metal dedicated servers (`/baremetals` API group) plus their add-ons: additi
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | from `baremetalProducts` |
-| `cycle` | string | yes | `m` monthly / `a` annual |
+| `productId` | int64 | yes | from `baremetalProducts`; create-only - a change destroys and recreates the server |
+| `cycle` | string | yes | `m` monthly / `a` annual; create-only |
 | `selectOs` | string | no | default `ubuntu-22`; create-only |
 | `keypairId` | int64 | yes | from `BaremetalKeypair`; create-only |
 | `label` | string | yes | display name - the only updatable input |
@@ -219,6 +219,10 @@ NEO Metal dedicated servers (`/baremetals` API group) plus their add-ons: additi
 | `rebuildOs` | string | no | destructive rebuild; valid values from `baremetalRebuildOsList` |
 
 Outputs: `status`, `orderId`, `ipAddress`, `createdAt`, `raw` (secret, redacted). Import with the numeric account id.
+
+<Note>
+  Pulumi handles a `productId` or `cycle` change safely by destroying and recreating the server. The Terraform provider's equivalent resource does not - see the [Terraform reference](/terraform/resources/baremetal#biznetgio_baremetal) if you also use Terraform for NEO Metal.
+</Note>
 
 ## `biznetgio:index:BaremetalKeypair`
 

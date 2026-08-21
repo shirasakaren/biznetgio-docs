@@ -248,22 +248,26 @@ Billing per jam sebagai ganti `subscription`:
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | dari `gpuProducts` |
-| `selectOs` | string | yes | dari katalog select-OS produk |
-| `keypairId` | int64 | yes | dari `GpuKeypair` |
-| `sshAndConsoleUser` | string | yes | |
-| `consolePassword` | string, secret | yes | |
+| `productId` | int64 | yes | dari `gpuProducts`; create-only |
+| `selectOs` | string | yes | dari katalog select-OS produk; create-only |
+| `keypairId` | int64 | yes | dari `GpuKeypair`; create-only |
+| `sshAndConsoleUser` | string | yes | create-only |
+| `consolePassword` | string, secret | yes | create-only |
 | `serviceName` | string | no | create-only |
-| `promocode` | string | no | |
-| `payWithCreditCard` | bool | no | default `true` |
-| `subscription` | object | one-of | `{ cycle: "m" \| "a" }` |
-| `onDemand` | object | one-of | `{ additionalHours?: number }` default 0 |
+| `promocode` | string | no | create-only |
+| `payWithCreditCard` | bool | no | default `true`; create-only |
+| `subscription` | object | one-of | `{ cycle: "m" \| "a" }`; create-only |
+| `onDemand` | object | one-of | `{ additionalHours?: number }` default 0; create-only |
 | `rebuildTrigger` | string | no | one-shot reinstall OS (destructive) |
 | `reserveAdditionalHoursTrigger` | string | no | one-shot: reserve additional hour(s) |
 
 `keypairId` datengnya dari `id`-nya `GpuKeypair` yang di-convert ke number, kayak contoh di atas - `GpuKeypair` gak nge-expose output `keypairId` yang terpisah, beda dari resource keypair lain.
 
 Outputs: `status`, `orderId`, `raw` (secret, di-redact). Import pake numeric account id.
+
+<Note>
+  Semua input di atas kecuali dua trigger itu create-only di Pulumi - kalau berubah, instance-nya di-destroy dan direcreate. Resource setara di Terraform provider gak nangani ini dengan aman: ganti `product_id`, `select_os`, atau `keypair_id` di situ nyebabin plan diff permanen yang gak bisa keselesein, bukan replace - liat [referensi Terraform](/id/terraform/resources/gpu#biznetgio_gpu_instance) kalau lu juga pake Terraform buat NEO GPU.
+</Note>
 
 ## `biznetgio:index:GpuKeypair`
 

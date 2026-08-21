@@ -3,13 +3,13 @@ title: "CODEOWNERS and reviews"
 description: "How the CODEOWNERS file routes reviews, its matching rules, and how to claim ownership of a path"
 ---
 
-Every repo has a `CODEOWNERS` file at its root. It tells GitHub who owns which files, and GitHub turns that into review requests automatically. This page explains how the mechanism works and how to read and change the file.
+Both example repos - [biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform) and [biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi) - have a `CODEOWNERS` file at their root. It tells GitHub who owns which files, and GitHub turns that into review requests automatically. The two provider repos and this docs site do not have one yet; a PR there gets no automatic review request, so tag the maintainer manually. This page explains how the mechanism works and how to read and change the file, for the repos that have it.
 
 ## What CODEOWNERS does
 
 When a pull request changes files that match an entry in `CODEOWNERS`, GitHub automatically requests a review from the listed owners, as described in [GitHub's documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners). It does not block merges and it does not grant permissions; it is a routing table for review requests.
 
-The file in all three repos is minimal:
+The file in both example repos is minimal, and identical between them:
 
 ```text
 * @shirasakaren

@@ -69,6 +69,10 @@ Salah satu dari `subscription` atau `on_demand` wajib diisi - kalau gak, validat
 
 Import pake numeric account id.
 
+<Warning>
+  Ganti `product_id`, `select_os`, atau `keypair_id` setelah create itu **gak ngapa-ngapain yang berguna**, dan lebih parah dari versi baremetal-nya: `Update` cuma manggil API buat `rebuild_trigger` dan `reserve_additional_hours_trigger`, terus baca ulang instance dari API dan overwrite ketiga field itu balik ke value asli (yang gak berubah) sebelum nyimpen state. Hasilnya **plan diff permanen yang gak bisa keselesein** - setiap `terraform plan` berikutnya nunjukin perubahan yang sama lagi, selamanya, karena gak pernah beneran diapply dan gak pernah beneran dibuang. Kalau lu butuh package, OS, atau keypair yang beda, destroy dan recreate resource-nya.
+</Warning>
+
 ## `biznetgio_gpu_keypair`
 
 ```hcl

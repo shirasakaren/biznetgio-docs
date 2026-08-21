@@ -12,7 +12,7 @@ Repository: [shirasakaren/terraform-provider-biznetgio](https://github.com/shira
 ```bash
 git clone https://github.com/shirasakaren/terraform-provider-biznetgio.git
 cd terraform-provider-biznetgio
-make build        # builds bin/terraform-provider-biznetgio
+make build        # go build ./... - nulis ./terraform-provider-biznetgio di root repo, bukan folder bin/
 make install      # go install into GOPATH/bin, for use with dev_overrides
 make lint         # golangci-lint
 make test         # unit tests
@@ -33,12 +33,17 @@ Repository: [shirasakaren/pulumi-biznetgio](https://github.com/shirasakaren/pulu
 ```bash
 git clone https://github.com/shirasakaren/pulumi-biznetgio.git
 cd pulumi-biznetgio
-make build              # builds bin/pulumi-resource-biznetgio
-make install            # copies the provider binary into GOPATH/bin and links the Node and .NET SDKs
+make provider           # cuma build bin/pulumi-resource-biznetgio - provider binary Go doang
+make build               # build provider DAN regenerate + build kelima SDK
+make install            # copy provider binary ke GOPATH/bin dan link SDK Node dan .NET
 make lint
-make test_provider      # provider unit tests
-make build_nodejs       # regenerate + build the TypeScript SDK
+make test_provider      # unit test provider
+make build_nodejs       # regenerate schema, rebuild provider, terus build SDK TypeScript
 ```
+
+<Warning>
+  `make build` bukan cuma build provider Go-nya - dia juga build kelima SDK bahasa (`dotnet_sdk go_sdk nodejs_sdk python_sdk java_sdk`), yang butuh `dotnet`, `yarn`/Node, `python3`, dan `gradle` terinstall lokal selain Go. Kalau lu cuma mau provider binary-nya, pake `make provider`. `make build_nodejs` juga punya prasyarat tersembunyi: dia regenerate schema Pulumi dulu (butuh CLI `pulumi` dan `jq`), dan rebuild provider binary sebelum nyentuh SDK nodejs.
+</Warning>
 
 Struktur: `provider/` (resources, functions, config), `provider/client/` (API client), `sdk/` (SDK nodejs/python/go/dotnet/java hasil generate), `examples/` (satu program per bahasa yang ngarah ke SDK lokal), `tests/` (unit tests).
 

@@ -69,6 +69,10 @@ Exactly one of `subscription` or `on_demand` must be set - validation fails othe
 
 Import with the numeric account id.
 
+<Warning>
+  Changing `product_id`, `select_os`, or `keypair_id` after creation does **nothing** useful, and worse than baremetal's version of this problem: `Update` only ever calls the API for `rebuild_trigger` and `reserve_additional_hours_trigger`, then re-reads the instance from the API and overwrites those three fields back to their real (unchanged) values before saving state. The result is a **permanent, unresolvable plan diff** - every future `terraform plan` shows the same change again, forever, because it's never actually applied and never actually discarded. If you need a different package, OS, or keypair, destroy and recreate the resource.
+</Warning>
+
 ## `biznetgio_gpu_keypair`
 
 ```hcl

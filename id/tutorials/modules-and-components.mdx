@@ -98,6 +98,11 @@ locals {
   ][0]
 }
 
+# staging dan production pake tier yang sama, jadi satu OS list cukup buat berdua
+data "biznetgio_neolite_os_list" "ubuntu" {
+  product_id = local.staging_product.product_id
+}
+
 module "web_staging" {
   source                = "./modules/neolite-vm"
   vm_name                = "web-staging"
@@ -171,10 +176,11 @@ export class NeoliteWebServer extends pulumi.ComponentResource {
 
 `{ parent: this }` daftarin keypair dan VM sebagai child dari component ini di resource tree Pulumi, jadi `pulumi up` dan console Pulumi Cloud nunjukin mereka nested di bawahnya, bukan sebagai dua top-level resource yang gak nyambung.
 
-Instantiate satu per stack. `productId` dipilih pake nama, pola yang sama kayak di [Environment](/id/tutorials/environments#pulumi-stack) - jangan pernah pass `products[0]` langsung ke component:
+Instantiate satu per stack. `config` itu persis yang udah dideklarasiin lengkap di [quickstart Pulumi](/id/pulumi-quickstart). `productId` dipilih pake nama, pola yang sama kayak di [Environment](/id/tutorials/environments#pulumi-stack) - jangan pernah pass `products[0]` langsung ke component:
 
 ```typescript
 const stack = pulumi.getStack();
+const products = biznetgio.neoliteProductsOutput();
 
 // Nama paket NEO Lite beneran - liat /id/products/neolite buat tabel harga
 // lengkap. Confirm dulu ke output katalog akun lu sendiri.
@@ -183,6 +189,8 @@ const productId = products.products.apply((items) => {
   if (!match) throw new Error("no NEO Lite product named 'MS 4.2' found");
   return match.productId;
 });
+
+const osList = biznetgio.neoliteOsListOutput({ productId: productId });
 
 const web = new NeoliteWebServer(`web-${stack}`, {
   productId: productId,

@@ -98,6 +98,11 @@ locals {
   ][0]
 }
 
+# staging and production use the same tier, so one OS list covers both
+data "biznetgio_neolite_os_list" "ubuntu" {
+  product_id = local.staging_product.product_id
+}
+
 module "web_staging" {
   source                = "./modules/neolite-vm"
   vm_name                = "web-staging"
@@ -171,10 +176,11 @@ export class NeoliteWebServer extends pulumi.ComponentResource {
 
 `{ parent: this }` registers the keypair and VM as children of the component in Pulumi's resource tree, so `pulumi up` and the Pulumi Cloud console show them nested under it instead of as two unrelated top-level resources.
 
-Instantiate one per stack. `productId` is picked by name, the same pattern used in [Environments](/tutorials/environments#pulumi-stacks) - never pass a component `products[0]` directly:
+Instantiate one per stack. `config` is exactly what the [Pulumi quickstart](/pulumi-quickstart) already declared in full. `productId` is picked by name, the same pattern used in [Environments](/tutorials/environments#pulumi-stacks) - never pass a component `products[0]` directly:
 
 ```typescript
 const stack = pulumi.getStack();
+const products = biznetgio.neoliteProductsOutput();
 
 // Real NEO Lite package name - see /products/neolite for the full pricing table.
 // Confirm it against your own account's catalog output first.
@@ -183,6 +189,8 @@ const productId = products.products.apply((items) => {
   if (!match) throw new Error("no NEO Lite product named 'MS 4.2' found");
   return match.productId;
 });
+
+const osList = biznetgio.neoliteOsListOutput({ productId: productId });
 
 const web = new NeoliteWebServer(`web-${stack}`, {
   productId: productId,

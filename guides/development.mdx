@@ -12,7 +12,7 @@ Repository: [shirasakaren/terraform-provider-biznetgio](https://github.com/shira
 ```bash
 git clone https://github.com/shirasakaren/terraform-provider-biznetgio.git
 cd terraform-provider-biznetgio
-make build        # builds bin/terraform-provider-biznetgio
+make build        # go build ./... - writes ./terraform-provider-biznetgio in the repo root, not a bin/ folder
 make install      # go install into GOPATH/bin, for use with dev_overrides
 make lint         # golangci-lint
 make test         # unit tests
@@ -33,12 +33,17 @@ Repository: [shirasakaren/pulumi-biznetgio](https://github.com/shirasakaren/pulu
 ```bash
 git clone https://github.com/shirasakaren/pulumi-biznetgio.git
 cd pulumi-biznetgio
-make build              # builds bin/pulumi-resource-biznetgio
+make provider           # builds only bin/pulumi-resource-biznetgio - just the Go provider binary
+make build               # builds the provider AND regenerates + builds all five SDKs
 make install            # copies the provider binary into GOPATH/bin and links the Node and .NET SDKs
 make lint
 make test_provider      # provider unit tests
-make build_nodejs       # regenerate + build the TypeScript SDK
+make build_nodejs       # regenerate schema, rebuild the provider, then build the TypeScript SDK
 ```
+
+<Warning>
+  `make build` does not just build the Go provider - it also builds all five language SDKs (`dotnet_sdk go_sdk nodejs_sdk python_sdk java_sdk`), which needs `dotnet`, `yarn`/Node, `python3`, and `gradle` installed locally in addition to Go. If you only want the provider binary, use `make provider` instead. `make build_nodejs` also has hidden prerequisites: it regenerates the Pulumi schema first, which needs the `pulumi` CLI and `jq`, and rebuilds the provider binary before touching the nodejs SDK.
+</Warning>
 
 Layout: `provider/` (resources, functions, config), `provider/client/` (API client), `sdk/` (generated nodejs/python/go/dotnet/java SDKs), `examples/` (one program per language against the local SDK), `tests/` (unit tests).
 

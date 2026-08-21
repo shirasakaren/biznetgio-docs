@@ -31,7 +31,7 @@ All three repos use [Conventional Commits](https://www.conventionalcommits.org/e
 
 ### Scopes
 
-The scope names the area, and it mirrors the repo layout. Real examples from the repos' history:
+The scope names the area, and it mirrors the repo layout. Real examples from the two example repos' history (the last one is what actually added their CODEOWNERS and issue templates - the docs repo doesn't have those yet, see [CODEOWNERS](/contribute/codeowners) and [Issues](/contribute/issues)):
 
 ```text
 fix: correct GPU keypair and account-id typing in reference examples
@@ -86,7 +86,7 @@ Every unchecked box is a review comment waiting to happen. Check them yourself b
 
 ## What happens after merge
 
-- Docs repo: the site at biznetgio.creations.ren redeploys automatically from `main`.
+- Docs repo: `mint validate` and `mint broken-links` run automatically on the push, then the site at biznetgio.creations.ren redeploys automatically from `main` - see [The docs site pipeline](/contribute/pipelines#the-docs-site-pipeline). Neither step places an order or costs money, so there is nothing to gate manually here.
 - Example repos: nothing runs automatically. The [Pipelines](/contribute/pipelines) are manual dispatch on purpose, because `apply` and `up` place real orders. The maintainer triggers a `validate` or `build` run after review, and anything with real side effects only when it is wanted.
 
-One last rule: the project does not use CI on push, branch protection with required checks, or automated releases. The safety model is human review plus deliberate, manual pipeline runs. That is a design choice described in [Pipelines](/contribute/pipelines), and it is why the PR checklist matters more than in most repos.
+One last rule: nothing in this project runs `apply`, `up`, or a release step automatically on push, and there is no branch protection with required checks. The safety model for anything with a real side effect is human review plus a deliberate, manual pipeline run - the docs site's push-triggered CI is a build check, not an exception to that, since it can only fail a validation, never place an order. That is a design choice described in [Pipelines](/contribute/pipelines), and it is why the PR checklist matters more than in most repos.

@@ -41,9 +41,11 @@ Resep yang sama kayak NEO Lite: print katalog lu sendiri dulu, terus filter berd
     locals {
       # Ganti angka-angkanya sesuai apa yang lu liat di katalog tercetak lu
       # sendiri - contoh ini nargetin tier MS.4.2 (2 core / 4 GB).
+      # Band memory-nya harus exclude MS.2.2 (2 core / ~2048 MB), yang juga
+      # punya cores == 2 - "<= 4200" doang bakal match dua tier sekaligus.
       matches = [
         for p in data.biznetgio_neolite_pro_products.all.products :
-        p if p.options.cores == 2 && p.options.memory <= 4200
+        p if p.options.cores == 2 && p.options.memory >= 3900 && p.options.memory <= 4200
       ]
 
       pro_product_id = local.matches[0].product_id
@@ -73,8 +75,12 @@ Resep yang sama kayak NEO Lite: print katalog lu sendiri dulu, terus filter berd
     import * as biznetgio from "@shirasakaren/biznetgio";
 
     const products = biznetgio.neoliteProProductsOutput();
+    // Band memory-nya harus exclude MS.2.2 (2 core / ~2048 MB), yang juga
+    // punya cores === 2 - "<= 4200" doang bakal match dua tier sekaligus.
     const proProductId = products.products.apply((items) => {
-      const match = items.find((p) => p.options.cores === 2 && p.options.memory <= 4200);
+      const match = items.find(
+        (p) => p.options.cores === 2 && p.options.memory >= 3900 && p.options.memory <= 4200,
+      );
       if (!match) throw new Error("no matching NEO Lite Pro product found");
       return match.productId;
     });

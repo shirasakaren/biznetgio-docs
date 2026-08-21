@@ -16,9 +16,11 @@ terraform workspace list
 terraform workspace select staging
 ```
 
-Reference workspace yang aktif di dalam konfigurasi lu pake `terraform.workspace`. Resource `biznetgio_neolite_keypair` itu persis yang udah dideklarasiin lengkap di [quickstart](/id/quickstart) - yang beda di sini, `product_id` udah bukan `products[0]` lagi. Dipilih dengan sengaja per workspace, pake nama paket beneran dari [katalog NEO Lite](/id/products/neolite):
+Reference workspace yang aktif di dalam konfigurasi lu pake `terraform.workspace`. Block `data` dan resource `biznetgio_neolite_keypair` itu persis yang udah dideklarasiin lengkap di [quickstart](/id/quickstart) - yang beda di sini, `product_id` udah bukan `products[0]` lagi. Dipilih dengan sengaja per workspace, pake nama paket beneran dari [katalog NEO Lite](/id/products/neolite):
 
 ```hcl
+data "biznetgio_neolite_products" "all" {}
+
 locals {
   # Nama paket NEO Lite beneran - liat /id/products/neolite buat tabel harga lengkap.
   # dev dikasih tier paling murah dengan sengaja; staging matching sama production
@@ -37,6 +39,10 @@ locals {
   # Error pas plan kalau nama di atas gak match apapun di akun lu, bukannya
   # diam-diam fallback ke apapun yang jadi products[0].
   selected_product = local.matching_products[0]
+}
+
+data "biznetgio_neolite_os_list" "ubuntu" {
+  product_id = local.selected_product.product_id
 }
 
 resource "biznetgio_neolite_vm" "main" {
@@ -82,17 +88,35 @@ pulumi config set --stack dev biznetgio:apiToken <dev-token> --secret
 pulumi config set --stack production biznetgio:apiToken <production-token> --secret
 ```
 
-Baca nama stack yang aktif di dalam program lu pake `pulumi.getStack()`. Sekali lagi, ini cuma nunjukin bagian yang berubah; `products`, `osList`, `keypair`, dan `config` itu persis yang udah dideklarasiin lengkap di [quickstart Pulumi](/id/pulumi-quickstart):
+Baca nama stack yang aktif di dalam program lu pake `pulumi.getStack()`. `keypair` dan `config` itu persis yang udah dideklarasiin lengkap di [quickstart Pulumi](/id/pulumi-quickstart) - yang beda di sini, `productId` udah bukan `products[0]` lagi. Dipilih dengan sengaja per stack, pake nama paket beneran dari [katalog NEO Lite](/id/products/neolite):
 
 ```typescript
 import * as pulumi from "@pulumi/pulumi";
 import * as biznetgio from "@shirasakaren/biznetgio";
 
 const stack = pulumi.getStack();
+const products = biznetgio.neoliteProductsOutput();
+
+// Nama paket NEO Lite beneran - liat /id/products/neolite buat tabel harga
+// lengkap. dev dikasih tier paling murah dengan sengaja; staging matching
+// sama production biar beneran nangkep bug yang bentuknya kayak production.
+const tierByStack: Record<string, string> = {
+  dev: "XS 1.1", // 1 vCPU / 1 GB - cukup buat smoke-test siklus preview/up
+  staging: "MS 4.2", // 2 vCPU / 4 GB - tier yang sama kayak production
+  production: "MS 4.2",
+};
+
+const productId = products.products.apply((items) => {
+  const match = items.find((p) => p.name === tierByStack[stack]);
+  if (!match) throw new Error(`no NEO Lite product named '${tierByStack[stack]}' found`);
+  return match.productId;
+});
+
+const osList = biznetgio.neoliteOsListOutput({ productId: productId });
 
 const vm = new biznetgio.NeoliteVm("main", {
   vmName: `web-${stack}`,
-  productId: products.products[0].productId,
+  productId: productId,
   selectOs: osList.oss[0].name,
   keypairId: keypair.keypairId,
   cycle: "m",
@@ -101,6 +125,10 @@ const vm = new biznetgio.NeoliteVm("main", {
   payWithCreditCard: stack === "production",
 });
 ```
+
+<Note>
+  Confirm `"XS 1.1"` dan `"MS 4.2"` dulu ke output katalog akun lu sendiri - liat [Langkah 1 di overview katalog](/id/products/overview#langkah-1-liat-katalog-lu-sendiri-sebelum-filter-apapun). `selectOs` di sini masih pake `oss[0]` karena list OS biasanya pendek dan didominasi satu pilihan yang jelas; pake pola filter nama yang sama kalau di akun lu gak gitu.
+</Note>
 
 <Warning>
   Aturan yang sama kayak Terraform: cek `pulumi stack ls` (yang aktif ditandain) sebelum `pulumi up`. Pass `--stack <name>` secara eksplisit di CI, jangan ngandelin stack mana yang terakhir keselect di runner itu.

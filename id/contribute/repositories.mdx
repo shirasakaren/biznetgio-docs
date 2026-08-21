@@ -36,7 +36,7 @@ Aturan kunci buat repo ini:
 - Tiap halaman harus ada dalam Bahasa Inggris di root dan dalam Bahasa Indonesia di bawah `id/` dengan path relatif yang sama. `index.mdx` punya `id/index.mdx`, `tutorials/cicd.mdx` punya `id/tutorials/cicd.mdx`, dan seterusnya. Gak ada pengecualian.
 - Link antar halaman relatif ke root situs, kayak `/contribute/setup`. Di halaman Indonesia link yang sama mulai dengan `/id/`.
 - Navigasi cuma ada di `docs.json`. Nambahin halaman ke folder gak ngelakuin apa-apa sampe halamannya didaftarin di sidebar group situ.
-- Situsnya deploy otomatis dari branch `main` lewat aplikasi GitHub Mintlify. Gak ada file CI yang harus dijalanin; push ke main itu udah deploy.
+- Situsnya deploy otomatis dari branch `main` lewat aplikasi GitHub Mintlify. Ada workflow CI terpisah (`mint validate` + `mint broken-links`, tiap push dan PR) yang jadi gate validasi, bukan deploy-nya - liat [Pipelines](/id/contribute/pipelines#pipeline-situs-docs).
 
 ## Repo contoh Terraform
 

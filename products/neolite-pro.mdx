@@ -41,9 +41,11 @@ Same recipe as NEO Lite: print your own catalog first, then filter on the typed 
     locals {
       # Replace the exact figures with what you saw in your own printed
       # catalog - this example targets the MS.4.2 tier (2 cores / 4 GB).
+      # The memory band must exclude MS.2.2 (2 cores / ~2048 MB), which also
+      # has cores == 2 - a loose "<= 4200" alone would match both tiers.
       matches = [
         for p in data.biznetgio_neolite_pro_products.all.products :
-        p if p.options.cores == 2 && p.options.memory <= 4200
+        p if p.options.cores == 2 && p.options.memory >= 3900 && p.options.memory <= 4200
       ]
 
       pro_product_id = local.matches[0].product_id
@@ -73,8 +75,12 @@ Same recipe as NEO Lite: print your own catalog first, then filter on the typed 
     import * as biznetgio from "@shirasakaren/biznetgio";
 
     const products = biznetgio.neoliteProProductsOutput();
+    // The memory band must exclude MS.2.2 (2 cores / ~2048 MB), which also
+    // has cores === 2 - a loose "<= 4200" alone would match both tiers.
     const proProductId = products.products.apply((items) => {
-      const match = items.find((p) => p.options.cores === 2 && p.options.memory <= 4200);
+      const match = items.find(
+        (p) => p.options.cores === 2 && p.options.memory >= 3900 && p.options.memory <= 4200,
+      );
       if (!match) throw new Error("no matching NEO Lite Pro product found");
       return match.productId;
     });

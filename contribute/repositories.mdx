@@ -36,7 +36,7 @@ Key rules for this repo:
 - Every page must exist in English at the root and in Indonesian under `id/` with the same relative path. `index.mdx` has `id/index.mdx`, `tutorials/cicd.mdx` has `id/tutorials/cicd.mdx`, and so on. There are no exceptions.
 - Links between pages are relative to the site root, like `/contribute/setup`. In Indonesian pages the same link starts with `/id/`.
 - Navigation lives in `docs.json` only. Adding a page to a folder does nothing until the page is listed in a sidebar group there.
-- The site deploys automatically from the `main` branch through the Mintlify GitHub app. There is no CI file to run; pushing to main is the deploy.
+- The site deploys automatically from the `main` branch through the Mintlify GitHub app. A separate CI workflow (`mint validate` + `mint broken-links`, on every push and PR) is a validation gate, not the deploy - see [Pipelines](/contribute/pipelines#the-docs-site-pipeline).
 
 ## The Terraform examples repo
 

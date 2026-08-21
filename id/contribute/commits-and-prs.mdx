@@ -31,7 +31,7 @@ Ketiga repo pake [Conventional Commits](https://www.conventionalcommits.org/en/v
 
 ### Scope
 
-Scope nge-namain area-nya, dan dia mencerminkan susunan repo. Contoh beneran dari sejarah repo-repo ini:
+Scope nge-namain area-nya, dan dia mencerminkan susunan repo. Contoh beneran dari sejarah dua repo contoh (yang terakhir itu yang beneran nambahin CODEOWNERS dan issue template mereka - repo docs belum punya itu, liat [CODEOWNERS](/id/contribute/codeowners) dan [Issues](/id/contribute/issues)):
 
 ```text
 fix: correct GPU keypair and account-id typing in reference examples
@@ -86,7 +86,7 @@ Tiap kotak yang gak dicentang itu komentar review yang tinggal nunggu waktu. Cen
 
 ## Yang terjadi setelah merge
 
-- Repo docs: situs di biznetgio.creations.ren redeploy otomatis dari `main`.
+- Repo docs: `mint validate` dan `mint broken-links` jalan otomatis pas push, terus situs di biznetgio.creations.ren redeploy otomatis dari `main` - liat [Pipeline situs docs](/id/contribute/pipelines#pipeline-situs-docs). Kedua step itu gak nge-order apapun atau makan biaya, jadi gak ada yang perlu digate manual di sini.
 - Repo contoh: gak ada yang jalan otomatis. [Pipelines](/id/contribute/pipelines) sengaja manual dispatch, karena `apply` dan `up` bikin order beneran. Maintainer nge-trigger run `validate` atau `build` setelah review, dan apa pun yang punya side effect beneran cuma pas emang diinginkan.
 
-Satu aturan terakhir: project ini gak pake CI pas push, branch protection dengan required check, atau rilis otomatis. Model safety-nya review manusia plus jalanin pipeline manual dengan sengaja. Itu pilihan desain yang dijelasin di [Pipelines](/id/contribute/pipelines), dan itu sebabnya checklist PR lebih penting di sini daripada di kebanyakan repo.
+Satu aturan terakhir: gak ada apapun di project ini yang jalanin `apply`, `up`, atau step rilis secara otomatis pas push, dan gak ada branch protection dengan required check. Model safety buat apapun yang punya side effect beneran itu review manusia plus jalanin pipeline manual dengan sengaja - CI situs docs yang jalan pas push itu bukan pengecualian dari itu, soalnya dia cuma bisa gagal di validasi, gak pernah nge-order apapun. Itu pilihan desain yang dijelasin di [Pipelines](/id/contribute/pipelines), dan itu sebabnya checklist PR lebih penting di sini daripada di kebanyakan repo.

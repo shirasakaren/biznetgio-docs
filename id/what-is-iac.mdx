@@ -77,7 +77,7 @@ resource "biznetgio_neolite_vm" "web" {
 
 ## Pulumi tuh apa?
 
-[Pulumi](https://www.pulumi.com) itu tools IaC yang ngebiarin lu nulis infrastruktur pake bahasa programming umum: TypeScript, Python, Go, C#, dan Java.
+[Pulumi](https://www.pulumi.com) itu tools IaC yang ngebiarin lu nulis infrastruktur pake bahasa programming umum: TypeScript, Python, Go, C#, dan Java. Ada juga mode YAML declarative buat yang mau config gaya Terraform tanpa SDK penuh - liat [quickstart Pulumi](/id/pulumi-quickstart) buat contoh YAML-nya di samping lima contoh bahasa lain.
 
 - **Bahasa**: bahasa lu sendiri, udah dapet loop, function, dan typing dari hari pertama
 - **State**: disimpen di Pulumi Cloud (atau backend self-hosted)
@@ -95,7 +95,7 @@ const vm = new biznetgio.NeoliteVm("web", {
 
 | | Terraform | Pulumi |
 | --- | --- | --- |
-| Bahasa | HCL (DSL declarative) | TypeScript, Python, Go, C#, Java |
+| Bahasa | HCL (DSL declarative) | TypeScript, Python, Go, C#, Java, atau YAML declarative |
 | Perintah preview | `terraform plan` | `pulumi preview` |
 | Perintah apply | `terraform apply` | `pulumi up` |
 | State | file atau backend | Pulumi Cloud atau self-hosted |

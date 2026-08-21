@@ -25,7 +25,7 @@ Jangan pernah merge pull request yang plan atau preview-nya belum lu baca. Itu i
 ## Guardrail spesifik buat provider ini
 
 - **Test pake `pay_with_credit_card = false` / `payWithCreditCard: false`.** Resource-nya tetep dibuat tapi stay `Pending` sampe dibayar di portal, jadi satu siklus plan-ke-apply penuh bisa direhearsal tanpa ada charge beneran yang masuk. Liat [panduan billing](/id/guides/billing).
-- **Anggep one-shot trigger dan field create-only sebagai irreversible pas review.** `rebuild_os`, `reset_trigger`, dan [trigger](/id/tutorials/environments) lainnya fire secara destruktif begitu value-nya berubah, dan `fmt`/`validate` Terraform atau type checker Pulumi gak bisa ngasih warning kalau satu plan bakal reinstall OS; manusia yang review diff-lah yang harus nangkep itu.
+- **Anggep one-shot trigger dan field create-only sebagai irreversible pas review.** `rebuild_os`, `reset_trigger`, dan [trigger](/id/guides/triggers) lainnya fire secara destruktif begitu value-nya berubah, dan `fmt`/`validate` Terraform atau type checker Pulumi gak bisa ngasih warning kalau satu plan bakal reinstall OS; manusia yang review diff-lah yang harus nangkep itu.
 - **Preview destroy sebelum bener-bener jalanin.** `terraform plan -destroy` dan `pulumi preview --diff` nunjukin persis apa yang bakal hilang, sebelum `destroy`/`down` bikin itu permanen.
 
 ## Policy as code, kalau manual review udah gak cukup

@@ -167,9 +167,11 @@ Matching on the exact `name` string is fine once you have confirmed that string 
 You will see prices in two places that can legitimately disagree:
 
 - The **public pricelist** (`biznetgio.com/pricelist`) is Biznet GIO's list price. It is the fastest way to compare tiers before you decide what to order, and it is what every pricing table in this Product Catalog section is sourced from.
-- The **`billing` field** on a catalog data source item (for example `biznetgio_neolite_products.all.products[0].billing`) is what the API says your account will actually be charged for that product, at that cycle. It can differ from the public list price if your account has a promo, a contract rate, or Biznet GIO has changed pricing since this documentation was written.
+- The **`billing` field** on a catalog data source item (for example `biznetgio_neolite_products.all.products[0].billing`) is what the API says your account will actually be charged for that product. It can differ from the public list price if your account has a promo, a contract rate, or Biznet GIO has changed pricing since this documentation was written.
 
-Treat the pricelist as a way to understand and compare products. Treat `billing` as the authoritative number for what you will actually pay - read it from your own account's catalog output before you place an order you care about the cost of.
+`billing` is a **list**, one entry per supported cycle (`m`, `a`, and so on for the product lines that support more than monthly/annual) - it is not a single price. Filter it by the `cycle` you are actually ordering at to get one authoritative number, the same way you filter `products` by name or spec instead of taking `[0]`.
+
+Treat the pricelist as a way to understand and compare products. Treat the matching entry in `billing` as the authoritative number for what you will actually pay - read it from your own account's catalog output before you place an order you care about the cost of.
 
 ## What each product line gives you
 
