@@ -119,6 +119,7 @@
                   "contribute/pipelines",
                   "contribute/terraform-guide",
                   "contribute/pulumi-guide",
+                  "contribute/code-walkthrough",
                   "contribute/walkthroughs"
                 ]
               }
@@ -257,6 +258,7 @@
                   "id/contribute/pipelines",
                   "id/contribute/terraform-guide",
                   "id/contribute/pulumi-guide",
+                  "id/contribute/code-walkthrough",
                   "id/contribute/walkthroughs"
                 ]
               }

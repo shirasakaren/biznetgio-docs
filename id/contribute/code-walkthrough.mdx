@@ -1,0 +1,400 @@
+---
+title: "Walkthrough kode lengkap"
+description: "Semua file, resource, dan pattern di kedua contoh repo, dijelasin full dan teknis"
+---
+
+Ini referensi teknis lengkap buat dua contoh repo. [Panduan repo Terraform](/id/contribute/terraform-guide) dan [Panduan repo Pulumi](/id/contribute/pulumi-guide) ngajarin konsepnya dan kenapanya; halaman ini ngedokumentasiin apanya, lengkap. Semua file source di kedua repo dijelasin di sini atau didaftarin di file index di akhir. Gak ada yang sengaja dilewatin.
+
+Sebelum mulai: repo-repo ini pake [Konvensi](/id/contribute/conventions) (komentar bilingual, cost safety, version pinning), strukturnya dipetain di [Gimana repo-nya diatur](/id/contribute/repositories), dan workflow CI-nya di-bedah di [Pipelines](/id/contribute/pipelines).
+
+## Part 1: repo Terraform
+
+Satu folder per lini produk, masing-masing root module Terraform independen. Provider-nya di-pin ke `0.1.0` dan `required_version`-nya `>= 1.0` di tiap folder.
+
+### 1.1 Anatomi lima file
+
+Tiap folder isinya lima file yang sama. Semantiknya, persis:
+
+`versions.tf`
+
+```hcl
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    biznetgio = {
+      source  = "registry.terraform.io/shirasakaren/biznetgio"
+      version = "0.1.0"
+    }
+  }
+}
+
+provider "biznetgio" {}
+```
+
+- `required_version` itu versi minimum Terraform CLI. Provider-nya sendiri pake Terraform Plugin Framework.
+- `required_providers` nge-maps nama lokal `biznetgio` ke alamat registry dan nge-pin versinya. `terraform init` download persis `0.1.0` dari [Terraform Registry](https://registry.terraform.io/providers/shirasakaren/biznetgio).
+- Block `provider "biznetgio"` yang kosong nge-configure provider dengan nol inline arguments. Provider-nya baca sendiri environment variable `BIZNETGIO_API_KEY`, makanya gak pernah ada token yang muncul di file.
+
+`variables.tf`
+
+Ngedeklarasiin semua input dengan types dan defaults. Tiga variable yang berulang di semua folder:
+
+- `ssh_and_console_user`: string, default `"admin"` (atau `"root"` di `gpu/`). Komentarnya nyatet aturan API: 6 sampai 32 karakter, cuma huruf, angka, dash, dan dot.
+- `console_password`: string, `sensitive = true`, sengaja gak ada default. Satu-satunya cara masuk cuma `TF_VAR_console_password` atau `terraform.tfvars` yang di-gitignore. Variable ini ada di `neolite/`, `neolite-pro/`, `gpu/`, dan `complete/`; `baremetal/` dan `object-storage/` autentikasi cuma pake keypair dan gak punya variable kayak gini.
+- `pay_with_credit_card`: bool, default `false`. `false` tetep bikin resource beneran, cuma invoice-nya dibiarin gak kebayar di portal. Liat [Billing dan order](/id/guides/billing).
+
+`terraform.tfvars.example`
+
+Template nilai asli yang di-commit. `.gitignore` nge-ignore `*.tfvars` tapi nge-include ulang `*.tfvars.example`, jadi template-nya ke-commit dan salinan yang udah diisi gak pernah. File contohnya cuma berisi password placeholder.
+
+`main.tf`
+
+Deklarasinya sendiri. Ada dua jenis deklarasi:
+
+- Block `data` itu lookup read-only. `data "biznetgio_neolite_products" "all" {}` nanya ke API buat catalog terkini; hasilnya di-referensiin sebagai `data.biznetgio_neolite_products.all.products[0].product_id`.
+- Block `resource` bikin dan ngelola sesuatu. Referensi antar mereka, kayak `keypair_id = biznetgio_neolite_keypair.main.keypair_id`, yang Terraform ubah jadi dependency graph dan urutan API call.
+- Block `locals` ngitung nilai sekali, kayak milih `products[0]` buat demo.
+
+`outputs.tf`
+
+Nge-publish nilai setelah apply. Outputs sensitif (`keypair_private_key`, `secret_key`, `console_url`, `openvpn_config`) ditandai `sensitive = true` biar dirender masked di console dan di output JSON.
+
+### 1.2 neolite/: cerita NEO Lite lengkap
+
+Lima resources dan lima data sources, dirangkai dalam urutan yang bakal lu pake beneran:
+
+| Deklarasi | Jenis | Referensi | Tujuan |
+| --- | --- | --- | --- |
+| `data.biznetgio_neolite_products.all` | data | gak ada | semua package NEO Lite yang dijual, yang pertama dipilih lewat `locals` |
+| `data.biznetgio_neolite_os_list.ubuntu` | data | `product_id` | image OS valid buat produk itu; `select_os` VM-nya datang dari sini |
+| `data.biznetgio_neolite_ip_availability.check` | data | `product_id` | apakah public IP bisa diorder sekarang |
+| `resource.biznetgio_neolite_keypair.main` | resource | gak ada | SSH keypair yang di-generate server side; `private_key` dibalikin sekali pas create |
+| `resource.biznetgio_neolite_vm.main` | resource | product, OS list, keypair | order VM-nya; `vm_name = "neolite-example"`, `cycle = "m"` |
+| `resource.biznetgio_neolite_disk.extra` | resource | `neolite_account_id = biznetgio_neolite_vm.main.id` | disk tambahan, `product_id = 60`, `service_name = "extra-disk"`, minimal 60 GB, grow-only |
+| `resource.biznetgio_neolite_snapshot.main` | resource | `neolite_account_id` | snapshot berbayar, `cycle = "m"` |
+| `resource.biznetgio_neolite_vm_from_snapshot.restored` | resource | `snapshot_id`, product, keypair | ngerestore snapshot ke VM kedua dengan bill-nya sendiri |
+| `data.biznetgio_neolite_change_package_options.opts` | data | `account_id` | pricing JSON mentah yang gak dimodelin, diekspos sebagai sensitive output |
+| `data.biznetgio_neolite_storage_upgrade_options.storage_opts` | data | `account_id` | sama, buat upgrade storage |
+
+Rantai dependency-nya kebaca sebagai: products → os_list → keypair → vm → disk, snapshot → restore. Referensi `snapshot_id` inilah yang ngejamin snapshot udah ada sebelum restore diorder.
+
+Opsi VM yang di-komen, tiap satu kepicu cuma pas nilainya berubah: `power_state` (start/stop/suspend/resume/shutdown), `rebuild_os` (ngilangin isi disk dan install ulang), `migrate_to_pro` (pindah satu arah ke product id NEO Lite Pro), `disk_size` (target absolut grow-only).
+
+Outputs: `ip_available`, `vm_status`, `vm_id` (didokumentasiin sebagai nilai buat `terraform import`), `keypair_private_key` (sensitive), `restored_vm_status`, `change_package_options_raw` (sensitive), `storage_upgrade_options_raw` (sensitive).
+
+### 1.3 neolite-pro/: bentuk sama, tier dedicated
+
+Empat resources dan lima data sources. Wiring identik sama NEO Lite dengan perbedaan persis ini:
+
+- Gak ada `biznetgio_neolite_pro_vm_from_snapshot`. Snapshot Pro sekarang cuma bisa di-restore lewat portal; banner file-nya bilang gitu.
+- `biznetgio_neolite_pro_disk.extra` minimalnya 30 GB, bukan 60 GB, `service_name = "pro-extra-disk"`, `product_id = 60` sama.
+- `vm_name = "pro-example"` (nama yang lebih pendek juga muat di limit 6 sampai 16 karakter).
+- Migrasi ke Pro datang dari sisi Lite lewat `migrate_to_pro` di contoh `neolite/`.
+- Outputs-nya set yang sama minus `restored_vm_status`.
+
+`variables.tf` pake ulang tiga variable yang sama dan bilang gitu di komentar, nunjuk ke `neolite/variables.tf` buat penjelasan lengkap.
+
+### 1.4 baremetal/: hardware dedicated
+
+Lima resources dan tiga data sources, autentikasi keypair doang (gak ada console password di mana pun di folder; `variables.tf` cuma punya `pay_with_credit_card`):
+
+| Deklarasi | Referensi | Tujuan |
+| --- | --- | --- |
+| `data.biznetgio_baremetal_products.all` | gak ada | catalog; produk pertama dipilih |
+| `resource.biznetgio_baremetal_keypair.main` | gak ada | keypair server; biarin `public_key` kosong buat generation server side, atau isi buat nge-import key sendiri |
+| `resource.biznetgio_baremetal.main` | product, OS, keypair | server-nya; `select_os = "ubuntu-22"`, `label = "baremetal-example"`, `public_ip = 1` nge-bundel satu public IP sama order-nya |
+| `data.biznetgio_baremetal_rebuild_os_list.ubuntu` | `account_id = biznetgio_baremetal.main.id` | image OS valid buat rebuild server spesifik ini, cuma bisa di-resolve setelah server-nya ada |
+| `data.biznetgio_baremetal_openvpn.vpn` | gak ada | config akses OpenVPN out-of-band |
+| `resource.biznetgio_baremetal_additional_ip.extra` | gak ada | floating IP kedua yang independen: `product_id = 10`, `region = "wjv-1"` |
+| `resource.biznetgio_baremetal_additional_ip_assignment.main` | `additional_ip_id`, `metal_account_id` | nge-attach IP tambahan ke server; reassign artinya ngeganti resource ini |
+| `resource.biznetgio_baremetal_elastic_storage.main` | `metal_account_id`, `product_id = 20`, `size = 100` | volume storage yang ke-ikat permanen ke server sejak create, gak ada endpoint re-attach |
+
+Opsi server yang di-komen: `power_state` (on/off), `reset_trigger` (reboot one-shot, ganti string-nya buat ke-fire lagi), `rebuild_os` (ngilangin isi disk; nilai valid dari data source rebuild OS list di atas).
+
+Outputs: `server_status`, `server_ip_address`, `keypair_private_key` (sensitive), `valid_rebuild_os_images`, `additional_ip_address`, `elastic_storage_status`, `openvpn_config` (sensitive).
+
+### 1.5 gpu/: dua keanehan, secara konkret
+
+Dua resources dan tiga data sources. `variables.tf` nge-set `ssh_and_console_user` ke `"root"` (image GPU-nya pake root).
+
+```hcl
+resource "biznetgio_gpu_keypair" "main" {
+  name = "gpu-example-key"
+}
+
+resource "biznetgio_gpu_instance" "main" {
+  product_id           = local.gpu_product_id
+  select_os            = "ubuntu-22"
+  keypair_id           = biznetgio_gpu_keypair.main.id
+  service_name         = "gpu-example"
+  ssh_and_console_user = var.ssh_and_console_user
+  console_password     = var.console_password
+  pay_with_credit_card = var.pay_with_credit_card
+
+  subscription = {
+    cycle = "m"
+  }
+}
+```
+
+Dua keanehan-nya, persis kayak yang di-komen file-nya:
+
+- `biznetgio_gpu_keypair` gak nge-export atribut `keypair_id`. Dia nge-export `id` (yang emang udah jadi keypair id-nya), `public_key`, dan `private_key`. Instance-nya nge-referensi `.id`.
+- `subscription` dan `on_demand` itu atribut bertipe object, bukan block. Mereka di-assign dengan `=` dan persis satu dari dua yang harus di-set; Terraform nolak plan yang gak ada dua-duanya atau ada dua-duanya. Bentuk `on_demand` yang di-komen itu `on_demand = { additional_hours = 0 }` dan nge-tag per jam. Dua trigger one-shot di-komen: `rebuild_trigger` (ngilangin isi disk) dan `reserve_additional_hours_trigger`.
+
+Data sources: `data.biznetgio_gpu_console.console` itu side-effecting (tiap read bikin session console one-time yang baru; aman di `terraform output`, jangan pernah nge-referensi dari apapun yang di-evaluasi pas plan diffing) dan `data.biznetgio_gpu_graph.graph` dengan `timeframe = "hour"`.
+
+Outputs: `gpu_status`, `keypair_private_key` (sensitive), `console_url` (sensitive), `monitoring_graph`.
+
+### 1.6 object-storage/: storage S3-compatible
+
+Empat resources dan tiga data sources, gak ada keypair dan gak ada password; `variables.tf` cuma punya `pay_with_credit_card`:
+
+| Deklarasi | Referensi | Tujuan |
+| --- | --- | --- |
+| `resource.biznetgio_object_storage.main` | gak ada | subscription-nya, tenant S3-nya: `product_id = 8`, `label = "example"`, `quota = 10` (grow-only setelahnya) |
+| `resource.biznetgio_object_storage_bucket.assets` | `account_id` | satu bucket, `acl = "public-read"`; cuma `acl` yang bisa diubah setelah create |
+| `resource.biznetgio_object_storage_credential.main` | `account_id` | sepasang access/secret key S3; `active = true`; secret key-nya dibalikin sekali, pas create |
+| `resource.biznetgio_object_storage_object.index` | `account_id`, `bucket`, `source = "${path.module}/index.html"` | nge-upload `index.html` folder-nya lewat API control-plane, `key = "index.html"`, `acl = "public-read"` |
+| `data.biznetgio_object_storage_instances.active` | `status = "Active"` | semua instance di account, difilter ke yang active |
+| `data.biznetgio_object_storage_buckets.all` | `account_id` | semua bucket di subscription |
+| `data.biznetgio_object_storage_credentials.all` | `account_id` | semua credential di subscription |
+
+Komentar di resource upload nge-set batasannya: upload lewat control-plane itu oke buat satu file kecil; yang lebih gede atau massal harus pake tooling S3 beneran (aws-cli, rclone) dengan credential-nya, yang nunjuk ke `nos.<region>.neo.id`.
+
+Outputs: `storage_status`, `bucket_name`, `access_key` (sensitive), `secret_key` (sensitive), `active_instances` (sensitive karena tiap item bawa field JSON `raw` yang di-redact, dan Terraform nganggep apapun yang berisi nilai sensitif sebagai sensitif seutuhnya).
+
+### 1.7 complete/: modulnya
+
+`main.tf` di root ngelakuin catalog lookups terus satu module call dengan sepuluh arguments; `variables.tf` di root cuma nerusin `console_password` dan `pay_with_credit_card`; `outputs.tf` di root nge-pass through semua output module.
+
+Di dalam `modules/app-stack/`:
+
+- `main.tf` ngedeklarasiin lima resources: `biznetgio_neolite_pro_keypair.this` (dinamain `"${var.name}-key"`), `biznetgio_neolite_pro_vm.this` (`vm_name = var.name`), `biznetgio_object_storage.this`, `biznetgio_object_storage_bucket.this` (`"${var.name}-assets"`, `acl = "private"`), dan `biznetgio_object_storage_credential.this`. Semua referensi pake resource module-nya sendiri, jadi module-nya fully self-contained.
+- `variables.tf` ngedeklarasiin sepuluh inputs: `name` (nama VM dan prefix buat bucket dan credential, 6 sampai 16 karakter), `storage_label` (dipisah sengaja karena storage label punya limit 6 sampai 16 karakter sendiri), `vm_product_id`, `select_os`, `storage_product_id`, `cycle` (default `"m"`), `ssh_and_console_user` (default `"admin"`), `console_password` (sensitive, gak ada default), `pay_with_credit_card` (default `false`), `storage_quota` (default `10`).
+- `outputs.tf` nge-export `vm_status`, `bucket_name`, `access_key` (sensitive), `secret_key` (sensitive), `keypair_private_key` (sensitive). Komentar di yang sensitive bilang caller module-nya yang pegang tanggung jawab buat nyimpen.
+- Block `terraform { required_providers { biznetgio = { source = "registry.terraform.io/shirasakaren/biznetgio" } } }` miliknya sendiri. Tanpa itu, Terraform nganggep namespace default `hashicorp/*` buat provider yang di-referensiin di dalam child module dan gagal dengan error missing provider. Module apa pun yang di-copy keluar dari repo ini harus nahan block itu.
+
+### 1.8 Workflow-nya
+
+`.github/workflows/ci.yml` ngejalanin `terraform fmt -check`, `terraform init`, dan `terraform validate` tanpa syarat per folder yang dipilih, terus secara kondisional `plan`, `apply`, atau `destroy` dengan secret `BIZNETGIO_API_KEY` dan `TF_VAR_console_password`. Penjelasan baris per baris lengkapnya ada di [Pipelines](/id/contribute/pipelines).
+
+## Part 2: repo Pulumi
+
+Enam contoh, tiap satu ditulis di enam bahasa. Tiap folder itu Pulumi project independen dengan `Pulumi.yaml`-nya sendiri.
+
+### 2.1 Anatomi project per bahasa
+
+`Pulumi.yaml` di tiap folder:
+
+```yaml
+name: biznetgio-example-neolite
+runtime: nodejs
+description: NEO Lite walkthrough - every resource and data source this service has
+```
+
+`name` unik per folder, `runtime` milih engine bahasa (`nodejs`, `python`, `go`, `dotnet`, `java`, atau `yaml`). Di sekitarnya, tiap bahasa nyumbang:
+
+| Bahasa | File dependency | Versi yang di-pin | File lainnya |
+| --- | --- | --- | --- |
+| TypeScript | `package.json` | `@pulumi/pulumi ^3.142.0`, `@shirasakaren/biznetgio ^0.1.7`, dev: `typescript ^5`, `@types/node ^20` | `index.ts`, `tsconfig.json` (strict, es2020, commonjs, noEmit), `package-lock.json` |
+| Python | `requirements.txt` | `pulumi>=3.231.0,<4.0.0`, `pulumi-biznetgio>=0.1.7` | `__main__.py` |
+| Go | `go.mod` | `go 1.25.11`, `pulumi/sdk/v3 v3.256.0`, `pulumi-biznetgio v0.1.7` | `main.go`, `go.sum` |
+| .NET | `<project>.csproj` | `Pulumi 3.*`, `Shirasakaren.Biznetgio 0.1.7`, `net8.0` | `Program.cs` |
+| Java | `pom.xml` | `com.pulumi:pulumi:1.0.0`, `ren.shirasaka:biznetgio:0.1.7`, Java 17 | `src/main/java/demo/App.java` |
+| YAML | gak ada | CLI-nya yang nge-resolve provider | cuma `Pulumi.yaml` |
+
+Nama file csproj-nya nyocokin `name` di `Pulumi.yaml` (contohnya `biznetgio-example-gpu.csproj`). `.gitignore` nge-exclude `node_modules/`, `__pycache__/`, `venv/`, `bin/`, `obj/`, `target/`, `*.class`, dan `Pulumi.*.yaml` dengan `!Pulumi.yaml` yang di-include ulang, jadi stack state dan secret gak masuk git.
+
+### 2.2 Model program yang dipake bareng
+
+Tiap program ngelakuin lima hal yang sama, dalam urutan yang sama:
+
+1. **Config.** Baca pengaturan stack. `consolePassword` itu required dan secret (`config.requireSecret("consolePassword")`, `cfg.RequireSecret(...)`, `config.require_secret(...)`); `payWithCreditCard` itu boolean opsional yang default-nya false. Set mereka dengan `pulumi config set --secret consolePassword <value>`.
+2. **Catalog lookups.** Invoke catalog produk, terus OS list buat produk pertama, kadang IP availability. Function-nya itu API call read-only.
+3. **Resources.** Bikin keypair, VM, dan semuanya. Ngelewatin output satu resource ke input resource lain itu yang ngebangun dependency graph.
+4. **Outputs.** Export nilai yang lu peduliin.
+5. **Run.** Tiap bahasa punya mekanisme entry sendiri: TypeScript dan Python jalan di top-level; Go nge-bungkus semuanya di `pulumi.Run(func(ctx *pulumi.Context) error {...})` dengan return `(value, error)` di tiap call; .NET pake top-level statements yang nge-return `await Deployment.RunAsync(() => {...})` dan export lewat `Dictionary<string, object?>` yang di-return; Java nge-bungkus di `Pulumi.run(App::stack)` dengan call `ctx.export(...)`; YAML ngedeklarasiin section `configuration`, `variables`, `resources`, dan `outputs` alih-alih kode.
+
+Penamaan per bahasa buat konsep yang sama:
+
+| Konsep | TypeScript | Python | Go | .NET | Java | YAML |
+| --- | --- | --- | --- | --- | --- | --- |
+| VM NEO Lite | `new biznetgio.NeoliteVm(n, {vmName})` | `biznetgio.NeoliteVm(n, vm_name=...)` | `biznetgio.NewNeoliteVm(ctx, n, &Args{VmName})` | `new NeoliteVm(n, new NeoliteVmArgs { VmName })` | `new NeoliteVm(n, NeoliteVmArgs.builder().vmName(...).build())` | `type: biznetgio:index:NeoliteVm` |
+| Function catalog | `biznetgio.neoliteProductsOutput()` | `biznetgio.neolite_products()` | `biznetgio.NeoliteProducts(ctx, &Args{}, nil)` | `NeoliteProducts.Invoke()` | `BiznetgioFunctions.neoliteProducts()` | `fn::invoke: function: biznetgio:index:neoliteProducts` |
+| Function dengan inputs | `biznetgio.neoliteOsListOutput({productId})` | `biznetgio.neolite_os_list_output(product_id=...)` | `biznetgio.NeoliteOsList(ctx, &Args{ProductId}, nil)` | `NeoliteOsList.Invoke(new NeoliteOsListInvokeArgs { ProductId })` | `BiznetgioFunctions.neoliteOsList(NeoliteOsListArgs.builder().productId(...).build())` | `fn::invoke` dengan `arguments:` |
+| Export | `export const x = ...` | `pulumi.export("x", ...)` | `ctx.Export("x", ...)` | dictionary entry `["x"] = ...` | `ctx.export("x", ...)` | map `outputs:` |
+
+### 2.3 Konversi account id
+
+`id` resource di Pulumi selalu string, tapi API upstream-nya kirim number, jadi provider nge-typed beberapa input model "account id" sebagai number. Ngelewatin `id` string ke mereka itu compile error di semua bahasa typed, makanya tiap bahasa bawa helper konversi. Implementasinya yang persis:
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+function toAccountId(id: pulumi.Input<string>): pulumi.Output<number> {
+  return pulumi.output(id).apply((value) => Number(value));
+}
+```
+</Tab>
+<Tab title="Python">
+```python
+def to_account_id(value: pulumi.Input[str]) -> pulumi.Output[int]:
+    return pulumi.Output.from_input(value).apply(int)
+```
+</Tab>
+<Tab title="Go">
+```go
+func toAccountID(id pulumi.IDOutput) pulumi.IntOutput {
+	return id.ToStringOutput().ApplyT(func(s string) (int, error) {
+		return strconv.Atoi(s)
+	}).(pulumi.IntOutput)
+}
+```
+</Tab>
+<Tab title=".NET">
+```csharp
+static Output<int> ToAccountId(Output<string> id) => id.Apply(v => int.Parse(v));
+```
+</Tab>
+<Tab title="Java">
+```java
+private static Output<Integer> toAccountId(Output<String> id) {
+    return id.applyValue(Integer::parseInt);
+}
+```
+</Tab>
+<Tab title="YAML">
+```yaml
+neoliteAccountId: ${fn::toNumber(vm.id)}
+```
+</Tab>
+</Tabs>
+
+Di mana konversinya berlaku, inventaris lengkapnya:
+
+| Input | Resource atau function | Dikonversi di |
+| --- | --- | --- |
+| `neoliteAccountId` | `NeoliteDisk`, `NeoliteSnapshot` | neolite, neolite-pro |
+| `snapshotId` | `NeoliteVmFromSnapshot` | neolite |
+| `accountId` | `neoliteChangePackageOptions`, `neoliteStorageUpgradeOptions` dan varian Pro-nya | neolite, neolite-pro |
+| `accountId` | `baremetalRebuildOsList` | baremetal |
+| `additionalIpId`, `metalAccountId` | `BaremetalAdditionalIpAssignment` | baremetal |
+| `metalAccountId` | `BaremetalElasticStorage` | baremetal |
+| `keypairId` | `GpuInstance` | gpu (yang dipake `id` keypair GPU-nya, bukan properti `keypairId`) |
+
+Di mana konversinya gak berlaku, sama pentingnya:
+
+- `keypairId` di VM VPS dan baremetal itu di-typed string: `NeoliteKeypair`, `NeoliteProKeypair`, dan `BaremetalKeypair` semuanya nge-expose `keypairId` string yang nge-pass straight through.
+- Semua `accountId` Object Storage (`ObjectStorageBucket`, `ObjectStorageCredential`, `ObjectStorageObject`, dan tiga catalog function) di-typed string. Gak ada konversi di mana pun di `object-storage/` atau `complete/`.
+- `GpuConsole` dan `GpuGraph` nerima `accountId` sebagai string; contoh GPU ngelewatin `gpu.id` langsung.
+- `GpuKeypair` gak nge-expose `keypairId` sama sekali, cuma `id`, `publicKey`, dan `privateKey`. Contoh GPU ngonversi `keypair.id` dengan helper yang sama (inline, sebagai `keypair.id.apply((id) => Number(id))` di TypeScript, `keypair_id = keypair.id.apply(int)` di Python, dan padanannya di bahasa lain) dan nge-komen kenapa.
+
+Idiom Output kedua muncul di `object-storage/`: ngejalanin kode biasa kayak `.length` terhadap nilai akhir sebuah Output butuh `.apply` (TypeScript), `.apply(len)` (Python), `ApplyT` (Go), `.Apply` (.NET), `.applyValue` (Java), atau `fn::length` (YAML). Contoh-contohnya pake itu buat nge-export jumlah active instances, buckets, dan credentials.
+
+### 2.4 Contoh-contohnya, inventaris per lini produk
+
+**neolite/**: products → osList → ipAvailability → keypair → vm (dengan empat opsi yang di-komen `powerState`, `rebuildOs`, `migrateToPro`, `diskSize`) → disk (minimal 60 GB, `productId: 60`) → snapshot → VM restored dari snapshot → dua raw JSON function. Exports: `ipAvailable`, `vmStatus`, `vmId`, `keypairPrivateKey`, `diskStatus`, `restoredVmStatus`, `changePackageOptionsRaw`, `storageUpgradeOptionsRaw`.
+
+**neolite-pro/**: sama minus resource dari snapshot, dengan minimal disk 30 GB dan `serviceName: "pro-extra-disk"`. Exports nambah `diskStatus` dan `snapshotStatus`, buang `restoredVmStatus`.
+
+**baremetal/**: products → keypair → server (`publicIp: 1`, `powerState` yang di-komen, `resetTrigger`, `rebuildOs`) → rebuild OS list (`accountId` yang dikonversi) → OpenVPN (gak ada inputs) → additional IP (`productId: 10`, `region: "wjv-1"`) → assignment (dua id-nya dikonversi) → elastic storage (`productId: 20`, `size: 100`, `metalAccountId` yang dikonversi). Exports: `keypairPrivateKey`, `serverStatus`, `serverIpAddress`, `validRebuildOsImages`, `openvpnConfig`, `additionalIpAddress`, `assignmentStatus`, `elasticStorageStatus`.
+
+**gpu/**: products → keypair → instance. Mode billing-nya satu properti: `subscription: { cycle: "m" }` (object literals TypeScript/Python), `subscription=biznetgio.GpuSubscriptionArgsArgs(cycle="m")` (SDK Python nge-namain kelas args dengan ArgsArgs ganda), `Subscription: biznetgio.GpuSubscriptionArgsArgs{Cycle: pulumi.String("m")}` (Go), `Subscription = new GpuInstanceSubscriptionArgs { Cycle = "m" }` (.NET), `.subscription(GpuSubscriptionArgs.builder().cycle("m").build())` (Java, di-import dari `ren.shirasaka.biznetgio.inputs`), dan `subscription: { cycle: m }` (YAML). Alternatif `onDemand` (dengan `additionalHours`) di-komen di semua bahasa, sama kayak `rebuildTrigger` dan `reserveAdditionalHoursTrigger`. Terus function console yang side-effecting dan graph-nya (`timeframe: "hour"`), dua-duanya dengan `accountId` string. Exports: `keypairPrivateKey`, `gpuStatus`, `consoleUrl`, `monitoringGraph`.
+
+**object-storage/**: subscription (`productId: 8`, `quota: 10`) → bucket (`acl: "public-read"`) → credential (`active: true`) → upload object → tiga catalog lookups dengan hitungan. Path `source` beda per bahasa: `path.join(__dirname, "index.html")` (TypeScript), `str(pathlib.Path(__file__).parent / "index.html")` (Python), `"index.html"` relatif (Go dan Java, di mana `pulumi up` jalan dari folder project), `Path.Combine(AppContext.BaseDirectory, "index.html")` (.NET), dan `source: ./index.html` (YAML). Exports: `storageStatus`, `bucketName`, `accessKey`, `secretKey`, `objectKey`, `activeInstanceCount`, `bucketCount`, `credentialCount`.
+
+### 2.5 Contoh complete/ dan component-nya
+
+Folder `complete/` nge-bungkus VM NEO Lite Pro plus Object Storage jadi component `AppStack` yang reusable. Caller-nya (`index.ts`, `__main__.py`, `main.go`, `Program.cs`, `App.java`) ngelakuin catalog lookups, ngebangun satu `AppStack` dengan args, dan nge-export ulang lima output-nya: `vmStatus`, `bucketName`, `accessKey`, `secretKey`, `keypairPrivateKey`.
+
+Internal component-nya identik di semua bahasa:
+
+- Registrasi dengan type string `"biznetgio-example:index:AppStack"`.
+- Lima children: keypair, VM, storage, bucket, credential, tiap satu dinamain `${name}-key`, `${name}-vm`, `${name}-storage`, `${name}-assets`, `${name}-cred`.
+- Tiap child dapet component-nya sebagai parent: `{ parent: this }` (TypeScript), `opts=pulumi.ResourceOptions(parent=self)` (Python), `pulumi.Parent(app)` (Go), `new CustomResourceOptions { Parent = this }` (.NET), `CustomResourceOptions.builder().parent(this).build()` (Java). Wiring parent nge-group semuanya di satu tree biar `pulumi destroy` ngehancurin seluruh app dalam urutan yang bener.
+- Outputs di-publish dengan `registerOutputs({...})` (TypeScript), `self.register_outputs({...})` (Python), `ctx.RegisterResourceOutputs(app, pulumi.Map{...})` (Go), `RegisterOutputs(new Dictionary<string, object?>{...})` (.NET), `this.registerOutputs(Map.of(...))` (Java).
+- Args: TypeScript pake interface `AppStackArgs`; Python kelas biasa dengan `storage_quota` yang default-nya `None` dan component-nya fallback ke 10; Go struct dengan `StorageQuota *int` di mana nil artinya default 10 GB; .NET kelas dengan `Input<int>? StorageQuota` yang nullable dan `args.StorageQuota ?? 10`; Java kelas builder (`AppStackArgs.java`) di mana `storageQuota` default-nya `Input.of(10)`; `acl` bucket-nya `private` dan `vmName` VM-nya nama component-nya sendiri.
+
+YAML gak bisa ngedefinein component, itu keterbatasan runtime, jadi `yaml/complete/Pulumi.yaml` ngedeklarasiin lima resource yang sama secara flat dengan komentar yang ngejelasin bedanya.
+
+### 2.6 Workflow-nya
+
+`.github/workflows/ci.yml` nge-build tiap bahasa dengan toolchain-nya, terus secara opsional ngejalanin `preview`/`up`/`destroy` lewat `pulumi/actions@v7` lawan stack `dev`. Detail lengkap di [Pipelines](/id/contribute/pipelines).
+
+## Part 3: referensi teknis lintas repo
+
+### Model billing
+
+Tiap resource yang bisa diorder nerima `cycle` (`"m"` bulanan, `"y"` tahunan) dan `payWithCreditCard`. Di Pulumi field yang sama itu `cycle` dan `payWithCreditCard`; aturan billing default-false berlaku di dua tool. GPU nambahin pemisahan `subscription` lawan `onDemand`, dan `additional_hours` nge-reserve jam on-demand tambahan di atas saldo default.
+
+### Opsi one-shot dan destruktif
+
+Semua di-komen di tiap bahasa, semua cuma kepicu pas nilainya berubah:
+
+| Produk | Opsi | Efek |
+| --- | --- | --- |
+| NEO Lite | `power_state` | start/stop/suspend/resume/shutdown |
+| NEO Lite | `rebuild_os` | ngilangin isi disk dan install ulang |
+| NEO Lite | `migrate_to_pro` | pindah satu arah ke product id NEO Lite Pro |
+| NEO Lite | `disk_size` | target GB absolut grow-only |
+| NEO Lite Pro | set yang sama kayak NEO Lite | efek yang sama |
+| NEO Metal | `power_state` | on/off |
+| NEO Metal | `reset_trigger` | reboot one-shot; ganti string-nya buat ke-fire lagi |
+| NEO Metal | `rebuild_os` | ngilangin isi disk; nilai valid dari rebuild OS list |
+| NEO GPU | `rebuild_trigger` | ngilangin isi disk |
+| NEO GPU | `reserve_additional_hours_trigger` | nge-reserve jam on-demand tambahan |
+
+### Read yang side-effecting
+
+Cuma `biznetgio_gpu_console` / `gpuConsole` yang nge-mint state pas di-read: tiap evaluasi bikin session console one-time yang fresh. Contoh-contohnya nge-expose itu sebagai output dan nge-warning buat jangan pernah nge-referensi dari apapun yang di-evaluasi pas preview diffing. Raw JSON lookups (`changePackageOptions`, `storageUpgradeOptions`) itu read-only.
+
+### Limit nama yang dipaksain API
+
+`vm_name`/`vmName`: 6 sampai 16 karakter. `service_name`/`serviceName` (disk): 6 sampai 16. `label` Object Storage: 6 sampai 16. `ssh_and_console_user`: 6 sampai 32, cuma huruf, angka, dash, dan dot. Nama-nama contohnya (`neolite-example`, `extra-disk`, `pro-extra-disk`, `gpu-example`, `metal-example`, `example`) semuanya dipilih biar muat.
+
+### Secret per tool
+
+Terraform: `console_password` lewat `TF_VAR_console_password` atau `terraform.tfvars` yang di-gitignore; auth provider lewat env `BIZNETGIO_API_KEY`. Pulumi: `pulumi config set --secret consolePassword`; stack state di `Pulumi.<stack>.yaml` yang di-gitignore; auth provider lewat env `BIZNETGIO_API_KEY`; CI nambahin `PULUMI_ACCESS_TOKEN`.
+
+## Part 4: file index lengkap
+
+Repo Terraform, semua file-nya:
+
+| File | Isi |
+| --- | --- |
+| `README.md` | overview bilingual, tabel folder, peringatan biaya, panduan template |
+| `LICENSE` | MIT |
+| `.gitignore` | `.terraform/`, `.terraform.lock.hcl`, `*.tfstate*`, `crash.log`, `override.tf*`, `*.tfvars`, `!*.tfvars.example` |
+| `.github/workflows/ci.yml` | pipeline manual dispatch |
+| `.github/pull_request_template.md` | checklist PR |
+| `.github/ISSUE_TEMPLATE/*.yml` | form bug, feature, docs plus `config.yml` |
+| `CODEOWNERS`, `CONTRIBUTING.md` | routing review, ringkasan kontribusi |
+| `neolite/{versions,variables,main,outputs}.tf`, `terraform.tfvars.example`, `README.md` | section 1.1 dan 1.2 |
+| `neolite-pro/...` | section 1.3 |
+| `baremetal/...` | section 1.4 |
+| `gpu/...` | section 1.5 |
+| `object-storage/...` plus `index.html` (halaman demo yang di-upload) | section 1.6 |
+| `complete/{versions,variables,main,outputs}.tf`, `terraform.tfvars.example`, `README.md`, `modules/app-stack/{main,variables,outputs}.tf` | section 1.7 |
+
+Repo Pulumi, semua file-nya:
+
+| File | Isi |
+| --- | --- |
+| `README.md` | overview bilingual, language matrix, section bug-yang-ketangkep-repo-ini, peringatan biaya |
+| `LICENSE` | MIT |
+| `.gitignore` | build output per bahasa dan `Pulumi.*.yaml` |
+| `.github/workflows/ci.yml` | pipeline matriks language x example |
+| `.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/*.yml`, `CODEOWNERS`, `CONTRIBUTING.md` | plumbing kontribusi |
+| `<language>/<example>/Pulumi.yaml` | nama project, runtime, description |
+| `typescript/*/index.ts`, `package.json`, `tsconfig.json`, `package-lock.json` | section 2.2 sampai 2.5 |
+| `typescript/complete/appStack.ts` | component-nya |
+| `python/*/__main__.py`, `requirements.txt`; `python/complete/app_stack.py` | sama |
+| `go/*/main.go`, `go.mod`, `go.sum`; `go/complete/app_stack.go` | sama |
+| `dotnet/*/Program.cs`, `<name>.csproj`; `dotnet/complete/AppStack.cs` | sama |
+| `java/*/src/main/java/demo/App.java`, `pom.xml`; `java/complete/AppStack.java`, `AppStackArgs.java` | sama |
+| `yaml/*/Pulumi.yaml`; `yaml/object-storage/index.html` | sama, flat |
+| `*/object-storage/index.html` | halaman demo yang di-upload tiap bahasa |
+
+Itu semua yang ada di kedua repo. Kalau lu ngubah salah satunya, [Konvensi](/id/contribute/conventions) dan [walkthrough](/id/contribute/walkthroughs) ngejelasin cara ngubahnya dengan aman.

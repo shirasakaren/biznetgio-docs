@@ -1,0 +1,400 @@
+---
+title: "Complete code walkthrough"
+description: "Every file, resource, and pattern in both example repos, explained fully and technically"
+---
+
+This is the exhaustive technical reference for the two example repos. The [Terraform repo guide](/contribute/terraform-guide) and [Pulumi repo guide](/contribute/pulumi-guide) teach the concepts and the why; this page documents the what, completely. Every source file in both repos is explained here or listed in the file index at the end. Nothing is skipped on purpose.
+
+Before you start: the repos use the [Conventions](/contribute/conventions) (bilingual comments, cost safety, version pinning), the structure is mapped in [How the repos are organized](/contribute/repositories), and the CI workflows are dissected in [Pipelines](/contribute/pipelines).
+
+## Part 1: the Terraform repo
+
+One folder per product line, each an independent Terraform root module. The provider is pinned to `0.1.0` and `required_version` is `>= 1.0` in every folder.
+
+### 1.1 The five-file anatomy
+
+Every folder contains the same five files. Their semantics, exactly:
+
+`versions.tf`
+
+```hcl
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    biznetgio = {
+      source  = "registry.terraform.io/shirasakaren/biznetgio"
+      version = "0.1.0"
+    }
+  }
+}
+
+provider "biznetgio" {}
+```
+
+- `required_version` is the minimum Terraform CLI version. The provider itself uses the Terraform Plugin Framework.
+- `required_providers` maps the local name `biznetgio` to a registry address and pins the version. `terraform init` downloads exactly `0.1.0` from the [Terraform Registry](https://registry.terraform.io/providers/shirasakaren/biznetgio).
+- The empty `provider "biznetgio"` block configures the provider with zero inline arguments. The provider reads the `BIZNETGIO_API_KEY` environment variable itself, which is why no token ever appears in a file.
+
+`variables.tf`
+
+Declares every input with types and defaults. The three recurring variables across folders:
+
+- `ssh_and_console_user`: string, default `"admin"` (or `"root"` in `gpu/`). The comments note the API rule: 6 to 32 characters, letters, numbers, dash, dot only.
+- `console_password`: string, `sensitive = true`, deliberately no default. The only ways in are `TF_VAR_console_password` or the gitignored `terraform.tfvars`. This exists in `neolite/`, `neolite-pro/`, `gpu/`, and `complete/`; `baremetal/` and `object-storage/` authenticate with a keypair only and have no such variable.
+- `pay_with_credit_card`: bool, default `false`. `false` still creates the real resource, it just leaves the invoice unpaid in the portal. See [Billing and orders](/guides/billing).
+
+`terraform.tfvars.example`
+
+A committed template of real values. The `.gitignore` ignores `*.tfvars` but re-includes `*.tfvars.example`, so the template is committed and the filled-in copy never is. The example file contains a placeholder password only.
+
+`main.tf`
+
+The declarations themselves. Two kinds of declarations appear:
+
+- `data` blocks are read-only lookups. `data "biznetgio_neolite_products" "all" {}` queries the API for the current catalog; the result is referenced as `data.biznetgio_neolite_products.all.products[0].product_id`.
+- `resource` blocks create and manage things. References between them, like `keypair_id = biznetgio_neolite_keypair.main.keypair_id`, are what Terraform turns into a dependency graph and an API call order.
+- `locals` blocks compute values once, like picking `products[0]` for the demo.
+
+`outputs.tf`
+
+Publishes values after apply. Sensitive outputs (`keypair_private_key`, `secret_key`, `console_url`, `openvpn_config`) are marked `sensitive = true` so they render masked in the console and in JSON output.
+
+### 1.2 neolite/: the full NEO Lite story
+
+Five resources and five data sources, wired in the order you would actually use them:
+
+| Declaration | Kind | References | Purpose |
+| --- | --- | --- | --- |
+| `data.biznetgio_neolite_products.all` | data | none | every NEO Lite package on sale, first one picked via `locals` |
+| `data.biznetgio_neolite_os_list.ubuntu` | data | `product_id` | valid OS images for that product; the VM's `select_os` comes from here |
+| `data.biznetgio_neolite_ip_availability.check` | data | `product_id` | whether a public IP is orderable right now |
+| `resource.biznetgio_neolite_keypair.main` | resource | none | SSH keypair generated server side; `private_key` returned once at create time |
+| `resource.biznetgio_neolite_vm.main` | resource | product, OS list, keypair | the VM order; `vm_name = "neolite-example"`, `cycle = "m"` |
+| `resource.biznetgio_neolite_disk.extra` | resource | `neolite_account_id = biznetgio_neolite_vm.main.id` | extra disk, `product_id = 60`, `service_name = "extra-disk"`, 60 GB minimum, grow-only |
+| `resource.biznetgio_neolite_snapshot.main` | resource | `neolite_account_id` | a paid snapshot, `cycle = "m"` |
+| `resource.biznetgio_neolite_vm_from_snapshot.restored` | resource | `snapshot_id`, product, keypair | restores the snapshot into a second VM with its own bill |
+| `data.biznetgio_neolite_change_package_options.opts` | data | `account_id` | raw unmodeled JSON pricing, exposed as a sensitive output |
+| `data.biznetgio_neolite_storage_upgrade_options.storage_opts` | data | `account_id` | same, for storage upgrades |
+
+The dependency chain reads as: products → os_list → keypair → vm → disk, snapshot → restore. The `snapshot_id` reference is what guarantees the snapshot exists before the restore is ordered.
+
+Commented-out VM options, each fired only when its value changes: `power_state` (start/stop/suspend/resume/shutdown), `rebuild_os` (wipes the disk and reinstalls), `migrate_to_pro` (one-way move to a NEO Lite Pro product id), `disk_size` (grow-only absolute target).
+
+Outputs: `ip_available`, `vm_status`, `vm_id` (documented as the value for `terraform import`), `keypair_private_key` (sensitive), `restored_vm_status`, `change_package_options_raw` (sensitive), `storage_upgrade_options_raw` (sensitive).
+
+### 1.3 neolite-pro/: same shape, dedicated tier
+
+Four resources and five data sources. Identical wiring to NEO Lite with these exact differences:
+
+- No `biznetgio_neolite_pro_vm_from_snapshot` exists. Pro snapshots restore only through the portal today; the file's banner says so.
+- `biznetgio_neolite_pro_disk.extra` has a 30 GB minimum instead of 60 GB, `service_name = "pro-extra-disk"`, same `product_id = 60`.
+- `vm_name = "pro-example"` (the shorter name also fits the 6 to 16 character limit).
+- Migration into Pro comes from the Lite side via `migrate_to_pro` on the `neolite/` example.
+- Outputs are the same set minus `restored_vm_status`.
+
+`variables.tf` reuses the same three variables and says so in a comment, pointing at `neolite/variables.tf` for the full explanation.
+
+### 1.4 baremetal/: dedicated hardware
+
+Five resources and three data sources, keypair-only authentication (no console password anywhere in the folder; `variables.tf` has only `pay_with_credit_card`):
+
+| Declaration | References | Purpose |
+| --- | --- | --- |
+| `data.biznetgio_baremetal_products.all` | none | catalog; first product picked |
+| `resource.biznetgio_baremetal_keypair.main` | none | server keypair; leave `public_key` unset for server-side generation, or set it to import your own key |
+| `resource.biznetgio_baremetal.main` | product, OS, keypair | the server; `select_os = "ubuntu-22"`, `label = "baremetal-example"`, `public_ip = 1` bundles one public IP with the order |
+| `data.biznetgio_baremetal_rebuild_os_list.ubuntu` | `account_id = biznetgio_baremetal.main.id` | valid OS images for rebuilding this specific server, resolvable only after the server exists |
+| `data.biznetgio_baremetal_openvpn.vpn` | none | out-of-band OpenVPN access config |
+| `resource.biznetgio_baremetal_additional_ip.extra` | none | a second, independent floating IP: `product_id = 10`, `region = "wjv-1"` |
+| `resource.biznetgio_baremetal_additional_ip_assignment.main` | `additional_ip_id`, `metal_account_id` | attaches the extra IP to the server; reassigning means replacing this resource |
+| `resource.biznetgio_baremetal_elastic_storage.main` | `metal_account_id`, `product_id = 20`, `size = 100` | storage volume permanently bound to the server from creation, no re-attach endpoint |
+
+Commented-out server options: `power_state` (on/off), `reset_trigger` (one-shot reboot, change the string to re-fire), `rebuild_os` (wipes the disk; valid values from the rebuild OS list data source above).
+
+Outputs: `server_status`, `server_ip_address`, `keypair_private_key` (sensitive), `valid_rebuild_os_images`, `additional_ip_address`, `elastic_storage_status`, `openvpn_config` (sensitive).
+
+### 1.5 gpu/: the two quirks, concretely
+
+Two resources and three data sources. `variables.tf` sets `ssh_and_console_user` to `"root"` (the GPU images use root).
+
+```hcl
+resource "biznetgio_gpu_keypair" "main" {
+  name = "gpu-example-key"
+}
+
+resource "biznetgio_gpu_instance" "main" {
+  product_id           = local.gpu_product_id
+  select_os            = "ubuntu-22"
+  keypair_id           = biznetgio_gpu_keypair.main.id
+  service_name         = "gpu-example"
+  ssh_and_console_user = var.ssh_and_console_user
+  console_password     = var.console_password
+  pay_with_credit_card = var.pay_with_credit_card
+
+  subscription = {
+    cycle = "m"
+  }
+}
+```
+
+The two quirks, exactly as the file comments them:
+
+- `biznetgio_gpu_keypair` exports no `keypair_id` attribute. It exports `id` (which already is the keypair id), `public_key`, and `private_key`. The instance references `.id`.
+- `subscription` and `on_demand` are object-typed attributes, not blocks. They are assigned with `=` and exactly one of the two must be set; Terraform rejects a plan with neither or both. The commented-out `on_demand` form is `on_demand = { additional_hours = 0 }` and bills hourly. Two one-shot triggers are commented out: `rebuild_trigger` (wipes the disk) and `reserve_additional_hours_trigger`.
+
+Data sources: `data.biznetgio_gpu_console.console` is side-effecting (every read mints a brand-new one-time console session; safe in `terraform output`, never reference it from anything evaluated during plan diffing) and `data.biznetgio_gpu_graph.graph` with `timeframe = "hour"`.
+
+Outputs: `gpu_status`, `keypair_private_key` (sensitive), `console_url` (sensitive), `monitoring_graph`.
+
+### 1.6 object-storage/: S3-compatible storage
+
+Four resources and three data sources, no keypair and no password; `variables.tf` has only `pay_with_credit_card`:
+
+| Declaration | References | Purpose |
+| --- | --- | --- |
+| `resource.biznetgio_object_storage.main` | none | the subscription, the S3 tenant: `product_id = 8`, `label = "example"`, `quota = 10` (grow-only afterwards) |
+| `resource.biznetgio_object_storage_bucket.assets` | `account_id` | one bucket, `acl = "public-read"`; only `acl` is mutable after creation |
+| `resource.biznetgio_object_storage_credential.main` | `account_id` | an S3 access/secret key pair; `active = true`; the secret key is returned once, at create time |
+| `resource.biznetgio_object_storage_object.index` | `account_id`, `bucket`, `source = "${path.module}/index.html"` | uploads the folder's `index.html` through the control-plane API, `key = "index.html"`, `acl = "public-read"` |
+| `data.biznetgio_object_storage_instances.active` | `status = "Active"` | every instance on the account, filtered to active |
+| `data.biznetgio_object_storage_buckets.all` | `account_id` | every bucket in the subscription |
+| `data.biznetgio_object_storage_credentials.all` | `account_id` | every credential in the subscription |
+
+The upload resource's comment sets the boundary: the control-plane upload is fine for one small file; anything bigger or bulk should use real S3 tooling (aws-cli, rclone) with the credential, pointed at `nos.<region>.neo.id`.
+
+Outputs: `storage_status`, `bucket_name`, `access_key` (sensitive), `secret_key` (sensitive), `active_instances` (sensitive because each item carries a redacted `raw` JSON field, and Terraform treats anything containing a sensitive value as sensitive as a whole).
+
+### 1.7 complete/: the module
+
+The root `main.tf` does catalog lookups then one module call with ten arguments; `variables.tf` at the root only forwards `console_password` and `pay_with_credit_card`; root `outputs.tf` passes through every module output.
+
+Inside `modules/app-stack/`:
+
+- `main.tf` declares five resources: `biznetgio_neolite_pro_keypair.this` (named `"${var.name}-key"`), `biznetgio_neolite_pro_vm.this` (`vm_name = var.name`), `biznetgio_object_storage.this`, `biznetgio_object_storage_bucket.this` (`"${var.name}-assets"`, `acl = "private"`), and `biznetgio_object_storage_credential.this`. All references use the module's own resources, so the module is fully self-contained.
+- `variables.tf` declares ten inputs: `name` (VM name and prefix for bucket and credential, 6 to 16 characters), `storage_label` (separate on purpose because the storage label has its own 6 to 16 character limit), `vm_product_id`, `select_os`, `storage_product_id`, `cycle` (default `"m"`), `ssh_and_console_user` (default `"admin"`), `console_password` (sensitive, no default), `pay_with_credit_card` (default `false`), `storage_quota` (default `10`).
+- `outputs.tf` exports `vm_status`, `bucket_name`, `access_key` (sensitive), `secret_key` (sensitive), `keypair_private_key` (sensitive). The comment on the sensitive ones says the module caller owns the responsibility of saving them.
+- Its own `terraform { required_providers { biznetgio = { source = "registry.terraform.io/shirasakaren/biznetgio" } } }` block. Without it, Terraform assumes the default `hashicorp/*` namespace for providers referenced inside a child module and fails with a missing provider error. Any module copied out of this repo must keep that block.
+
+### 1.8 The workflow
+
+`.github/workflows/ci.yml` runs `terraform fmt -check`, `terraform init`, and `terraform validate` unconditionally per selected folder, then conditionally `plan`, `apply`, or `destroy` with `BIZNETGIO_API_KEY` and `TF_VAR_console_password` secrets. The full line-by-line explanation lives in [Pipelines](/contribute/pipelines).
+
+## Part 2: the Pulumi repo
+
+Six examples, each written in six languages. Every folder is an independent Pulumi project with its own `Pulumi.yaml`.
+
+### 2.1 Project anatomy per language
+
+`Pulumi.yaml` in every folder:
+
+```yaml
+name: biznetgio-example-neolite
+runtime: nodejs
+description: NEO Lite walkthrough - every resource and data source this service has
+```
+
+`name` is unique per folder, `runtime` selects the language engine (`nodejs`, `python`, `go`, `dotnet`, `java`, or `yaml`). Around it, each language contributes:
+
+| Language | Dependency file | Pinned versions | Other files |
+| --- | --- | --- | --- |
+| TypeScript | `package.json` | `@pulumi/pulumi ^3.142.0`, `@shirasakaren/biznetgio ^0.1.7`, dev: `typescript ^5`, `@types/node ^20` | `index.ts`, `tsconfig.json` (strict, es2020, commonjs, noEmit), `package-lock.json` |
+| Python | `requirements.txt` | `pulumi>=3.231.0,<4.0.0`, `pulumi-biznetgio>=0.1.7` | `__main__.py` |
+| Go | `go.mod` | `go 1.25.11`, `pulumi/sdk/v3 v3.256.0`, `pulumi-biznetgio v0.1.7` | `main.go`, `go.sum` |
+| .NET | `<project>.csproj` | `Pulumi 3.*`, `Shirasakaren.Biznetgio 0.1.7`, `net8.0` | `Program.cs` |
+| Java | `pom.xml` | `com.pulumi:pulumi:1.0.0`, `ren.shirasaka:biznetgio:0.1.7`, Java 17 | `src/main/java/demo/App.java` |
+| YAML | none | the CLI resolves the provider | only `Pulumi.yaml` |
+
+The csproj filename matches the `name` in `Pulumi.yaml` (for example `biznetgio-example-gpu.csproj`). The `.gitignore` excludes `node_modules/`, `__pycache__/`, `venv/`, `bin/`, `obj/`, `target/`, `*.class`, and `Pulumi.*.yaml` with `!Pulumi.yaml` re-included, so stack state and secrets stay out of git.
+
+### 2.2 The shared program model
+
+Every program does the same five things, in the same order:
+
+1. **Config.** Read the stack settings. `consolePassword` is required and secret (`config.requireSecret("consolePassword")`, `cfg.RequireSecret(...)`, `config.require_secret(...)`); `payWithCreditCard` is optional boolean defaulting to false. Set them with `pulumi config set --secret consolePassword <value>`.
+2. **Catalog lookups.** Invoke the product catalog, then the OS list for the first product, sometimes IP availability. Functions are read-only API calls.
+3. **Resources.** Create the keypair, the VM, and everything else. Passing one resource's output into another's input is what builds the dependency graph.
+4. **Outputs.** Export the values you care about.
+5. **Run.** Each language has its own entry mechanism: TypeScript and Python run top-level; Go wraps everything in `pulumi.Run(func(ctx *pulumi.Context) error {...})` with `(value, error)` returns on every call; .NET uses top-level statements returning `await Deployment.RunAsync(() => {...})` and exports via a returned `Dictionary<string, object?>`; Java wraps in `Pulumi.run(App::stack)` with `ctx.export(...)` calls; YAML declares `configuration`, `variables`, `resources`, and `outputs` sections instead of code.
+
+The naming per language for the same concepts:
+
+| Concept | TypeScript | Python | Go | .NET | Java | YAML |
+| --- | --- | --- | --- | --- | --- | --- |
+| NEO Lite VM | `new biznetgio.NeoliteVm(n, {vmName})` | `biznetgio.NeoliteVm(n, vm_name=...)` | `biznetgio.NewNeoliteVm(ctx, n, &Args{VmName})` | `new NeoliteVm(n, new NeoliteVmArgs { VmName })` | `new NeoliteVm(n, NeoliteVmArgs.builder().vmName(...).build())` | `type: biznetgio:index:NeoliteVm` |
+| Catalog function | `biznetgio.neoliteProductsOutput()` | `biznetgio.neolite_products()` | `biznetgio.NeoliteProducts(ctx, &Args{}, nil)` | `NeoliteProducts.Invoke()` | `BiznetgioFunctions.neoliteProducts()` | `fn::invoke: function: biznetgio:index:neoliteProducts` |
+| Function with inputs | `biznetgio.neoliteOsListOutput({productId})` | `biznetgio.neolite_os_list_output(product_id=...)` | `biznetgio.NeoliteOsList(ctx, &Args{ProductId}, nil)` | `NeoliteOsList.Invoke(new NeoliteOsListInvokeArgs { ProductId })` | `BiznetgioFunctions.neoliteOsList(NeoliteOsListArgs.builder().productId(...).build())` | `fn::invoke` with `arguments:` |
+| Export | `export const x = ...` | `pulumi.export("x", ...)` | `ctx.Export("x", ...)` | dictionary entry `["x"] = ...` | `ctx.export("x", ...)` | `outputs:` map |
+
+### 2.3 The account id conversion
+
+Resource `id`s are always strings in Pulumi, but the upstream API sends numbers, so the provider types several "account id" style inputs as numbers. Passing a string `id` into them is a compile error in every typed language, which is why each language carries a conversion helper. The exact implementations:
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+function toAccountId(id: pulumi.Input<string>): pulumi.Output<number> {
+  return pulumi.output(id).apply((value) => Number(value));
+}
+```
+</Tab>
+<Tab title="Python">
+```python
+def to_account_id(value: pulumi.Input[str]) -> pulumi.Output[int]:
+    return pulumi.Output.from_input(value).apply(int)
+```
+</Tab>
+<Tab title="Go">
+```go
+func toAccountID(id pulumi.IDOutput) pulumi.IntOutput {
+	return id.ToStringOutput().ApplyT(func(s string) (int, error) {
+		return strconv.Atoi(s)
+	}).(pulumi.IntOutput)
+}
+```
+</Tab>
+<Tab title=".NET">
+```csharp
+static Output<int> ToAccountId(Output<string> id) => id.Apply(v => int.Parse(v));
+```
+</Tab>
+<Tab title="Java">
+```java
+private static Output<Integer> toAccountId(Output<String> id) {
+    return id.applyValue(Integer::parseInt);
+}
+```
+</Tab>
+<Tab title="YAML">
+```yaml
+neoliteAccountId: ${fn::toNumber(vm.id)}
+```
+</Tab>
+</Tabs>
+
+Where the conversion applies, the complete inventory:
+
+| Input | Resource or function | Converted in |
+| --- | --- | --- |
+| `neoliteAccountId` | `NeoliteDisk`, `NeoliteSnapshot` | neolite, neolite-pro |
+| `snapshotId` | `NeoliteVmFromSnapshot` | neolite |
+| `accountId` | `neoliteChangePackageOptions`, `neoliteStorageUpgradeOptions` and their Pro variants | neolite, neolite-pro |
+| `accountId` | `baremetalRebuildOsList` | baremetal |
+| `additionalIpId`, `metalAccountId` | `BaremetalAdditionalIpAssignment` | baremetal |
+| `metalAccountId` | `BaremetalElasticStorage` | baremetal |
+| `keypairId` | `GpuInstance` | gpu (the GPU keypair's `id`, not a `keypairId` property) |
+
+Where it does not apply, just as important:
+
+- `keypairId` on the VPS and baremetal VMs is string-typed: `NeoliteKeypair`, `NeoliteProKeypair`, and `BaremetalKeypair` all expose a string `keypairId` that passes straight through.
+- Every Object Storage `accountId` (`ObjectStorageBucket`, `ObjectStorageCredential`, `ObjectStorageObject`, and the three catalog functions) is string-typed. No conversion anywhere in `object-storage/` or `complete/`.
+- `GpuConsole` and `GpuGraph` take `accountId` as a string; the GPU examples pass `gpu.id` directly.
+- `GpuKeypair` exposes no `keypairId` at all, only `id`, `publicKey`, and `privateKey`. The GPU examples convert `keypair.id` with the same helper (inline, as `keypair.id.apply((id) => Number(id))` in TypeScript, `keypair_id = keypair.id.apply(int)` in Python, and equivalents elsewhere) and comment why.
+
+A second Output idiom appears in `object-storage/`: running plain code like `.length` against an Output's eventual value requires `.apply` (TypeScript), `.apply(len)` (Python), `ApplyT` (Go), `.Apply` (.NET), `.applyValue` (Java), or `fn::length` (YAML). The examples use it to export the count of active instances, buckets, and credentials.
+
+### 2.4 The examples, inventory per product line
+
+**neolite/**: products → osList → ipAvailability → keypair → vm (with the four commented-out options `powerState`, `rebuildOs`, `migrateToPro`, `diskSize`) → disk (60 GB minimum, `productId: 60`) → snapshot → restored VM from snapshot → the two raw JSON functions. Exports: `ipAvailable`, `vmStatus`, `vmId`, `keypairPrivateKey`, `diskStatus`, `restoredVmStatus`, `changePackageOptionsRaw`, `storageUpgradeOptionsRaw`.
+
+**neolite-pro/**: the same minus the from-snapshot resource, with the 30 GB disk minimum and `serviceName: "pro-extra-disk"`. Exports add `diskStatus` and `snapshotStatus`, drop `restoredVmStatus`.
+
+**baremetal/**: products → keypair → server (`publicIp: 1`, commented `powerState`, `resetTrigger`, `rebuildOs`) → rebuild OS list (converted `accountId`) → OpenVPN (no inputs) → additional IP (`productId: 10`, `region: "wjv-1"`) → assignment (both ids converted) → elastic storage (`productId: 20`, `size: 100`, converted `metalAccountId`). Exports: `keypairPrivateKey`, `serverStatus`, `serverIpAddress`, `validRebuildOsImages`, `openvpnConfig`, `additionalIpAddress`, `assignmentStatus`, `elasticStorageStatus`.
+
+**gpu/**: products → keypair → instance. The billing mode is one property: `subscription: { cycle: "m" }` (TypeScript/Python object literals), `subscription=biznetgio.GpuSubscriptionArgsArgs(cycle="m")` (Python's SDK names the args classes with a doubled ArgsArgs), `Subscription: biznetgio.GpuSubscriptionArgsArgs{Cycle: pulumi.String("m")}` (Go), `Subscription = new GpuInstanceSubscriptionArgs { Cycle = "m" }` (.NET), `.subscription(GpuSubscriptionArgs.builder().cycle("m").build())` (Java, imported from `ren.shirasaka.biznetgio.inputs`), and `subscription: { cycle: m }` (YAML). The alternative `onDemand` (with `additionalHours`) is commented out in every language, as are `rebuildTrigger` and `reserveAdditionalHoursTrigger`. Then the side-effecting console function and the graph (`timeframe: "hour"`), both with string `accountId`. Exports: `keypairPrivateKey`, `gpuStatus`, `consoleUrl`, `monitoringGraph`.
+
+**object-storage/**: subscription (`productId: 8`, `quota: 10`) → bucket (`acl: "public-read"`) → credential (`active: true`) → object upload → the three catalog lookups with counts. The `source` path differs per language: `path.join(__dirname, "index.html")` (TypeScript), `str(pathlib.Path(__file__).parent / "index.html")` (Python), `"index.html"` relative (Go and Java, where `pulumi up` runs from the project folder), `Path.Combine(AppContext.BaseDirectory, "index.html")` (.NET), and `source: ./index.html` (YAML). Exports: `storageStatus`, `bucketName`, `accessKey`, `secretKey`, `objectKey`, `activeInstanceCount`, `bucketCount`, `credentialCount`.
+
+### 2.5 The complete/ example and the component
+
+The `complete/` folder wraps a NEO Lite Pro VM plus Object Storage into a reusable `AppStack` component. The caller (`index.ts`, `__main__.py`, `main.go`, `Program.cs`, `App.java`) does the catalog lookups, constructs one `AppStack` with args, and re-exports its five outputs: `vmStatus`, `bucketName`, `accessKey`, `secretKey`, `keypairPrivateKey`.
+
+The component's internals are identical across languages:
+
+- Registration with the type string `"biznetgio-example:index:AppStack"`.
+- Five children: keypair, VM, storage, bucket, credential, each named `${name}-key`, `${name}-vm`, `${name}-storage`, `${name}-assets`, `${name}-cred`.
+- Each child gets the component as parent: `{ parent: this }` (TypeScript), `opts=pulumi.ResourceOptions(parent=self)` (Python), `pulumi.Parent(app)` (Go), `new CustomResourceOptions { Parent = this }` (.NET), `CustomResourceOptions.builder().parent(this).build()` (Java). The parent wiring groups everything under one tree so `pulumi destroy` tears the whole app down in order.
+- Outputs are published with `registerOutputs({...})` (TypeScript), `self.register_outputs({...})` (Python), `ctx.RegisterResourceOutputs(app, pulumi.Map{...})` (Go), `RegisterOutputs(new Dictionary<string, object?>{...})` (.NET), `this.registerOutputs(Map.of(...))` (Java).
+- Args: TypeScript uses an `AppStackArgs` interface; Python a plain class with `storage_quota` defaulting to `None` and the component falling back to 10; Go a struct with `StorageQuota *int` where nil means the 10 GB default; .NET a class with nullable `Input<int>? StorageQuota` and `args.StorageQuota ?? 10`; Java a builder class (`AppStackArgs.java`) where `storageQuota` defaults to `Input.of(10)`; the bucket `acl` is `private` and the VM `vmName` is the component name itself.
+
+YAML cannot define components, a runtime limitation, so `yaml/complete/Pulumi.yaml` declares the same five resources flat with a comment explaining the difference.
+
+### 2.6 The workflow
+
+`.github/workflows/ci.yml` builds each language with its toolchain, then optionally runs `preview`/`up`/`destroy` through `pulumi/actions@v7` against the `dev` stack. Full details in [Pipelines](/contribute/pipelines).
+
+## Part 3: cross-cutting technical reference
+
+### The billing model
+
+Every orderable resource takes `cycle` (`"m"` monthly, `"y"` annual) and `payWithCreditCard`. In Pulumi the same fields are `cycle` and `payWithCreditCard`; the default-false billing rule applies to both tools. GPU adds the `subscription` versus `onDemand` split, and `additional_hours` reserves extra on-demand hours on top of the default balance.
+
+### The one-shot and destructive options
+
+All commented out in every language, all firing only when their value changes:
+
+| Product | Option | Effect |
+| --- | --- | --- |
+| NEO Lite | `power_state` | start/stop/suspend/resume/shutdown |
+| NEO Lite | `rebuild_os` | wipes the disk and reinstalls |
+| NEO Lite | `migrate_to_pro` | one-way move to a NEO Lite Pro product id |
+| NEO Lite | `disk_size` | grow-only absolute GB target |
+| NEO Lite Pro | same set as NEO Lite | same effects |
+| NEO Metal | `power_state` | on/off |
+| NEO Metal | `reset_trigger` | one-shot reboot; change the string to re-fire |
+| NEO Metal | `rebuild_os` | wipes the disk; valid values from the rebuild OS list |
+| NEO GPU | `rebuild_trigger` | wipes the disk |
+| NEO GPU | `reserve_additional_hours_trigger` | reserves more on-demand hours |
+
+### Side-effecting reads
+
+Only `biznetgio_gpu_console` / `gpuConsole` mints state on read: every evaluation creates a fresh one-time console session. The examples expose it as an output and warn never to reference it from anything evaluated during preview diffing. The raw JSON lookups (`changePackageOptions`, `storageUpgradeOptions`) are read-only.
+
+### Name limits enforced by the API
+
+`vm_name`/`vmName`: 6 to 16 characters. `service_name`/`serviceName` (disks): 6 to 16. Object Storage `label`: 6 to 16. `ssh_and_console_user`: 6 to 32, letters, numbers, dash, dot only. The examples' names (`neolite-example`, `extra-disk`, `pro-extra-disk`, `gpu-example`, `metal-example`, `example`) are all chosen to fit.
+
+### Secrets per tool
+
+Terraform: `console_password` via `TF_VAR_console_password` or gitignored `terraform.tfvars`; provider auth via `BIZNETGIO_API_KEY` env. Pulumi: `pulumi config set --secret consolePassword`; stack state in gitignored `Pulumi.<stack>.yaml`; provider auth via `BIZNETGIO_API_KEY` env; CI adds `PULUMI_ACCESS_TOKEN`.
+
+## Part 4: complete file indexes
+
+Terraform repo, every file:
+
+| File | Content |
+| --- | --- |
+| `README.md` | bilingual overview, folder table, cost warnings, template guide |
+| `LICENSE` | MIT |
+| `.gitignore` | `.terraform/`, `.terraform.lock.hcl`, `*.tfstate*`, `crash.log`, `override.tf*`, `*.tfvars`, `!*.tfvars.example` |
+| `.github/workflows/ci.yml` | manual dispatch pipeline |
+| `.github/pull_request_template.md` | PR checklist |
+| `.github/ISSUE_TEMPLATE/*.yml` | bug, feature, docs forms plus `config.yml` |
+| `CODEOWNERS`, `CONTRIBUTING.md` | review routing, contribution summary |
+| `neolite/{versions,variables,main,outputs}.tf`, `terraform.tfvars.example`, `README.md` | sections 1.1 and 1.2 |
+| `neolite-pro/...` | section 1.3 |
+| `baremetal/...` | section 1.4 |
+| `gpu/...` | section 1.5 |
+| `object-storage/...` plus `index.html` (the uploaded demo page) | section 1.6 |
+| `complete/{versions,variables,main,outputs}.tf`, `terraform.tfvars.example`, `README.md`, `modules/app-stack/{main,variables,outputs}.tf` | section 1.7 |
+
+Pulumi repo, every file:
+
+| File | Content |
+| --- | --- |
+| `README.md` | bilingual overview, language matrix, the bug-this-repo-caught section, cost warnings |
+| `LICENSE` | MIT |
+| `.gitignore` | per-language build output and `Pulumi.*.yaml` |
+| `.github/workflows/ci.yml` | language x example matrix pipeline |
+| `.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/*.yml`, `CODEOWNERS`, `CONTRIBUTING.md` | contribution plumbing |
+| `<language>/<example>/Pulumi.yaml` | project name, runtime, description |
+| `typescript/*/index.ts`, `package.json`, `tsconfig.json`, `package-lock.json` | sections 2.2 to 2.5 |
+| `typescript/complete/appStack.ts` | the component |
+| `python/*/__main__.py`, `requirements.txt`; `python/complete/app_stack.py` | same |
+| `go/*/main.go`, `go.mod`, `go.sum`; `go/complete/app_stack.go` | same |
+| `dotnet/*/Program.cs`, `<name>.csproj`; `dotnet/complete/AppStack.cs` | same |
+| `java/*/src/main/java/demo/App.java`, `pom.xml`; `java/complete/AppStack.java`, `AppStackArgs.java` | same |
+| `yaml/*/Pulumi.yaml`; `yaml/object-storage/index.html` | same, flat |
+| `*/object-storage/index.html` | the demo page each language uploads |
+
+That is everything in both repos. If you change any of it, the [Conventions](/contribute/conventions) and the [walkthroughs](/contribute/walkthroughs) tell you how to do it safely.
