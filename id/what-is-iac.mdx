@@ -45,7 +45,6 @@ Workflow tiga langkah di atas itu cuma permukaannya. Di bawahnya, Terraform dan 
 
 **Semua yang lu deklarasiin jadi graph, bukan list.** Pas konfigurasi lu bilang `keypair_id` punya VM dateng dari resource keypair, tools-nya nyatet itu sebagai edge: keypair sebelum VM. Ditebar di satu file penuh, ini jadi dependency graph, dan CLI-nya jalanin graph itu buat nentuin urutan, bikin keypair sebelum VM yang butuh id-nya, dan balikin urutannya pas `destroy`/`down` biar VM-nya kehapus dulu sebelum keypair yang dia depend ke situ. Resource yang gak ada hubungan satu sama lain dibuat parallel, ini kenapa satu plan dengan sepuluh VM yang gak berhubungan kelar jauh lebih cepet daripada sepuluh API call yang sequential.
 
-<Frame>
 ```
 biznetgio_neolite_keypair.main ──┐
                                   ├──▶ biznetgio_neolite_vm.main
@@ -53,7 +52,6 @@ data.biznetgio_neolite_products ─┘
 
 urutan destroy: kebalik arrow-nya
 ```
-</Frame>
 
 **State itu yang bikin "jalanin dua kali" jadi "converge", bukan "duplikat".** Habis tiap apply/up, tools-nya nyatet id dan attribute value yang sekarang dia tau ke state file (Terraform) atau state punya satu stack (Pulumi). Kali berikutnya lu jalanin plan atau preview, tiga hal dibandingin bareng: konfigurasi lu (apa yang lu mau), state terakhir yang diketahui (apa yang tools-nya ingat udah dia buat), dan baca ulang yang fresh dari API beneran (apa yang beneran ada sekarang, disebut refresh). Diff antara tiga itu persis yang jadi plan lu. Ini juga kenapa ganti satu field jarang berarti destroy dan recreate, kalau cuma `label` yang berubah di server bare metal, logic diff-nya provider manggil satu API endpoint yang rename doang, field lainnya dibiarin. Full replacement cuma kejadian buat attribute yang eksplisit ditandain create-only di halaman reference-nya satu resource, soalnya API upstream-nya gak punya cara in-place buat ganti itu.
 

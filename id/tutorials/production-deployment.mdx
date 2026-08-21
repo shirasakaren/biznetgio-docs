@@ -12,7 +12,6 @@ Ini titik ketemunya tujuh tutorial sebelumnya jadi satu hal beneran: deployment 
 - Dua environment, **staging** dan **production**, code sama, ukuran dan duit beda.
 - State di shared backend, secret di CI, dan tiap perubahan ke production lewat pull request yang direview.
 
-<Frame>
 ```
 pull request ──▶ CI: plan/preview (staging + production) ──▶ diposting jadi komentar PR
       │                                                              │
@@ -30,7 +29,6 @@ merge ke main                                                        │
      NEO Lite Pro VM      NEO Object Storage
      (app tier)           (bucket + credential)
 ```
-</Frame>
 
 ## 1. Struktur repository
 
