@@ -330,7 +330,7 @@ Outputs: `keypairId`, `publicKey`, `privateKey` (secret - digenerate server-side
   <Tab title="TypeScript">
     ```typescript
     const snapshot = new biznetgio.NeoliteSnapshot("pre-upgrade", {
-      neoliteAccountId: vm.id,
+      neoliteAccountId: vm.id.apply((id) => Number(id)),
       name: "snapshot-1",
       description: "before upgrade",
       cycle: "m",
@@ -341,7 +341,7 @@ Outputs: `keypairId`, `publicKey`, `privateKey` (secret - digenerate server-side
     ```python
     snapshot = pulumi_biznetgio.NeoliteSnapshot(
         "pre-upgrade",
-        neolite_account_id=vm.id,
+        neolite_account_id=pulumi.Output.from_input(vm.id).apply(int),
         name="snapshot-1",
         description="before upgrade",
         cycle="m",
@@ -351,7 +351,7 @@ Outputs: `keypairId`, `publicKey`, `privateKey` (secret - digenerate server-side
   <Tab title="Go">
     ```go
     snapshot, err := biznetgio.NewNeoliteSnapshot(ctx, "pre-upgrade", &biznetgio.NeoliteSnapshotArgs{
-        NeoliteAccountId: vm.ID(),
+        NeoliteAccountId: vm.ID().ToIntOutput(),
         Name:             pulumi.String("snapshot-1"),
         Description:      pulumi.String("before upgrade"),
         Cycle:            pulumi.String("m"),
@@ -362,7 +362,7 @@ Outputs: `keypairId`, `publicKey`, `privateKey` (secret - digenerate server-side
     ```csharp
     var snapshot = new NeoliteSnapshot("pre-upgrade", new NeoliteSnapshotArgs
     {
-        NeoliteAccountId = vm.Id,
+        NeoliteAccountId = vm.Id.Apply(v => int.Parse(v)),
         Name = "snapshot-1",
         Description = "before upgrade",
         Cycle = "m",
@@ -373,7 +373,7 @@ Outputs: `keypairId`, `publicKey`, `privateKey` (secret - digenerate server-side
     ```java
     var snapshot = new NeoliteSnapshot("pre-upgrade",
         NeoliteSnapshotArgs.builder()
-            .neoliteAccountId(vm.id())
+            .neoliteAccountId(vm.id().applyValue(Integer::parseInt))
             .name("snapshot-1")
             .description("before upgrade")
             .cycle("m")
@@ -385,7 +385,7 @@ Outputs: `keypairId`, `publicKey`, `privateKey` (secret - digenerate server-side
     snapshot:
       type: biznetgio:index:NeoliteSnapshot
       properties:
-        neoliteAccountId: ${vm.id}
+        neoliteAccountId: ${fn::toNumber(vm.id)}
         name: snapshot-1
         description: before upgrade
         cycle: m
@@ -410,7 +410,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
   <Tab title="TypeScript">
     ```typescript
     const restored = new biznetgio.NeoliteVmFromSnapshot("restored", {
-      snapshotId: snapshot.id,
+      snapshotId: snapshot.id.apply((id) => Number(id)),
       productId: products.products[0].productId,
       cycle: "m",
       keypairId: keypair.keypairId,
@@ -424,7 +424,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
     ```python
     restored = pulumi_biznetgio.NeoliteVmFromSnapshot(
         "restored",
-        snapshot_id=snapshot.id,
+        snapshot_id=pulumi.Output.from_input(snapshot.id).apply(int),
         product_id=products.products[0].product_id,
         cycle="m",
         keypair_id=keypair.keypair_id,
@@ -437,7 +437,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
   <Tab title="Go">
     ```go
     restored, err := biznetgio.NewNeoliteVmFromSnapshot(ctx, "restored", &biznetgio.NeoliteVmFromSnapshotArgs{
-        SnapshotId:        snapshot.ID(),
+        SnapshotId:        snapshot.ID().ToIntOutput(),
         ProductId:         pulumi.Int(products.Products[0].ProductId),
         Cycle:             pulumi.String("m"),
         KeypairId:         keypair.KeypairId,
@@ -451,7 +451,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
     ```csharp
     var restored = new NeoliteVmFromSnapshot("restored", new NeoliteVmFromSnapshotArgs
     {
-        SnapshotId = snapshot.Id,
+        SnapshotId = snapshot.Id.Apply(v => int.Parse(v)),
         ProductId = products.Apply(p => p.Products[0].ProductId),
         Cycle = "m",
         KeypairId = keypair.KeypairId,
@@ -465,7 +465,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
     ```java
     var restored = new NeoliteVmFromSnapshot("restored",
         NeoliteVmFromSnapshotArgs.builder()
-            .snapshotId(snapshot.id())
+            .snapshotId(snapshot.id().applyValue(Integer::parseInt))
             .productId(products.applyValue(p -> p.products().get(0).productId()))
             .cycle("m")
             .keypairId(keypair.keypairId())
@@ -480,7 +480,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
     restored:
       type: biznetgio:index:NeoliteVmFromSnapshot
       properties:
-        snapshotId: ${snapshot.id}
+        snapshotId: ${fn::toNumber(snapshot.id)}
         productId: ${products[0].productId}
         cycle: m
         keypairId: ${keypair.keypairId}
@@ -514,7 +514,7 @@ Outputs: `orderId`, `status`. **Hapus resource ini = hapus VM hasil restore - bu
     const disk = new biznetgio.NeoliteDisk("extra", {
       productId: 60,
       cycle: "m",
-      neoliteAccountId: vm.id,
+      neoliteAccountId: vm.id.apply((id) => Number(id)),
       serviceName: "extra-disk",
       size: 60,   // grow-only; upgrades send the increment
     });
@@ -526,7 +526,7 @@ Outputs: `orderId`, `status`. **Hapus resource ini = hapus VM hasil restore - bu
         "extra",
         product_id=60,
         cycle="m",
-        neolite_account_id=vm.id,
+        neolite_account_id=pulumi.Output.from_input(vm.id).apply(int),
         service_name="extra-disk",
         size=60,   # grow-only; upgrades send the increment
     )
@@ -537,7 +537,7 @@ Outputs: `orderId`, `status`. **Hapus resource ini = hapus VM hasil restore - bu
     disk, err := biznetgio.NewNeoliteDisk(ctx, "extra", &biznetgio.NeoliteDiskArgs{
         ProductId:        pulumi.Int(60),
         Cycle:            pulumi.String("m"),
-        NeoliteAccountId: vm.ID(),
+        NeoliteAccountId: vm.ID().ToIntOutput(),
         ServiceName:      pulumi.String("extra-disk"),
         Size:             pulumi.Int(60),
     })
@@ -549,7 +549,7 @@ Outputs: `orderId`, `status`. **Hapus resource ini = hapus VM hasil restore - bu
     {
         ProductId = 60,
         Cycle = "m",
-        NeoliteAccountId = vm.Id,
+        NeoliteAccountId = vm.Id.Apply(v => int.Parse(v)),
         ServiceName = "extra-disk",
         Size = 60,
     });
@@ -561,7 +561,7 @@ Outputs: `orderId`, `status`. **Hapus resource ini = hapus VM hasil restore - bu
         NeoliteDiskArgs.builder()
             .productId(60)
             .cycle("m")
-            .neoliteAccountId(vm.id())
+            .neoliteAccountId(vm.id().applyValue(Integer::parseInt))
             .serviceName("extra-disk")
             .size(60)
             .build());
@@ -574,7 +574,7 @@ Outputs: `orderId`, `status`. **Hapus resource ini = hapus VM hasil restore - bu
       properties:
         productId: 60
         cycle: m
-        neoliteAccountId: ${vm.id}
+        neoliteAccountId: ${fn::toNumber(vm.id)}
         serviceName: extra-disk
         size: 60
     ```

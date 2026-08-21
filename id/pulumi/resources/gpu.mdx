@@ -25,7 +25,7 @@ NEO GPU nyewain instance NVIDIA H200 (`/neo-gpus` API group), ditagih per cycle 
     const gpu = new biznetgio.GpuInstance("gpu-1", {
       productId: products.products[0].productId,
       selectOs: "ubuntu-22",
-      keypairId: keypair.keypairId,
+      keypairId: keypair.id.apply((id) => Number(id)),
       serviceName: "neo-gpu-1",
       sshAndConsoleUser: "root",
       consolePassword: "s3cretP4ssw0rd",
@@ -53,7 +53,7 @@ NEO GPU nyewain instance NVIDIA H200 (`/neo-gpus` API group), ditagih per cycle 
         "gpu-1",
         product_id=products.products[0].product_id,
         select_os="ubuntu-22",
-        keypair_id=keypair.keypair_id,
+        keypair_id=pulumi.Output.from_input(keypair.id).apply(int),
         service_name="neo-gpu-1",
         ssh_and_console_user="root",
         console_password="s3cretP4ssw0rd",
@@ -90,7 +90,7 @@ NEO GPU nyewain instance NVIDIA H200 (`/neo-gpus` API group), ditagih per cycle 
             gpu, err := biznetgio.NewGpuInstance(ctx, "gpu-1", &biznetgio.GpuInstanceArgs{
                 ProductId:         pulumi.Int(products.Products[0].ProductId),
                 SelectOs:          pulumi.String("ubuntu-22"),
-                KeypairId:         keypair.KeypairId,
+                KeypairId:         keypair.ID().ToIntOutput(),
                 ServiceName:       pulumi.String("neo-gpu-1"),
                 SshAndConsoleUser: pulumi.String("root"),
                 ConsolePassword:   pulumi.String("s3cretP4ssw0rd"),
@@ -131,7 +131,7 @@ NEO GPU nyewain instance NVIDIA H200 (`/neo-gpus` API group), ditagih per cycle 
         {
             ProductId = products.Apply(p => p.Products[0].ProductId),
             SelectOs = "ubuntu-22",
-            KeypairId = keypair.KeypairId,
+            KeypairId = keypair.Id.Apply(v => int.Parse(v)),
             ServiceName = "neo-gpu-1",
             SshAndConsoleUser = "root",
             ConsolePassword = "s3cretP4ssw0rd",
@@ -155,7 +155,7 @@ NEO GPU nyewain instance NVIDIA H200 (`/neo-gpus` API group), ditagih per cycle 
     import com.pulumi.Context;
     import com.pulumi.Pulumi;
     import ren.shirasaka.biznetgio.*;
-    import ren.shirasaka.biznetgio.outputs.GpuSubscriptionArgs;
+    import ren.shirasaka.biznetgio.inputs.GpuSubscriptionArgs;
 
     public class App {
         public static void main(String[] args) {
@@ -174,7 +174,7 @@ NEO GPU nyewain instance NVIDIA H200 (`/neo-gpus` API group), ditagih per cycle 
                 GpuInstanceArgs.builder()
                     .productId(products.applyValue(p -> p.products().get(0).productId()))
                     .selectOs("ubuntu-22")
-                    .keypairId(keypair.keypairId())
+                    .keypairId(keypair.id().applyValue(Integer::parseInt))
                     .serviceName("neo-gpu-1")
                     .sshAndConsoleUser("root")
                     .consolePassword("s3cretP4ssw0rd")
@@ -197,7 +197,7 @@ NEO GPU nyewain instance NVIDIA H200 (`/neo-gpus` API group), ditagih per cycle 
         properties:
           productId: ${products[0].productId}
           selectOs: ubuntu-22
-          keypairId: ${keypair.keypairId}
+          keypairId: ${fn::toNumber(keypair.id)}
           serviceName: neo-gpu-1
           sshAndConsoleUser: root
           consolePassword: s3cretP4ssw0rd
@@ -260,6 +260,8 @@ Billing per jam sebagai ganti `subscription`:
 | `onDemand` | object | one-of | `{ additionalHours?: number }` default 0 |
 | `rebuildTrigger` | string | no | one-shot reinstall OS (destructive) |
 | `reserveAdditionalHoursTrigger` | string | no | one-shot: reserve additional hour(s) |
+
+`keypairId` datengnya dari `id`-nya `GpuKeypair` yang di-convert ke number, kayak contoh di atas - `GpuKeypair` gak nge-expose output `keypairId` yang terpisah, beda dari resource keypair lain.
 
 Outputs: `status`, `orderId`, `raw` (secret, di-redact). Import pake numeric account id.
 

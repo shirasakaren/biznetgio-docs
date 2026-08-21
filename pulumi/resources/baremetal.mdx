@@ -26,7 +26,7 @@ NEO Metal dedicated servers (`/baremetals` API group) plus their add-ons: additi
       productId: products.products[0].productId,
       cycle: "m",
       selectOs: "ubuntu-22",
-      keypairId: keypair.keypairId,
+      keypairId: keypair.id.apply((id) => Number(id)),
       label: "neo-metal-main",
       publicIp: 1,
       // optional in-place actions (change value to fire):
@@ -55,7 +55,7 @@ NEO Metal dedicated servers (`/baremetals` API group) plus their add-ons: additi
         product_id=products.products[0].product_id,
         cycle="m",
         select_os="ubuntu-22",
-        keypair_id=keypair.keypair_id,
+        keypair_id=pulumi.Output.from_input(keypair.id).apply(int),
         label="neo-metal-main",
         public_ip=1,
         # power_state="off",
@@ -131,7 +131,7 @@ NEO Metal dedicated servers (`/baremetals` API group) plus their add-ons: additi
             ProductId = products.Apply(p => p.Products[0].ProductId),
             Cycle = "m",
             SelectOs = "ubuntu-22",
-            KeypairId = keypair.KeypairId,
+            KeypairId = keypair.Id.Apply(v => int.Parse(v)),
             Label = "neo-metal-main",
             PublicIp = 1,
             // PowerState = "off",
@@ -172,7 +172,7 @@ NEO Metal dedicated servers (`/baremetals` API group) plus their add-ons: additi
                     .productId(products.applyValue(p -> p.products().get(0).productId()))
                     .cycle("m")
                     .selectOs("ubuntu-22")
-                    .keypairId(keypair.keypairId())
+                    .keypairId(keypair.id().applyValue(Integer::parseInt))
                     .label("neo-metal-main")
                     .publicIp(1)
                     // .powerState("off")
@@ -194,7 +194,7 @@ NEO Metal dedicated servers (`/baremetals` API group) plus their add-ons: additi
           productId: ${products[0].productId}
           cycle: m
           selectOs: ubuntu-22
-          keypairId: ${keypair.keypairId}
+          keypairId: ${fn::toNumber(keypair.id)}
           label: neo-metal-main
           publicIp: 1
           # powerState: "off"
@@ -363,8 +363,8 @@ Outputs: `status`, `ipAddress`, `createdAt`, `raw` (secret). No update - input c
   <Tab title="TypeScript">
     ```typescript
     const assignment = new biznetgio.BaremetalAdditionalIpAssignment("assign", {
-      additionalIpId: ip.id,
-      metalAccountId: server.id,
+      additionalIpId: ip.id.apply((id) => Number(id)),
+      metalAccountId: server.id.apply((id) => Number(id)),
     });
     ```
   </Tab>
@@ -372,16 +372,16 @@ Outputs: `status`, `ipAddress`, `createdAt`, `raw` (secret). No update - input c
     ```python
     assignment = pulumi_biznetgio.BaremetalAdditionalIpAssignment(
         "assign",
-        additional_ip_id=ip.id,
-        metal_account_id=server.id,
+        additional_ip_id=pulumi.Output.from_input(ip.id).apply(int),
+        metal_account_id=pulumi.Output.from_input(server.id).apply(int),
     )
     ```
   </Tab>
   <Tab title="Go">
     ```go
     assignment, err := biznetgio.NewBaremetalAdditionalIpAssignment(ctx, "assign", &biznetgio.BaremetalAdditionalIpAssignmentArgs{
-        AdditionalIpId:  ip.ID(),
-        MetalAccountId:  server.ID(),
+        AdditionalIpId:  ip.ID().ToIntOutput(),
+        MetalAccountId:  server.ID().ToIntOutput(),
     })
     ```
   </Tab>
@@ -389,8 +389,8 @@ Outputs: `status`, `ipAddress`, `createdAt`, `raw` (secret). No update - input c
     ```csharp
     var assignment = new BaremetalAdditionalIpAssignment("assign", new BaremetalAdditionalIpAssignmentArgs
     {
-        AdditionalIpId = ip.Id,
-        MetalAccountId = server.Id,
+        AdditionalIpId = ip.Id.Apply(v => int.Parse(v)),
+        MetalAccountId = server.Id.Apply(v => int.Parse(v)),
     });
     ```
   </Tab>
@@ -398,8 +398,8 @@ Outputs: `status`, `ipAddress`, `createdAt`, `raw` (secret). No update - input c
     ```java
     var assignment = new BaremetalAdditionalIpAssignment("assign",
         BaremetalAdditionalIpAssignmentArgs.builder()
-            .additionalIpId(ip.id())
-            .metalAccountId(server.id())
+            .additionalIpId(ip.id().applyValue(Integer::parseInt))
+            .metalAccountId(server.id().applyValue(Integer::parseInt))
             .build());
     ```
   </Tab>
@@ -430,7 +430,7 @@ Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpI
       productId: 20,
       cycle: "m",
       storageName: "metal-volume",
-      metalAccountId: server.id,
+      metalAccountId: server.id.apply((id) => Number(id)),
       size: 100,   // grow-only
     });
     ```
@@ -442,7 +442,7 @@ Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpI
         product_id=20,
         cycle="m",
         storage_name="metal-volume",
-        metal_account_id=server.id,
+        metal_account_id=pulumi.Output.from_input(server.id).apply(int),
         size=100,   # grow-only
     )
     ```
@@ -453,7 +453,7 @@ Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpI
         ProductId:       pulumi.Int(20),
         Cycle:           pulumi.String("m"),
         StorageName:     pulumi.String("metal-volume"),
-        MetalAccountId:  server.ID(),
+        MetalAccountId:  server.ID().ToIntOutput(),
         Size:            pulumi.Int(100),
     })
     ```
@@ -465,7 +465,7 @@ Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpI
         ProductId = 20,
         Cycle = "m",
         StorageName = "metal-volume",
-        MetalAccountId = server.Id,
+        MetalAccountId = server.Id.Apply(v => int.Parse(v)),
         Size = 100,
     });
     ```
@@ -477,7 +477,7 @@ Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpI
             .productId(20)
             .cycle("m")
             .storageName("metal-volume")
-            .metalAccountId(server.id())
+            .metalAccountId(server.id().applyValue(Integer::parseInt))
             .size(100)
             .build());
     ```

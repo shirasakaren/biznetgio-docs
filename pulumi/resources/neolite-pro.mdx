@@ -29,7 +29,7 @@ NEO Lite Pro is the premium VPS tier (`/neolite-pros` API group). The resource s
       vmName: "neo-pro-1",
       productId: products.products[0].productId,
       selectOs: osList.oss[0].name,
-      keypairId: keypair.keypairId,
+      keypairId: keypair.id.apply((id) => Number(id)),
       cycle: "m",
       sshAndConsoleUser: "admin",
       consolePassword: "s3cretP4ssw0rd",
@@ -62,7 +62,7 @@ NEO Lite Pro is the premium VPS tier (`/neolite-pros` API group). The resource s
         vm_name="neo-pro-1",
         product_id=products.products[0].product_id,
         select_os=os_list.oss[0].name,
-        keypair_id=keypair.keypair_id,
+        keypair_id=pulumi.Output.from_input(keypair.id).apply(int),
         cycle="m",
         ssh_and_console_user="admin",
         console_password="s3cretP4ssw0rd",
@@ -107,7 +107,7 @@ NEO Lite Pro is the premium VPS tier (`/neolite-pros` API group). The resource s
                 VmName:            pulumi.String("neo-pro-1"),
                 ProductId:         pulumi.Int(products.Products[0].ProductId),
                 SelectOs:          pulumi.String(osList.Oss[0].Name),
-                KeypairId:         keypair.KeypairId,
+                KeypairId:         keypair.ID().ToIntOutput(),
                 Cycle:             pulumi.String("m"),
                 SshAndConsoleUser: pulumi.String("admin"),
                 ConsolePassword:   pulumi.String("s3cretP4ssw0rd"),
@@ -150,7 +150,7 @@ NEO Lite Pro is the premium VPS tier (`/neolite-pros` API group). The resource s
             VmName = "neo-pro-1",
             ProductId = products.Apply(p => p.Products[0].ProductId),
             SelectOs = osList.Apply(o => o.Oss[0].Name),
-            KeypairId = keypair.KeypairId,
+            KeypairId = keypair.Id.Apply(v => int.Parse(v)),
             Cycle = "m",
             SshAndConsoleUser = "admin",
             ConsolePassword = "s3cretP4ssw0rd",
@@ -197,7 +197,7 @@ NEO Lite Pro is the premium VPS tier (`/neolite-pros` API group). The resource s
                     .vmName("neo-pro-1")
                     .productId(products.applyValue(p -> p.products().get(0).productId()))
                     .selectOs(osList.applyValue(o -> o.oss().get(0).name()))
-                    .keypairId(keypair.keypairId())
+                    .keypairId(keypair.id().applyValue(Integer::parseInt))
                     .cycle("m")
                     .sshAndConsoleUser("admin")
                     .consolePassword("s3cretP4ssw0rd")
@@ -220,7 +220,7 @@ NEO Lite Pro is the premium VPS tier (`/neolite-pros` API group). The resource s
           vmName: neo-pro-1
           productId: ${products[0].productId}
           selectOs: ${osList[0].name}
-          keypairId: ${keypair.keypairId}
+          keypairId: ${fn::toNumber(keypair.id)}
           cycle: m
           sshAndConsoleUser: admin
           consolePassword: s3cretP4ssw0rd
@@ -311,7 +311,7 @@ Same shape as [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolit
   <Tab title="TypeScript">
     ```typescript
     const snapshot = new biznetgio.NeoliteProSnapshot("pro-snapshot", {
-      neoliteAccountId: vm.id,
+      neoliteAccountId: vm.id.apply((id) => Number(id)),
       name: "pro-snapshot",
       cycle: "m",
     });
@@ -321,7 +321,7 @@ Same shape as [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolit
     ```python
     snapshot = pulumi_biznetgio.NeoliteProSnapshot(
         "pro-snapshot",
-        neolite_account_id=vm.id,
+        neolite_account_id=pulumi.Output.from_input(vm.id).apply(int),
         name="pro-snapshot",
         cycle="m",
     )
@@ -330,7 +330,7 @@ Same shape as [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolit
   <Tab title="Go">
     ```go
     snapshot, err := biznetgio.NewNeoliteProSnapshot(ctx, "pro-snapshot", &biznetgio.NeoliteProSnapshotArgs{
-        NeoliteAccountId: vm.ID(),
+        NeoliteAccountId: vm.ID().ToIntOutput(),
         Name:             pulumi.String("pro-snapshot"),
         Cycle:            pulumi.String("m"),
     })
@@ -340,7 +340,7 @@ Same shape as [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolit
     ```csharp
     var snapshot = new NeoliteProSnapshot("pro-snapshot", new NeoliteProSnapshotArgs
     {
-        NeoliteAccountId = vm.Id,
+        NeoliteAccountId = vm.Id.Apply(v => int.Parse(v)),
         Name = "pro-snapshot",
         Cycle = "m",
     });
@@ -350,7 +350,7 @@ Same shape as [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolit
     ```java
     var snapshot = new NeoliteProSnapshot("pro-snapshot",
         NeoliteProSnapshotArgs.builder()
-            .neoliteAccountId(vm.id())
+            .neoliteAccountId(vm.id().applyValue(Integer::parseInt))
             .name("pro-snapshot")
             .cycle("m")
             .build());
@@ -361,7 +361,7 @@ Same shape as [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolit
     snapshot:
       type: biznetgio:index:NeoliteProSnapshot
       properties:
-        neoliteAccountId: ${vm.id}
+        neoliteAccountId: ${fn::toNumber(vm.id)}
         name: pro-snapshot
         cycle: m
     ```
@@ -380,7 +380,7 @@ Same shape as [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedis
     const disk = new biznetgio.NeoliteProDisk("pro-extra", {
       productId: 60,
       cycle: "m",
-      neoliteAccountId: vm.id,
+      neoliteAccountId: vm.id.apply((id) => Number(id)),
       serviceName: "pro-extra-disk",
       size: 30,
     });
@@ -392,7 +392,7 @@ Same shape as [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedis
         "pro-extra",
         product_id=60,
         cycle="m",
-        neolite_account_id=vm.id,
+        neolite_account_id=pulumi.Output.from_input(vm.id).apply(int),
         service_name="pro-extra-disk",
         size=30,
     )
@@ -403,7 +403,7 @@ Same shape as [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedis
     disk, err := biznetgio.NewNeoliteProDisk(ctx, "pro-extra", &biznetgio.NeoliteProDiskArgs{
         ProductId:        pulumi.Int(60),
         Cycle:            pulumi.String("m"),
-        NeoliteAccountId: vm.ID(),
+        NeoliteAccountId: vm.ID().ToIntOutput(),
         ServiceName:      pulumi.String("pro-extra-disk"),
         Size:             pulumi.Int(30),
     })
@@ -415,7 +415,7 @@ Same shape as [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedis
     {
         ProductId = 60,
         Cycle = "m",
-        NeoliteAccountId = vm.Id,
+        NeoliteAccountId = vm.Id.Apply(v => int.Parse(v)),
         ServiceName = "pro-extra-disk",
         Size = 30,
     });
@@ -427,7 +427,7 @@ Same shape as [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedis
         NeoliteProDiskArgs.builder()
             .productId(60)
             .cycle("m")
-            .neoliteAccountId(vm.id())
+            .neoliteAccountId(vm.id().applyValue(Integer::parseInt))
             .serviceName("pro-extra-disk")
             .size(30)
             .build());
@@ -440,7 +440,7 @@ Same shape as [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedis
       properties:
         productId: 60
         cycle: m
-        neoliteAccountId: ${vm.id}
+        neoliteAccountId: ${fn::toNumber(vm.id)}
         serviceName: pro-extra-disk
         size: 30
     ```

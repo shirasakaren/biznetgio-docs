@@ -21,13 +21,13 @@ resource "biznetgio_gpu_keypair" "main" {
 resource "biznetgio_gpu_instance" "example" {
   product_id           = data.biznetgio_gpu_products.all.products[0].product_id
   select_os            = "ubuntu-22"
-  keypair_id           = biznetgio_gpu_keypair.main.keypair_id
+  keypair_id           = biznetgio_gpu_keypair.main.id
   service_name         = "neo-gpu-1"
   ssh_and_console_user = "root"
   console_password     = "s3cretP4ssw0rd"
   pay_with_credit_card = true
 
-  subscription {
+  subscription = {
     cycle = "m"
   }
 
@@ -40,7 +40,7 @@ resource "biznetgio_gpu_instance" "example" {
 Buat billing per jam, ganti `subscription` dengan:
 
 ```hcl
-  on_demand {
+  on_demand = {
     additional_hours = 0
   }
 ```
@@ -58,8 +58,8 @@ Salah satu dari `subscription` atau `on_demand` wajib diisi - kalau gak, validat
 | `service_name` | string | optional | create-only |
 | `promocode` | string | optional | create-only |
 | `pay_with_credit_card` | bool | optional | default `true` |
-| `subscription` | block | optional | `cycle` (`m` / `a`); one-of sama `on_demand` |
-| `on_demand` | block | optional | `additional_hours` (default `0`); one-of sama `subscription` |
+| `subscription` | object attribute | optional | `cycle` (`m` / `a`); one-of sama `on_demand` |
+| `on_demand` | object attribute | optional | `additional_hours` (default `0`); one-of sama `subscription` |
 | `rebuild_trigger` | string | optional | one-shot reinstall OS (destructive) |
 | `reserve_additional_hours_trigger` | string | optional | one-shot: reserve tambahan jam di instance on-demand |
 | `status` | string | computed | |
