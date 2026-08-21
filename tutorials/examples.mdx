@@ -1,0 +1,89 @@
+---
+title: "Run it yourself: the example repos"
+description: "Two companion repositories with every resource, data source, and function as a runnable example"
+---
+
+Every tutorial in this track shows you small, focused snippets. When you want to see the whole thing working end to end, each provider ships a companion repository of complete, runnable examples. One repo per tool:
+
+- **Terraform**: [shirasakaren/biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform)
+- **Pulumi**: [shirasakaren/biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi)
+
+Both are beginner-first: every file is commented line by line in English and Bahasa Indonesia, every program carries the cost-safety defaults from [Billing and orders](/guides/billing), and each comes with a manual CI/CD pipeline (workflow dispatch) so you can rehearse the full validate, plan, and apply flow from the Actions tab before you ever run it on your laptop.
+
+## What's inside
+
+Six examples, one per Biznet GIO product line plus one "complete" stack, so you can start from the smallest, cheapest thing and grow:
+
+| Example | Covers | Why start here |
+| --- | --- | --- |
+| `object-storage/` | instance, bucket, credential, object | cheapest and safest, no server to delete |
+| `neolite/` | all 5 NEO Lite VPS resources + all 5 data sources | the standard quickstart shape, everything included |
+| `neolite-pro/` | all 4 NEO Lite Pro resources + all 5 data sources | same ideas as neolite, different API group |
+| `baremetal/` | all 5 NEO Metal resources + all 3 data sources | larger machines, rebuild and OpenVPN extras |
+| `gpu/` | both NEO GPU resources + all 3 data sources | subscription billing, read its cost warning |
+| `complete/` | a production-shaped stack as a reusable module or component | the [modules and components](/tutorials/modules-and-components) pattern, instantiated in full |
+
+In the Terraform repo each example is a folder with `versions.tf`, `variables.tf`, `main.tf`, `outputs.tf`, and a `terraform.tfvars.example` to copy. In the Pulumi repo each example exists once per language, under `typescript/`, `python/`, `go/`, `dotnet/`, `java/`, and `yaml/`, so you can compare the same resource across languages.
+
+## Run one yourself
+
+Terraform, from the [quickstart](/quickstart) you already know:
+
+```bash
+git clone https://github.com/shirasakaren/biznetgio-example-terraform.git
+cd biznetgio-example-terraform/object-storage
+
+cp terraform.tfvars.example terraform.tfvars
+export BIZNETGIO_API_KEY="your-token"
+terraform init
+terraform plan
+terraform apply
+```
+
+Pulumi, from the [Pulumi quickstart](/pulumi-quickstart):
+
+```bash
+git clone https://github.com/shirasakaren/biznetgio-example-pulumi.git
+cd biznetgio-example-pulumi/typescript/object-storage
+
+npm install
+pulumi stack init dev
+export BIZNETGIO_API_KEY="your-token"
+pulumi preview
+pulumi up
+```
+
+Swap `typescript` for `python`, `go`, `dotnet`, `java`, or `yaml` to see the same example in another language. YAML needs no install step at all; each folder is an independent Pulumi project, so one stack never affects another.
+
+<Warning>
+  The examples default `payWithCreditCard` to `false`. The resource is still created for real, the order just stays unpaid in the portal, which is the safe way to rehearse. `baremetal/` and `gpu/` carry extra cost warnings in their own READMEs, read those before running them.
+</Warning>
+
+## Use it as a template
+
+These repos are meant to be copied, not just run:
+
+1. Pick the example and language closest to what you're building, or start from `complete/` for the reusable module/component pattern.
+2. Copy that folder into your own repository.
+3. Rename resources, change product IDs, and delete what you don't need.
+4. Reuse the comments as your own documentation, they explain the why as well as the what.
+
+That gives you a working skeleton with the tricky parts already solved, notably the places where this API family differs from the usual: "account id" style inputs are numbers even though a resource's `.id` is always a string, and the GPU keypair exposes only `id`, not a separate `keypairId`. The examples handle both correctly and comment where they do.
+
+## The CI/CD inside them
+
+Both repos ship a `.github/workflows/ci.yml` that runs **on manual dispatch only**, never on push, on purpose. Open the Actions tab and pick:
+
+| Input | Terraform repo | Pulumi repo |
+| --- | --- | --- |
+| Which example | `all` or one of the 6 folders | `all` or one of the 6 folders |
+| Which language | (Terraform is HCL only) | `all`, or typescript/python/go/dotnet/java/yaml |
+| What to do | `validate` (default, no credentials), `plan`, `apply`, `destroy` | `build` (default, no credentials), `preview`, `up`, `destroy` |
+
+The default action only formats, type-checks, and validates, no credentials needed, so it is safe to run on a fresh clone. The credential-requiring actions read `BIZNETGIO_API_KEY` (plus `EXAMPLE_CONSOLE_PASSWORD` in the Terraform repo and `PULUMI_ACCESS_TOKEN` in the Pulumi repo) from repository secrets, and `apply`/`up`/`destroy` place real orders, so pick those deliberately.
+
+That workflow is the [CI/CD tutorial](/tutorials/cicd) in real form. Read that page to understand what each step does, then use it as the starting point for your own pipeline.
+
+## Next steps
+
+- [Capstone: a production stack on Biznet GIO](/tutorials/production-deployment) - what you just ran, reasoned about end to end as a real deployment

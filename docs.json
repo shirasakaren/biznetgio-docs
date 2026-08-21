@@ -51,7 +51,8 @@
                   "tutorials/cicd",
                   "tutorials/modules-and-components",
                   "tutorials/testing-and-safety",
-                  "tutorials/production-deployment"
+                  "tutorials/production-deployment",
+                  "tutorials/examples"
                 ]
               },
               {
@@ -110,9 +111,14 @@
                 "icon": "zap"
               },
               {
-                "item": "Docs source",
-                "href": "https://github.com/shirasakaren/biznetgio-docs",
-                "icon": "book-open"
+                "item": "Terraform examples",
+                "href": "https://github.com/shirasakaren/biznetgio-example-terraform",
+                "icon": "box"
+              },
+              {
+                "item": "Pulumi examples",
+                "href": "https://github.com/shirasakaren/biznetgio-example-pulumi",
+                "icon": "zap"
               },
               {
                 "item": "Author on GitHub",
@@ -150,7 +156,8 @@
                   "id/tutorials/cicd",
                   "id/tutorials/modules-and-components",
                   "id/tutorials/testing-and-safety",
-                  "id/tutorials/production-deployment"
+                  "id/tutorials/production-deployment",
+                  "id/tutorials/examples"
                 ]
               },
               {
@@ -212,6 +219,16 @@
                 "item": "Sumber docs",
                 "href": "https://github.com/shirasakaren/biznetgio-docs",
                 "icon": "book-open"
+              },
+              {
+                "item": "Contoh Terraform",
+                "href": "https://github.com/shirasakaren/biznetgio-example-terraform",
+                "icon": "box"
+              },
+              {
+                "item": "Contoh Pulumi",
+                "href": "https://github.com/shirasakaren/biznetgio-example-pulumi",
+                "icon": "zap"
               },
               {
                 "item": "Penulis di GitHub",

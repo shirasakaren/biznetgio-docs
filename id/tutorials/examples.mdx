@@ -1,0 +1,89 @@
+---
+title: "Coba sendiri: repo contoh"
+description: "Dua repository pendamping dengan semua resource, data source, dan function sebagai contoh yang bisa dijalanin"
+---
+
+Semua tutorial di track ini nunjukin snippet kecil yang fokus. Pas lu mau liat semuanya jalan end to end, tiap provider punya repository pendamping berisi contoh lengkap yang siap dijalanin. Satu repo per tools:
+
+- **Terraform**: [shirasakaren/biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform)
+- **Pulumi**: [shirasakaren/biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi)
+
+Dua-duanya beginner-first: tiap file dikomen baris per baris dalam Bahasa Inggris dan Bahasa Indonesia, tiap program bawa default aman biaya dari [Billing and orders](/id/guides/billing), dan masing-masing punya pipeline CI/CD manual (workflow dispatch) biar lu bisa gladi resik alur validate, plan, dan apply dari tab Actions sebelum ngejalanin di laptop lu sendiri.
+
+## Isi di dalamnya
+
+Enam contoh, satu per lini produk Biznet GIO plus satu stack "complete", biar lu bisa mulai dari yang paling kecil dan murah terus berkembang:
+
+| Contoh | Covers | Kenapa mulai dari sini |
+| --- | --- | --- |
+| `object-storage/` | instance, bucket, credential, object | paling murah dan paling aman, gak ada server yang harus dihapus |
+| `neolite/` | semua 5 resource NEO Lite VPS + semua 5 data source | bentuk quickstart standar, lengkap semua |
+| `neolite-pro/` | semua 4 resource NEO Lite Pro + semua 5 data source | ide yang sama kayak neolite, API group beda |
+| `baremetal/` | semua 5 resource NEO Metal + semua 3 data source | mesin lebih gede, ada ekstra rebuild dan OpenVPN |
+| `gpu/` | dua resource NEO GPU + semua 3 data source | billing subscription, baca warning biayanya |
+| `complete/` | stack berbau production sebagai module atau component reusable | pattern [modules and components](/id/tutorials/modules-and-components), di-instantiate lengkap |
+
+Di repo Terraform tiap contoh itu folder berisi `versions.tf`, `variables.tf`, `main.tf`, `outputs.tf`, dan `terraform.tfvars.example` buat dicopy. Di repo Pulumi tiap contoh ada sekali per bahasa, di bawah `typescript/`, `python/`, `go/`, `dotnet/`, `java/`, dan `yaml/`, jadi lu bisa bandingin resource yang sama antar bahasa.
+
+## Jalanin sendiri
+
+Terraform, dari [quickstart](/id/quickstart) yang udah lu kenal:
+
+```bash
+git clone https://github.com/shirasakaren/biznetgio-example-terraform.git
+cd biznetgio-example-terraform/object-storage
+
+cp terraform.tfvars.example terraform.tfvars
+export BIZNETGIO_API_KEY="token-lu"
+terraform init
+terraform plan
+terraform apply
+```
+
+Pulumi, dari [quickstart Pulumi](/id/pulumi-quickstart):
+
+```bash
+git clone https://github.com/shirasakaren/biznetgio-example-pulumi.git
+cd biznetgio-example-pulumi/typescript/object-storage
+
+npm install
+pulumi stack init dev
+export BIZNETGIO_API_KEY="token-lu"
+pulumi preview
+pulumi up
+```
+
+Ganti `typescript` jadi `python`, `go`, `dotnet`, `java`, atau `yaml` buat liat contoh yang sama di bahasa lain. YAML gak butuh langkah install sama sekali; tiap folder itu Pulumi project independen, jadi stack yang satu gak pernah ngaruh ke yang lain.
+
+<Warning>
+  Contoh-contohnya default-in `payWithCreditCard` ke `false`. Resource-nya tetep dibikin beneran, cuma order-nya dibiarin belum dibayar di portal, yang itu cara aman buat gladi resik. `baremetal/` dan `gpu/` punya warning biaya ekstra di README masing-masing, baca itu dulu sebelum ngejalanin.
+</Warning>
+
+## Pake sebagai template
+
+Repo-repo ini emang buat dicopy, bukan cuma dijalanin:
+
+1. Pilih contoh dan bahasa yang paling deket sama yang mau lu bangun, atau mulai dari `complete/` buat pattern module/component reusable-nya.
+2. Copy folder itu ke repository lu sendiri.
+3. Rename resource, ganti product ID, hapus yang gak kepake.
+4. Manfaatin komen-nya sebagai dokumentasi lu sendiri, mereka jelasin kenapa-nya juga, bukan cuma apa-nya.
+
+Itu ngasih lu skeleton yang jalan dengan bagian sulitnya udah kekece, terutama tempat di mana keluarga API ini beda dari biasanya: input bergaya "account id" itu number padahal `.id` resource selalu string di Pulumi, dan GPU keypair cuma nge-expose `id`, bukan `keypairId` terpisah. Contoh-contohnya handle dua-duanya dengan bener dan komen di situ.
+
+## CI/CD di dalamnya
+
+Dua repo nge-ship `.github/workflows/ci.yml` yang jalan **manual doang**, gak pernah pas push, sengaja. Buka tab Actions, terus pilih:
+
+| Input | Repo Terraform | Repo Pulumi |
+| --- | --- | --- |
+| Contoh mana | `all` atau salah satu dari 6 folder | `all` atau salah satu dari 6 folder |
+| Bahasa mana | (Terraform cuma HCL) | `all`, atau typescript/python/go/dotnet/java/yaml |
+| Mau ngapain | `validate` (default, gak butuh credential), `plan`, `apply`, `destroy` | `build` (default, gak butuh credential), `preview`, `up`, `destroy` |
+
+Action default cuma format, type-check, dan validate, gak butuh credential, jadi aman dijalanin di clone fresh. Action yang butuh credential baca `BIZNETGIO_API_KEY` (plus `EXAMPLE_CONSOLE_PASSWORD` di repo Terraform dan `PULUMI_ACCESS_TOKEN` di repo Pulumi) dari repository secrets, dan `apply`/`up`/`destroy` bikin order beneran, jadi pilih itu dengan sengaja.
+
+Workflow itu [tutorial CI/CD](/id/tutorials/cicd) dalam bentuk nyata. Baca halaman itu buat ngerti tiap step ngapain, terus pake itu sebagai titik mulai pipeline lu sendiri.
+
+## Lanjut ke mana lagi
+
+- [Capstone: production stack di Biznet GIO](/id/tutorials/production-deployment) - yang baru aja lu jalanin, dibedah end to end sebagai deployment beneran
