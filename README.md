@@ -33,6 +33,7 @@ community providers:
 - [Authentication](https://biznetgio.creations.ren/authentication), [package registries](https://biznetgio.creations.ren/registries), and per-resource references for both providers
 - [Tutorials](https://biznetgio.creations.ren/tutorials/project-structure) - an eight-part path from project structure to a reviewed, CI-deployed production stack: project layout, environments, state and collaboration, secrets management, CI/CD, modules and components, testing and guardrails, and a full production capstone
 - Guides: billing, triggers, development, and FAQ
+- [Contribute](https://biznetgio.creations.ren/contribute/introduction) - the collaboration section: repo maps, conventions, commit and PR workflow, issues, CODEOWNERS, pipelines, per-repo deep dives, and a complete code walkthrough
 - Full Indonesian translation of every page
 
 ## Structure
