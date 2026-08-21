@@ -61,7 +61,7 @@ Kalau `apiToken` gak ada di config maupun environment, provider gagal dengan pes
 
 ## Perilaku provider
 
-- Request HTTP pake timeout 30 detik dengan maksimal 4 retry.
+- Request HTTP pake timeout 30 detik dengan maksimal 4 attempt.
 - Create/update polling tiap 5 detik sampe resource lapor `active` (biasanya 1-5 menit).
 - Kalau timeout, operasi return initialization error dengan partial state - `pulumi up` berikutnya lanjut dari titik terakhir.
 
@@ -70,7 +70,7 @@ Kalau `apiToken` gak ada di config maupun environment, provider gagal dengan pes
   git clone https://github.com/shirasakaren/pulumi-biznetgio.git
   cd pulumi-biznetgio
   make build
-  make install   # install binary provider ke ~/.pulumi/plugins
+  make install   # copy binary provider ke GOPATH/bin dan link SDK Node dan .NET
   ```
 
   Package SDK lokal digenerate di `sdk/<lang>`; arahin proyek lu ke sana pake `npm link` / `pip install -e .` sesuai kebutuhan. Liat [Development](/id/guides/development) buat workflow lengkap.

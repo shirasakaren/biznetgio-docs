@@ -81,7 +81,7 @@ resource "biznetgio_neolite_vm" "main" {
 }
 ```
 
-Default: `create = 20m`, `update = 20m`, `delete = 10m`. Keypairs, resource bucket/credential/object, dan IP assignments provisioning-nya synchronous dan gak punya block timeouts.
+Default: `create = 20m`, `update = 20m`, `delete = 10m` di resource yang path delete-nya nge-poll; delete baremetal itu synchronous. Keypairs, resource bucket/credential/object, dan IP assignments provisioning-nya synchronous dan gak punya block timeouts.
 
 ## Versioning
 

@@ -61,7 +61,7 @@ If `apiToken` is missing from both config and environment, the provider fails wi
 
 ## Provider behavior
 
-- HTTP requests use a 30-second timeout with up to 4 retries.
+- HTTP requests use a 30-second timeout with up to 4 attempts.
 - Create/update operations poll every 5 seconds until the resource reports `active` (typically 1-5 minutes).
 - On timeout, the operation returns an initialization error with partial state - the next `pulumi up` resumes where it left off.
 
@@ -70,7 +70,7 @@ If `apiToken` is missing from both config and environment, the provider fails wi
   git clone https://github.com/shirasakaren/pulumi-biznetgio.git
   cd pulumi-biznetgio
   make build
-  make install   # installs the provider binary into ~/.pulumi/plugins
+  make install   # copies the provider binary into GOPATH/bin and links the Node and .NET SDKs
   ```
 
   Local SDK packages are generated under `sdk/<lang>`; point your project at them with `npm link` / `pip install -e .` as needed. See [Development](/guides/development) for the full workflow.

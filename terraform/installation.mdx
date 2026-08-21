@@ -81,7 +81,7 @@ resource "biznetgio_neolite_vm" "main" {
 }
 ```
 
-Defaults: `create = 20m`, `update = 20m`, `delete = 10m`. Keypairs, bucket/credential/object resources, and IP assignments provision synchronously and have no timeouts block.
+Defaults: `create = 20m`, `update = 20m`, `delete = 10m` on resources whose delete path polls; baremetal delete is synchronous. Keypairs, bucket/credential/object resources, and IP assignments provision synchronously and have no timeouts block.
 
 ## Versioning
 
