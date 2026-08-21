@@ -276,13 +276,19 @@ From zero to a running NEO Lite VM in about five minutes, in any supported langu
               selectOs: ${osList[0].name}
               keypairId: ${keypair.keypairId}
               cycle: m
-              sshAndConsoleUser: admin
+              sshAndConsoleUser: adminuser
               consolePassword: s3cretP4ssw0rd
         outputs:
           vmStatus: ${vm.status}
         ```
       </Tab>
     </Tabs>
+
+    `products[0]` and `oss[0]` take whichever product and OS the API happens to list first - **not necessarily the cheapest or smallest one.** This quickstart uses them so you have something that runs in one copy-paste, but before you leave this as-is on an account you care about the cost of, read [Understanding the product catalog](/products/overview) and replace `[0]` with a filter for the exact package (for example the cheapest NEO Lite tier, `XS 1.1`) and OS you actually want - see the [NEO Lite catalog](/products/neolite) for the full pricing table and a copy-paste filter in TypeScript.
+
+    <Warning>
+      This step places a real order at whatever price the first-listed product happens to be. If you want to guarantee the lowest cost before running `pulumi up`, do the filtering in [Picking a specific package](/products/neolite#worked-example-picking-xs-1-1-for-the-lowest-cost) first.
+    </Warning>
   </Step>
 
   <Step title="Deploy">
@@ -312,6 +318,7 @@ From zero to a running NEO Lite VM in about five minutes, in any supported langu
 
 ## Next steps
 
+- [Product Catalog](/products/neolite) - real NEO Lite pricing and how to pick an exact package instead of `[0]`
 - [Pulumi installation](/pulumi/installation) - all five language SDKs and configuration
 - [NEO Lite resources](/pulumi/resources/neolite) - every NEO Lite resource and function
 - [Billing](/guides/billing) - how orders and payment work

@@ -276,13 +276,19 @@ Dari nol sampe VM NEO Lite jalan, kurleb lima menit, di bahasa apa pun yang lu s
               selectOs: ${osList[0].name}
               keypairId: ${keypair.keypairId}
               cycle: m
-              sshAndConsoleUser: admin
+              sshAndConsoleUser: adminuser
               consolePassword: s3cretP4ssw0rd
         outputs:
           vmStatus: ${vm.status}
         ```
       </Tab>
     </Tabs>
+
+    `products[0]` dan `oss[0]` itu ngambil produk dan OS apapun yang kebetulan dibalikin API duluan - **bukan berarti yang paling murah atau paling kecil.** Quickstart ini pake itu biar bisa langsung jalan sekali copy-paste, tapi sebelum lu biarin gini di akun yang lu peduliin cost-nya, baca [Paham katalog produk](/id/products/overview) dan ganti `[0]` dengan filter buat paket (misalnya tier NEO Lite paling murah, `XS 1.1`) dan OS yang lu beneran mau - liat [katalog NEO Lite](/id/products/neolite) buat tabel harga lengkap dan filter copy-paste-nya di TypeScript.
+
+    <Warning>
+      Step ini order beneran di harga apapun yang kebetulan jadi produk pertama di list. Kalau lu mau mastiin harga paling murah sebelum jalanin `pulumi up`, lakuin filter di [Contoh nyata: milih XS 1.1](/id/products/neolite#contoh-nyata-milih-xs-1-1-buat-harga-paling-murah) dulu.
+    </Warning>
   </Step>
 
   <Step title="Deploy">
@@ -312,6 +318,7 @@ Dari nol sampe VM NEO Lite jalan, kurleb lima menit, di bahasa apa pun yang lu s
 
 ## Lanjut ke mana
 
+- [Katalog Produk](/id/products/neolite) - harga NEO Lite beneran dan cara milih paket tertentu, bukan asal `[0]`
 - [Instalasi Pulumi](/id/pulumi/installation) - kelima bahasa SDK dan konfigurasi
 - [Resource NEO Lite](/id/pulumi/resources/neolite) - semua resource dan function NEO Lite
 - [Billing](/id/guides/billing) - gimana order dan pembayaran kerja

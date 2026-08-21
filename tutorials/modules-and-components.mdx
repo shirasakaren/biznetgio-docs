@@ -83,13 +83,25 @@ output "keypair_private_key" {
 }
 ```
 
-Instantiate it once per environment from the root module. The `data` lookups and `var.console_password` here are exactly what the [quickstart](/quickstart) and [project structure](/tutorials/project-structure) tutorials already declared in full:
+Instantiate it once per environment from the root module. `var.console_password` here is exactly what the [quickstart](/quickstart) and [project structure](/tutorials/project-structure) tutorials already declared in full. `product_id` is picked by name per environment, the same pattern used in [Environments](/tutorials/environments#terraform-workspaces) - never pass a module `products[0]` directly, since a module has no way to warn its caller that the value is arbitrary:
 
 ```hcl
+data "biznetgio_neolite_products" "all" {}
+
+locals {
+  # Real NEO Lite package names - see /products/neolite for the full pricing table.
+  staging_product = [
+    for p in data.biznetgio_neolite_products.all.products : p if p.name == "MS 4.2"
+  ][0]
+  production_product = [
+    for p in data.biznetgio_neolite_products.all.products : p if p.name == "MS 4.2"
+  ][0]
+}
+
 module "web_staging" {
   source                = "./modules/neolite-vm"
   vm_name                = "web-staging"
-  product_id            = data.biznetgio_neolite_products.all.products[0].product_id
+  product_id            = local.staging_product.product_id
   select_os              = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
   cycle                 = "m"
   ssh_and_console_user  = "adminuser"
@@ -100,7 +112,7 @@ module "web_staging" {
 module "web_production" {
   source                = "./modules/neolite-vm"
   vm_name                = "web-production"
-  product_id            = data.biznetgio_neolite_products.all.products[0].product_id
+  product_id            = local.production_product.product_id
   select_os              = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
   cycle                 = "m"
   ssh_and_console_user  = "adminuser"
@@ -109,7 +121,7 @@ module "web_production" {
 }
 ```
 
-A local `./modules/...` source is enough for one repository. Publishing to a module registry is possible but only worth it once more than one repository needs the same module.
+Confirm `"MS 4.2"` against your own account's catalog output first - see [Step 1 in the catalog overview](/products/overview#step-1-look-at-your-own-catalog-before-you-filter-anything). A local `./modules/...` source is enough for one repository. Publishing to a module registry is possible but only worth it once more than one repository needs the same module.
 
 ## Pulumi component
 
@@ -159,13 +171,21 @@ export class NeoliteWebServer extends pulumi.ComponentResource {
 
 `{ parent: this }` registers the keypair and VM as children of the component in Pulumi's resource tree, so `pulumi up` and the Pulumi Cloud console show them nested under it instead of as two unrelated top-level resources.
 
-Instantiate one per stack:
+Instantiate one per stack. `productId` is picked by name, the same pattern used in [Environments](/tutorials/environments#pulumi-stacks) - never pass a component `products[0]` directly:
 
 ```typescript
 const stack = pulumi.getStack();
 
+// Real NEO Lite package name - see /products/neolite for the full pricing table.
+// Confirm it against your own account's catalog output first.
+const productId = products.products.apply((items) => {
+  const match = items.find((p) => p.name === "MS 4.2");
+  if (!match) throw new Error("no NEO Lite product named 'MS 4.2' found");
+  return match.productId;
+});
+
 const web = new NeoliteWebServer(`web-${stack}`, {
-  productId: products.products[0].productId,
+  productId: productId,
   selectOs: osList.oss[0].name,
   cycle: "m",
   sshAndConsoleUser: "adminuser",

@@ -61,7 +61,11 @@ From zero to a running NEO Lite VM in about five minutes.
     }
     ```
 
-    This orders the smallest available NEO Lite package on a monthly cycle and waits until the VM reports `Active`.
+    `products[0]` and `oss[0]` take whichever product and OS the API happens to list first - **not necessarily the cheapest or smallest one.** This quickstart uses them so you have something that runs in one copy-paste, but before you leave this as-is on an account you care about the cost of, read [Understanding the product catalog](/products/overview) and replace `[0]` with a filter for the exact package (for example the cheapest NEO Lite tier, `XS 1.1`) and OS you actually want - see the [NEO Lite catalog](/products/neolite) for the full pricing table and a copy-paste filter.
+
+    <Warning>
+      This step places a real order at whatever price the first-listed product happens to be. If you want to guarantee the lowest cost before running `terraform apply`, do the filtering in [Picking a specific package](/products/neolite#worked-example-picking-xs-1-1-for-the-lowest-cost) first.
+    </Warning>
   </Step>
 
   <Step title="Apply">
@@ -93,6 +97,7 @@ From zero to a running NEO Lite VM in about five minutes.
 
 ## Next steps
 
+- [Product Catalog](/products/neolite) - real NEO Lite pricing and how to pick an exact package instead of `[0]`
 - [Terraform installation](/terraform/installation) - full provider configuration reference
 - [NEO Lite resources](/terraform/resources/neolite) - every NEO Lite resource and data source
 - [Billing](/guides/billing) - how orders and payment work

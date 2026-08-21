@@ -16,12 +16,32 @@ terraform workspace list
 terraform workspace select staging
 ```
 
-Reference the current workspace inside your configuration with `terraform.workspace`. This only shows the part that changes; the `data` lookups for products and OS images and the `biznetgio_neolite_keypair` resource are exactly what the [quickstart](/quickstart) already declared in full:
+Reference the current workspace inside your configuration with `terraform.workspace`. The `biznetgio_neolite_keypair` resource is exactly what the [quickstart](/quickstart) already declared in full - what's different here is that `product_id` is no longer `products[0]`. It's picked deliberately per workspace, using the real package names from the [NEO Lite catalog](/products/neolite):
 
 ```hcl
+locals {
+  # Real NEO Lite package names - see /products/neolite for the full pricing table.
+  # dev gets the cheapest tier on purpose; staging matches production so it
+  # actually catches production-shaped bugs.
+  tier_by_workspace = {
+    dev        = "XS 1.1" # 1 vCPU / 1 GB - enough to smoke-test a plan/apply cycle
+    staging    = "MS 4.2" # 2 vCPU / 4 GB - same tier as production
+    production = "MS 4.2"
+  }
+
+  matching_products = [
+    for p in data.biznetgio_neolite_products.all.products :
+    p if p.name == local.tier_by_workspace[terraform.workspace]
+  ]
+
+  # Errors at plan time if the name above doesn't match anything on your
+  # account, instead of silently falling back to whatever products[0] is.
+  selected_product = local.matching_products[0]
+}
+
 resource "biznetgio_neolite_vm" "main" {
   vm_name              = "web-${terraform.workspace}"
-  product_id           = data.biznetgio_neolite_products.all.products[0].product_id
+  product_id           = local.selected_product.product_id
   select_os            = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
   keypair_id           = biznetgio_neolite_keypair.main.keypair_id
   cycle                = "m"
@@ -32,6 +52,10 @@ resource "biznetgio_neolite_vm" "main" {
   pay_with_credit_card = terraform.workspace == "production"
 }
 ```
+
+<Note>
+  Confirm `"XS 1.1"` and `"MS 4.2"` against your own account's catalog output before relying on them - see [Step 1 in the catalog overview](/products/overview#step-1-look-at-your-own-catalog-before-you-filter-anything). `select_os` still uses `oss[0]` here since OS lists are usually short and dominated by one obvious choice; apply the same name-filter pattern to it if that's not true for your account.
+</Note>
 
 <Warning>
   Always check which workspace is selected before applying: `terraform workspace show`. Applying to the wrong workspace is the single most common way people accidentally touch production. Consider wrapping `apply` in a script or CI job that requires the workspace name as an explicit argument instead of trusting whatever is currently selected.
@@ -58,7 +82,7 @@ pulumi config set --stack dev biznetgio:apiToken <dev-token> --secret
 pulumi config set --stack production biznetgio:apiToken <production-token> --secret
 ```
 
-Read the current stack's name inside your program with `pulumi.getStack()`. Again, this only shows the part that changes; `products`, `osList`, `keypair`, and `config` are exactly what the [Pulumi quickstart](/pulumi-quickstart) already declared in full:
+Read the current stack's name inside your program with `pulumi.getStack()`. `keypair` and `config` are exactly what the [Pulumi quickstart](/pulumi-quickstart) already declared in full - what's different here is that `productId` is no longer `products[0]`. It's picked deliberately per stack, using the real package names from the [NEO Lite catalog](/products/neolite):
 
 ```typescript
 import * as pulumi from "@pulumi/pulumi";
@@ -66,9 +90,24 @@ import * as biznetgio from "@shirasakaren/biznetgio";
 
 const stack = pulumi.getStack();
 
+// Real NEO Lite package names - see /products/neolite for the full pricing table.
+// dev gets the cheapest tier on purpose; staging matches production so it
+// actually catches production-shaped bugs.
+const tierByStack: Record<string, string> = {
+  dev: "XS 1.1", // 1 vCPU / 1 GB - enough to smoke-test a preview/up cycle
+  staging: "MS 4.2", // 2 vCPU / 4 GB - same tier as production
+  production: "MS 4.2",
+};
+
+const productId = products.products.apply((items) => {
+  const match = items.find((p) => p.name === tierByStack[stack]);
+  if (!match) throw new Error(`no NEO Lite product named '${tierByStack[stack]}' found`);
+  return match.productId;
+});
+
 const vm = new biznetgio.NeoliteVm("main", {
   vmName: `web-${stack}`,
-  productId: products.products[0].productId,
+  productId: productId,
   selectOs: osList.oss[0].name,
   keypairId: keypair.keypairId,
   cycle: "m",
@@ -77,6 +116,10 @@ const vm = new biznetgio.NeoliteVm("main", {
   payWithCreditCard: stack === "production",
 });
 ```
+
+<Note>
+  Confirm `"XS 1.1"` and `"MS 4.2"` against your own account's catalog output before relying on them - see [Step 1 in the catalog overview](/products/overview#step-1-look-at-your-own-catalog-before-you-filter-anything). `selectOs` still uses `oss[0]` here since OS lists are usually short and dominated by one obvious choice; apply the same name-filter pattern to it if that's not true for your account.
+</Note>
 
 <Warning>
   Same rule as Terraform: check `pulumi stack ls` (the current one is marked) before `pulumi up`. Pass `--stack <name>` explicitly in CI rather than relying on whichever stack was last selected on that runner.

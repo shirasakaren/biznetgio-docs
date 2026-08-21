@@ -83,13 +83,25 @@ output "keypair_private_key" {
 }
 ```
 
-Instantiate sekali per environment dari root module. `data` lookup dan `var.console_password` di sini itu persis yang udah dideklarasiin lengkap di tutorial [quickstart](/id/quickstart) dan [project structure](/id/tutorials/project-structure):
+Instantiate sekali per environment dari root module. `var.console_password` di sini itu persis yang udah dideklarasiin lengkap di tutorial [quickstart](/id/quickstart) dan [project structure](/id/tutorials/project-structure). `product_id` dipilih pake nama per environment, pola yang sama kayak di [Environment](/id/tutorials/environments#terraform-workspace) - jangan pernah pass `products[0]` langsung ke module, soalnya module gak punya cara buat warning ke caller-nya kalau value itu asal-asalan:
 
 ```hcl
+data "biznetgio_neolite_products" "all" {}
+
+locals {
+  # Nama paket NEO Lite beneran - liat /id/products/neolite buat tabel harga lengkap.
+  staging_product = [
+    for p in data.biznetgio_neolite_products.all.products : p if p.name == "MS 4.2"
+  ][0]
+  production_product = [
+    for p in data.biznetgio_neolite_products.all.products : p if p.name == "MS 4.2"
+  ][0]
+}
+
 module "web_staging" {
   source                = "./modules/neolite-vm"
   vm_name                = "web-staging"
-  product_id            = data.biznetgio_neolite_products.all.products[0].product_id
+  product_id            = local.staging_product.product_id
   select_os              = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
   cycle                 = "m"
   ssh_and_console_user  = "adminuser"
@@ -100,7 +112,7 @@ module "web_staging" {
 module "web_production" {
   source                = "./modules/neolite-vm"
   vm_name                = "web-production"
-  product_id            = data.biznetgio_neolite_products.all.products[0].product_id
+  product_id            = local.production_product.product_id
   select_os              = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
   cycle                 = "m"
   ssh_and_console_user  = "adminuser"
@@ -109,7 +121,7 @@ module "web_production" {
 }
 ```
 
-Source lokal `./modules/...` udah cukup buat satu repository. Publish ke module registry bisa aja, tapi cuma worth it kalau lebih dari satu repository butuh module yang sama.
+Confirm `"MS 4.2"` dulu ke output katalog akun lu sendiri - liat [Langkah 1 di overview katalog](/id/products/overview#langkah-1-liat-katalog-lu-sendiri-sebelum-filter-apapun). Source lokal `./modules/...` udah cukup buat satu repository. Publish ke module registry bisa aja, tapi cuma worth it kalau lebih dari satu repository butuh module yang sama.
 
 ## Pulumi component
 
@@ -159,13 +171,21 @@ export class NeoliteWebServer extends pulumi.ComponentResource {
 
 `{ parent: this }` daftarin keypair dan VM sebagai child dari component ini di resource tree Pulumi, jadi `pulumi up` dan console Pulumi Cloud nunjukin mereka nested di bawahnya, bukan sebagai dua top-level resource yang gak nyambung.
 
-Instantiate satu per stack:
+Instantiate satu per stack. `productId` dipilih pake nama, pola yang sama kayak di [Environment](/id/tutorials/environments#pulumi-stack) - jangan pernah pass `products[0]` langsung ke component:
 
 ```typescript
 const stack = pulumi.getStack();
 
+// Nama paket NEO Lite beneran - liat /id/products/neolite buat tabel harga
+// lengkap. Confirm dulu ke output katalog akun lu sendiri.
+const productId = products.products.apply((items) => {
+  const match = items.find((p) => p.name === "MS 4.2");
+  if (!match) throw new Error("no NEO Lite product named 'MS 4.2' found");
+  return match.productId;
+});
+
 const web = new NeoliteWebServer(`web-${stack}`, {
-  productId: products.products[0].productId,
+  productId: productId,
   selectOs: osList.oss[0].name,
   cycle: "m",
   sshAndConsoleUser: "adminuser",

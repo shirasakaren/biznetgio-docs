@@ -176,20 +176,31 @@ Extending [Reusable modules and components](/tutorials/modules-and-components) w
     }
     ```
 
-    Root `main.tf` calls it once per workspace:
+    Root `main.tf` calls it once per workspace. `vm_product_id` is picked by name rather than `products[0]` - see [Understanding the product catalog](/products/overview) for why, and the [NEO Lite Pro catalog](/products/neolite-pro) for the full pricing table. `storage_product_id = 8` stays a hardcoded literal because Object Storage has no catalog data source at all - see [why](/products/object-storage#there-is-no-catalog-data-source-for-this-at-all):
 
     ```hcl
     data "biznetgio_neolite_pro_products" "all" {}
 
+    locals {
+      # Real NEO Lite Pro package name - see /products/neolite-pro for the
+      # full pricing table. Confirm it against your own account's catalog
+      # output before relying on it.
+      matching_products = [
+        for p in data.biznetgio_neolite_pro_products.all.products :
+        p if p.name == "MS.4.2"
+      ]
+      vm_product_id = local.matching_products[0].product_id
+    }
+
     data "biznetgio_neolite_pro_os_list" "ubuntu" {
-      product_id = data.biznetgio_neolite_pro_products.all.products[0].product_id
+      product_id = local.vm_product_id
     }
 
     module "app" {
       source                = "./modules/app-stack"
       name                   = "web-${terraform.workspace}"
       storage_label          = terraform.workspace == "production" ? "web-prod" : "web-stg"
-      vm_product_id          = data.biznetgio_neolite_pro_products.all.products[0].product_id
+      vm_product_id          = local.vm_product_id
       select_os               = data.biznetgio_neolite_pro_os_list.ubuntu.oss[0].name
       storage_product_id     = 8
       cycle                  = "m"
@@ -269,20 +280,30 @@ Extending [Reusable modules and components](/tutorials/modules-and-components) w
     }
     ```
 
-    Instantiated once per stack:
+    Instantiated once per stack. `vmProductId` is picked by name rather than `products[0]` - see [Understanding the product catalog](/products/overview) for why, and the [NEO Lite Pro catalog](/products/neolite-pro) for the full pricing table. `storageProductId: 8` stays a hardcoded literal because Object Storage has no catalog data source at all - see [why](/products/object-storage#there-is-no-catalog-data-source-for-this-at-all):
 
     ```typescript
     const config = new pulumi.Config();
     const products = biznetgio.neoliteProProductsOutput();
+
+    // Real NEO Lite Pro package name - see /products/neolite-pro for the
+    // full pricing table. Confirm it against your own account's catalog
+    // output before relying on it.
+    const vmProductId = products.products.apply((items) => {
+      const match = items.find((p) => p.name === "MS.4.2");
+      if (!match) throw new Error("no NEO Lite Pro product named 'MS.4.2' found");
+      return match.productId;
+    });
+
     const osList = biznetgio.neoliteProOsListOutput({
-      productId: products.products[0].productId,
+      productId: vmProductId,
     });
 
     const stack = pulumi.getStack();
     const isProduction = stack === "production";
 
     const app = new AppStack(`web-${stack}`, {
-      vmProductId: products.products[0].productId,
+      vmProductId: vmProductId,
       selectOs: osList.oss[0].name,
       storageProductId: 8,
       storageLabel: isProduction ? "web-prod" : "web-stg",

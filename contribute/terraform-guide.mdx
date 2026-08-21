@@ -98,6 +98,8 @@ module "app" {
 }
 ```
 
+Like every quickstart and tutorial on this site, `vm_product_id` and `select_os` here take `products[0]`/`oss[0]` for a runnable demo, not a deliberate choice - if you copy this module, replace them with a name filter first; see [Understanding the product catalog](/products/overview) and the [NEO Lite Pro catalog](/products/neolite-pro) for real pricing and the exact filter syntax.
+
 A module is a folder of the same five files called with arguments instead of declared inline. Everything about "one app" moves into `modules/app-stack/`: the keypair, the VM, the storage subscription, the bucket, and the credential. Its `variables.tf` documents each input, including the 6 to 16 character limits. Its `outputs.tf` marks the access key, secret key, and private key as sensitive, because the module's caller owns the responsibility for saving them.
 
 Two details worth knowing before you copy this module:

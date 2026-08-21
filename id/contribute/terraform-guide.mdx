@@ -98,6 +98,8 @@ module "app" {
 }
 ```
 
+Sama kayak semua quickstart dan tutorial di situs ini, `vm_product_id` dan `select_os` di sini pake `products[0]`/`oss[0]` buat demo yang bisa langsung jalan, bukan pilihan yang disengaja - kalau lu copy module ini, ganti dulu pake filter nama; liat [Paham katalog produk](/id/products/overview) dan [katalog NEO Lite Pro](/id/products/neolite-pro) buat harga beneran dan syntax filter lengkapnya.
+
 Module itu folder berisi lima file yang sama, dipanggil dengan argumen, bukan dideklarasikan inline. Semua hal soal "satu app" pindah ke `modules/app-stack/`: keypair, VM, subscription storage, bucket, dan credential. `variables.tf`-nya mendokumentasikan tiap input, termasuk batas 6 sampai 16 karakter. `outputs.tf`-nya nandain access key, secret key, dan private key sebagai sensitif, karena pemanggil module yang bertanggung jawab nyimpennya.
 
 Dua detail yang perlu lu tau sebelum nyalin module ini:

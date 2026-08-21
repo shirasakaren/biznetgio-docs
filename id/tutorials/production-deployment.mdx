@@ -176,20 +176,31 @@ Nerusin [Reusable modules and components](/id/tutorials/modules-and-components) 
     }
     ```
 
-    Root `main.tf` manggil sekali per workspace:
+    Root `main.tf` manggil sekali per workspace. `vm_product_id` dipilih pake nama, bukan `products[0]` - liat [Paham katalog produk](/id/products/overview) buat kenapa, dan [katalog NEO Lite Pro](/id/products/neolite-pro) buat tabel harga lengkap. `storage_product_id = 8` tetep literal hardcoded soalnya Object Storage emang gak punya data source katalog sama sekali - liat [kenapa](/id/products/object-storage#gak-ada-data-source-katalog-buat-ini-sama-sekali):
 
     ```hcl
     data "biznetgio_neolite_pro_products" "all" {}
 
+    locals {
+      # Nama paket NEO Lite Pro beneran - liat /id/products/neolite-pro buat
+      # tabel harga lengkap. Confirm dulu ke output katalog akun lu sendiri
+      # sebelum ngandelin ini.
+      matching_products = [
+        for p in data.biznetgio_neolite_pro_products.all.products :
+        p if p.name == "MS.4.2"
+      ]
+      vm_product_id = local.matching_products[0].product_id
+    }
+
     data "biznetgio_neolite_pro_os_list" "ubuntu" {
-      product_id = data.biznetgio_neolite_pro_products.all.products[0].product_id
+      product_id = local.vm_product_id
     }
 
     module "app" {
       source                = "./modules/app-stack"
       name                   = "web-${terraform.workspace}"
       storage_label          = terraform.workspace == "production" ? "web-prod" : "web-stg"
-      vm_product_id          = data.biznetgio_neolite_pro_products.all.products[0].product_id
+      vm_product_id          = local.vm_product_id
       select_os               = data.biznetgio_neolite_pro_os_list.ubuntu.oss[0].name
       storage_product_id     = 8
       cycle                  = "m"
@@ -269,20 +280,29 @@ Nerusin [Reusable modules and components](/id/tutorials/modules-and-components) 
     }
     ```
 
-    Diinstansiasi sekali per stack:
+    Diinstansiasi sekali per stack. `vmProductId` dipilih pake nama, bukan `products[0]` - liat [Paham katalog produk](/id/products/overview) buat kenapa, dan [katalog NEO Lite Pro](/id/products/neolite-pro) buat tabel harga lengkap. `storageProductId: 8` tetep literal hardcoded soalnya Object Storage emang gak punya data source katalog sama sekali - liat [kenapa](/id/products/object-storage#gak-ada-data-source-katalog-buat-ini-sama-sekali):
 
     ```typescript
     const config = new pulumi.Config();
     const products = biznetgio.neoliteProProductsOutput();
+
+    // Nama paket NEO Lite Pro beneran - liat /id/products/neolite-pro buat
+    // tabel harga lengkap. Confirm dulu ke output katalog akun lu sendiri.
+    const vmProductId = products.products.apply((items) => {
+      const match = items.find((p) => p.name === "MS.4.2");
+      if (!match) throw new Error("no NEO Lite Pro product named 'MS.4.2' found");
+      return match.productId;
+    });
+
     const osList = biznetgio.neoliteProOsListOutput({
-      productId: products.products[0].productId,
+      productId: vmProductId,
     });
 
     const stack = pulumi.getStack();
     const isProduction = stack === "production";
 
     const app = new AppStack(`web-${stack}`, {
-      vmProductId: products.products[0].productId,
+      vmProductId: vmProductId,
       selectOs: osList.oss[0].name,
       storageProductId: 8,
       storageLabel: isProduction ? "web-prod" : "web-stg",

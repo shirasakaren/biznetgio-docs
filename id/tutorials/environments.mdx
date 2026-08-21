@@ -16,12 +16,32 @@ terraform workspace list
 terraform workspace select staging
 ```
 
-Reference workspace yang aktif di dalam konfigurasi lu pake `terraform.workspace`. Ini cuma nunjukin bagian yang berubah aja; `data` lookup buat product dan OS image sama resource `biznetgio_neolite_keypair` itu persis yang udah dideklarasiin lengkap di [quickstart](/id/quickstart):
+Reference workspace yang aktif di dalam konfigurasi lu pake `terraform.workspace`. Resource `biznetgio_neolite_keypair` itu persis yang udah dideklarasiin lengkap di [quickstart](/id/quickstart) - yang beda di sini, `product_id` udah bukan `products[0]` lagi. Dipilih dengan sengaja per workspace, pake nama paket beneran dari [katalog NEO Lite](/id/products/neolite):
 
 ```hcl
+locals {
+  # Nama paket NEO Lite beneran - liat /id/products/neolite buat tabel harga lengkap.
+  # dev dikasih tier paling murah dengan sengaja; staging matching sama production
+  # biar beneran nangkep bug yang bentuknya kayak production.
+  tier_by_workspace = {
+    dev        = "XS 1.1" # 1 vCPU / 1 GB - cukup buat smoke-test siklus plan/apply
+    staging    = "MS 4.2" # 2 vCPU / 4 GB - tier yang sama kayak production
+    production = "MS 4.2"
+  }
+
+  matching_products = [
+    for p in data.biznetgio_neolite_products.all.products :
+    p if p.name == local.tier_by_workspace[terraform.workspace]
+  ]
+
+  # Error pas plan kalau nama di atas gak match apapun di akun lu, bukannya
+  # diam-diam fallback ke apapun yang jadi products[0].
+  selected_product = local.matching_products[0]
+}
+
 resource "biznetgio_neolite_vm" "main" {
   vm_name              = "web-${terraform.workspace}"
-  product_id           = data.biznetgio_neolite_products.all.products[0].product_id
+  product_id           = local.selected_product.product_id
   select_os            = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
   keypair_id           = biznetgio_neolite_keypair.main.keypair_id
   cycle                = "m"
@@ -32,6 +52,10 @@ resource "biznetgio_neolite_vm" "main" {
   pay_with_credit_card = terraform.workspace == "production"
 }
 ```
+
+<Note>
+  Confirm `"XS 1.1"` dan `"MS 4.2"` dulu ke output katalog akun lu sendiri - liat [Langkah 1 di overview katalog](/id/products/overview#langkah-1-liat-katalog-lu-sendiri-sebelum-filter-apapun). `select_os` di sini masih pake `oss[0]` karena list OS biasanya pendek dan didominasi satu pilihan yang jelas; pake pola filter nama yang sama kalau di akun lu gak gitu.
+</Note>
 
 <Warning>
   Selalu cek workspace mana yang lagi aktif sebelum apply: `terraform workspace show`. Apply ke workspace yang salah itu cara paling umum orang gak sengaja nyenggol production. Coba bungkus `apply` di script atau CI job yang mewajibkan nama workspace sebagai argumen eksplisit, bukan ngandelin workspace mana yang lagi keselect.
