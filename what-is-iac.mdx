@@ -37,6 +37,30 @@ The workflow is always the same three steps:
 2. **Plan** (Terraform) or **preview** (Pulumi): the tool compares your files against reality and shows what it would change.
 3. **Apply**: the tool calls the cloud API to make reality match your files, and records the result in state.
 
+## How the tools actually work
+
+The three step workflow above is the surface. Underneath, Terraform and Pulumi both work the same way, built from three moving parts.
+
+**The provider is a separate program.** `biznetgio` is not baked into Terraform or Pulumi. It is its own compiled binary (`terraform-provider-biznetgio` / `pulumi-resource-biznetgio`) that the CLI downloads once and then launches as a subprocess every time you run a command. Your `.tf` files or your TypeScript program never call the Biznet GIO API directly - they describe a resource, and the CLI sends that description to the provider process over a local RPC connection. The provider is the only thing that speaks HTTP to `api.portal.biznetgio.com`. This is why the same provider works from Terraform's HCL and, in Pulumi's case, from five different programming languages: the language only has to produce the same RPC calls, not implement the API client itself.
+
+**Everything you declare becomes a graph, not a list.** When your configuration says a VM's `keypair_id` comes from a keypair resource, the tool records that as an edge: keypair before VM. Spread across a whole file, this turns into a dependency graph, and the CLI walks it to decide order - creating a keypair before the VM that needs its id, and reversing the order on `destroy`/`down` so the VM is removed before the keypair it depended on. Resources with no relationship to each other create in parallel, which is why a plan with ten unrelated VMs finishes far faster than ten sequential API calls would.
+
+<Frame>
+```
+biznetgio_neolite_keypair.main ──┐
+                                  ├──▶ biznetgio_neolite_vm.main
+data.biznetgio_neolite_products ─┘
+
+destroy order: reverse the arrows
+```
+</Frame>
+
+**State is what turns "run twice" into "converge", not "duplicate".** After every apply/up, the tool writes down the ids and attribute values it now knows about into a state file (Terraform) or a stack's state (Pulumi). The next time you run a plan or preview, three things get compared side by side: your configuration (what you want), the last known state (what the tool remembers creating), and a fresh read from the real API (what is actually there right now, called a refresh). The diff between those three is exactly what becomes your plan. This is also why changing one field rarely means destroy and recreate - if only `label` changed on a bare metal server, the provider's diff logic calls the one API endpoint that renames it, and every other field is left alone. Full replacement only happens for attributes explicitly marked create-only in a resource's reference page, because the upstream API has no in-place way to change them.
+
+<Info>
+  This is the mechanical reason two rules from the [FAQ](/guides/faq) exist: secrets returned only once at creation (keypair private keys, object storage secret keys) survive in state precisely because state is the tool's only persistent memory of them, and a Pulumi update that times out is safe to retry because the partial state it already wrote lets the next run continue instead of starting over.
+</Info>
+
 ## What is Terraform?
 
 [Terraform](https://developer.hashicorp.com/terraform) is an IaC tool from HashiCorp that uses its own configuration language, HCL. You write `.tf` files, run `terraform plan` to see changes, then `terraform apply` to make them.

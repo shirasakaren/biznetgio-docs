@@ -7,7 +7,7 @@ description: "Pertanyaan umum dan troubleshooting buat provider Biznet GIO"
 
 <AccordionGroup>
   <Accordion title="Provider bilang API key ilang">
-    Terraform: set `api_key` di block provider atau export `BIZNETGIO_API_KEY`. Pulumi: jalanin `pulumi config set --secret biznetgio:apiToken <token>` atau export `BIZNETGIO_API_KEY`. Token dikeluarin dari [portal](https://portal.biznetgio.com) - cek [Authentication](/authentication).
+    Terraform: set `api_key` di block provider atau export `BIZNETGIO_API_KEY`. Pulumi: jalanin `pulumi config set --secret biznetgio:apiToken <token>` atau export `BIZNETGIO_API_KEY`. Token dikeluarin dari [portal](https://portal.biznetgio.com) - cek [Authentication](/id/authentication).
   </Accordion>
 
   <Accordion title="Bisa arahin provider ke staging API?">
@@ -15,7 +15,7 @@ description: "Pertanyaan umum dan troubleshooting buat provider Biznet GIO"
   </Accordion>
 
   <Accordion title="Kenapa resource gue nyangkut di `Pending`?">
-    Invoice yang belum dibayar bikin resource tetep `Pending`. Dengan `pay_with_credit_card = false`, order ke-place tanpa bayar - bayar di [portal](https://portal.biznetgio.com), terus jalanin apply/up lagi; provider lanjut polling. Cek [Billing](/guides/billing).
+    Invoice yang belum dibayar bikin resource tetep `Pending`. Dengan `pay_with_credit_card = false`, order ke-place tanpa bayar - bayar di [portal](https://portal.biznetgio.com), terus jalanin apply/up lagi; provider lanjut polling. Cek [Billing](/id/guides/billing).
   </Accordion>
 </AccordionGroup>
 
@@ -43,7 +43,7 @@ description: "Pertanyaan umum dan troubleshooting buat provider Biznet GIO"
   </Accordion>
 
   <Accordion title="Gimana ganti OS dari VM yang lagi jalan?">
-    Pake aksi rebuild: `rebuild_os` / `rebuildOs` di NEO Lite/Pro/Metal, atau `rebuild_trigger` / `rebuildTrigger` di GPU. Ini destructive - disk-nya ke-wipe. Cek [Triggers](/guides/triggers).
+    Pake aksi rebuild: `rebuild_os` / `rebuildOs` di NEO Lite/Pro/Metal, atau `rebuild_trigger` / `rebuildTrigger` di GPU. Ini destructive - disk-nya ke-wipe. Cek [Triggers](/id/guides/triggers).
   </Accordion>
 
   <Accordion title="Gimana migrasi VM NEO Lite ke NEO Lite Pro?">

@@ -6,7 +6,7 @@ description: "Resource dan function Pulumi buat VPS NEO Lite Pro"
 NEO Lite Pro itu tier VPS premium (`/neolite-pros` API group). Set resourcenya mirip NEO Lite dengan pool keypair, snapshot, dan disk sendiri, plus gak ada `migrateToPro` (Pro itu *tujuan* migrasi).
 
 <Info>
-  Setiap create/upgrade bikin **order berbayar beneran**. Baca [panduan billing](/guides/billing) buat nilai `cycle` dan semantics `payWithCreditCard`.
+  Setiap create/upgrade bikin **order berbayar beneran**. Baca [panduan billing](/id/guides/billing) buat nilai `cycle` dan semantics `payWithCreditCard`.
 </Info>
 
 ## `biznetgio:index:NeoliteProVm`
@@ -228,7 +228,7 @@ NEO Lite Pro itu tier VPS premium (`/neolite-pros` API group). Set resourcenya m
   </Tab>
 </Tabs>
 
-Input identik sama [`NeoliteVm`](/pulumi/resources/neolite#biznetgioindexneolitevm) minus `migrateToPro`:
+Input identik sama [`NeoliteVm`](/id/pulumi/resources/neolite#biznetgioindexneolitevm) minus `migrateToPro`:
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -250,7 +250,7 @@ Outputs identik sama `NeoliteVm` (termasuk `lastInvoice` dan `raw` di-redact). I
 
 ## `biznetgio:index:NeoliteProKeypair`
 
-Bentuknya sama kayak [`NeoliteKeypair`](/pulumi/resources/neolite#biznetgioindexneolitekeypair), di pool Pro:
+Bentuknya sama kayak [`NeoliteKeypair`](/id/pulumi/resources/neolite#biznetgioindexneolitekeypair), di pool Pro:
 
 <Tabs>
   <Tab title="TypeScript">
@@ -305,7 +305,7 @@ Input `name`; outputs `keypairId`, `publicKey`, `privateKey` (secret, sekali). G
 
 ## `biznetgio:index:NeoliteProSnapshot`
 
-Bentuknya sama kayak [`NeoliteSnapshot`](/pulumi/resources/neolite#biznetgioindexneolitesnapshot):
+Bentuknya sama kayak [`NeoliteSnapshot`](/id/pulumi/resources/neolite#biznetgioindexneolitesnapshot):
 
 <Tabs>
   <Tab title="TypeScript">
@@ -372,7 +372,7 @@ Inputs `neoliteAccountId` (required), `cycle` (required), `name` (default `snaps
 
 ## `biznetgio:index:NeoliteProDisk`
 
-Bentuknya sama kayak [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedisk) dengan minimum/default 30 GB:
+Bentuknya sama kayak [`NeoliteDisk`](/id/pulumi/resources/neolite#biznetgioindexneolitedisk) dengan minimum/default 30 GB:
 
 <Tabs>
   <Tab title="TypeScript">

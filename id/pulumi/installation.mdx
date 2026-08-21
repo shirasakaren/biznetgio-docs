@@ -41,12 +41,12 @@ Provider Pulumi-nya binary Go native (`pulumi-resource-biznetgio`) dengan SDK bu
 Pulumi download plugin `pulumi-resource-biznetgio` otomatis dari [GitHub Releases](https://github.com/shirasakaren/pulumi-biznetgio/releases) repository ini (via `pluginDownloadURL`) pas pertama dipake.
 
 <Note>
-  Ini provider komunitas unofficial oleh [Shirasaka Ren](/about) - tidak terafiliasi dengan PT Biznet Gio Nusantara.
+  Ini provider komunitas unofficial oleh [Shirasaka Ren](/id/about) - tidak terafiliasi dengan PT Biznet Gio Nusantara.
 </Note>
 
 ## Konfigurasi
 
-Set API token (liat [Authentication](/authentication)):
+Set API token (liat [Authentication](/id/authentication)):
 
 ```bash
 pulumi config set --secret biznetgio:apiToken <your-token>
@@ -73,10 +73,10 @@ Kalau `apiToken` gak ada di config maupun environment, provider gagal dengan pes
   make install   # install binary provider ke ~/.pulumi/plugins
   ```
 
-  Package SDK lokal digenerate di `sdk/<lang>`; arahin proyek lu ke sana pake `npm link` / `pip install -e .` sesuai kebutuhan. Liat [Development](/guides/development) buat workflow lengkap.
+  Package SDK lokal digenerate di `sdk/<lang>`; arahin proyek lu ke sana pake `npm link` / `pip install -e .` sesuai kebutuhan. Liat [Development](/id/guides/development) buat workflow lengkap.
 </Accordion>
 
 ## Versi
 
-- Release sekarang: **0.1.5** (liat [changelog](https://github.com/shirasakaren/pulumi-biznetgio/blob/main/CHANGELOG.md))
-- `pulumi up` resolve versi plugin dari package SDK lu otomatis; pin per-proyek pake `pulumi plugin install resource biznetgio v0.1.5`.
+- Release sekarang: **0.1.7** (liat [changelog](https://github.com/shirasakaren/pulumi-biznetgio/blob/main/CHANGELOG.md))
+- `pulumi up` resolve versi plugin dari package SDK lu otomatis; pin per-proyek pake `pulumi plugin install resource biznetgio v0.1.7`.

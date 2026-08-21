@@ -1,0 +1,37 @@
+---
+title: "Testing, validation, and guardrails"
+description: "Catch mistakes before they place a real order"
+---
+
+Every create or upgrade in these providers is a real paid order, with no dry-run mode on the API itself. The guardrails that matter most are the ones that catch a mistake before `apply`/`up` ever runs, not after.
+
+## Static checks, on every pull request
+
+**Terraform:**
+
+```bash
+terraform fmt -check
+terraform validate
+```
+
+`fmt -check` catches style drift, `validate` catches syntax and type errors, both without touching the API or needing a real token. The optional community linter `tflint` adds general HCL best-practice rules; there's no biznetgio-specific plugin, so it only checks universal Terraform patterns.
+
+**Pulumi:** a preview already is your dry run, it computes a real diff against a valid token (needed for read-only data source calls) but never mutates anything. On top of that, your program is just code in your language, so its own tools apply: `tsc --noEmit`, `mypy`, `go vet`, `dotnet build`.
+
+## The diff is the real safety check
+
+Never merge a pull request whose plan or preview you haven't read. That's the entire point of posting it as a PR comment in the [CI/CD tutorial](/tutorials/cicd): review happens in the same place as the code review, not as a separate step someone skips.
+
+## Guardrails specific to these providers
+
+- **Test with `pay_with_credit_card = false` / `payWithCreditCard: false`.** The resource is created but stays `Pending` until paid in the portal, so a whole plan-to-apply cycle can be rehearsed without a real charge landing. See the [billing guide](/guides/billing).
+- **Read one-shot triggers and create-only fields as irreversible in review.** `rebuild_os`, `reset_trigger`, and the other [triggers](/tutorials/environments) fire destructively the moment their value changes, and Terraform's `fmt`/`validate` or a Pulumi type checker cannot warn you that a plan reinstalls an OS; a human reviewing the diff has to catch that.
+- **Preview a destroy before running one for real.** `terraform plan -destroy` and `pulumi preview --diff` show exactly what disappears, before `destroy`/`down` makes it permanent.
+
+## Policy as code, once manual review isn't enough
+
+For a team that's outgrown "someone reads every diff," both ecosystems support enforcing rules automatically: Pulumi CrossGuard (`pulumi policy new`) or Terraform's Sentinel/OPA tooling (Terraform Cloud's paid tiers, or the open-source `conftest` against `terraform show -json`) can reject a plan that violates a rule, for example "production stacks must never set `payWithCreditCard` to false," or "no bare-metal resources in the dev environment." Worth adopting once manual review becomes the bottleneck, not before.
+
+## Next steps
+
+- [Capstone: a production stack on Biznet GIO](/tutorials/production-deployment) - put every tutorial in this track together into one real deployment

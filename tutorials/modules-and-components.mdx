@@ -1,0 +1,181 @@
+---
+title: "Reusable modules and components"
+description: "Package repeated infrastructure into a Terraform module or Pulumi component"
+---
+
+Once dev, staging, and production each need the same shape, a keypair plus a VM, with only the sizing and a couple of flags different, copy-pasting that shape three times means fixing a bug in it three times too. Terraform modules and Pulumi components let you write the shape once and instantiate it per environment.
+
+## Terraform module
+
+```
+infra/
+  modules/
+    neolite-vm/
+      main.tf
+      variables.tf
+      outputs.tf
+  main.tf
+```
+
+`modules/neolite-vm/variables.tf`:
+
+```hcl
+variable "vm_name" {
+  type = string
+}
+
+variable "product_id" {
+  type = number
+}
+
+variable "select_os" {
+  type = string
+}
+
+variable "cycle" {
+  type = string
+}
+
+variable "ssh_and_console_user" {
+  type = string
+}
+
+variable "console_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "pay_with_credit_card" {
+  type    = bool
+  default = false
+}
+```
+
+`modules/neolite-vm/main.tf`:
+
+```hcl
+resource "biznetgio_neolite_keypair" "this" {
+  name = "${var.vm_name}-key"
+}
+
+resource "biznetgio_neolite_vm" "this" {
+  vm_name               = var.vm_name
+  product_id            = var.product_id
+  select_os              = var.select_os
+  keypair_id            = biznetgio_neolite_keypair.this.keypair_id
+  cycle                 = var.cycle
+  ssh_and_console_user  = var.ssh_and_console_user
+  console_password      = var.console_password
+  pay_with_credit_card  = var.pay_with_credit_card
+}
+```
+
+`modules/neolite-vm/outputs.tf`:
+
+```hcl
+output "vm_status" {
+  value = biznetgio_neolite_vm.this.status
+}
+
+output "keypair_private_key" {
+  value     = biznetgio_neolite_keypair.this.private_key
+  sensitive = true
+}
+```
+
+Instantiate it once per environment from the root module. The `data` lookups and `var.console_password` here are exactly what the [quickstart](/quickstart) and [project structure](/tutorials/project-structure) tutorials already declared in full:
+
+```hcl
+module "web_staging" {
+  source                = "./modules/neolite-vm"
+  vm_name                = "web-staging"
+  product_id            = data.biznetgio_neolite_products.all.products[0].product_id
+  select_os              = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
+  cycle                 = "m"
+  ssh_and_console_user  = "admin"
+  console_password      = var.console_password
+  pay_with_credit_card  = false
+}
+
+module "web_production" {
+  source                = "./modules/neolite-vm"
+  vm_name                = "web-production"
+  product_id            = data.biznetgio_neolite_products.all.products[0].product_id
+  select_os              = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
+  cycle                 = "m"
+  ssh_and_console_user  = "admin"
+  console_password      = var.console_password
+  pay_with_credit_card  = true
+}
+```
+
+A local `./modules/...` source is enough for one repository. Publishing to a module registry is possible but only worth it once more than one repository needs the same module.
+
+## Pulumi component
+
+The equivalent in Pulumi is a `ComponentResource`, shown here in TypeScript:
+
+```typescript
+import * as pulumi from "@pulumi/pulumi";
+import * as biznetgio from "@shirasakaren/biznetgio";
+
+export interface NeoliteWebServerArgs {
+  productId: pulumi.Input<number>;
+  selectOs: pulumi.Input<string>;
+  cycle: pulumi.Input<string>;
+  sshAndConsoleUser: pulumi.Input<string>;
+  consolePassword: pulumi.Input<string>;
+  payWithCreditCard?: pulumi.Input<boolean>;
+}
+
+export class NeoliteWebServer extends pulumi.ComponentResource {
+  public readonly vmStatus: pulumi.Output<string>;
+  public readonly keypairPrivateKey: pulumi.Output<string>;
+
+  constructor(name: string, args: NeoliteWebServerArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("biznetgio-tutorials:index:NeoliteWebServer", name, {}, opts);
+
+    const keypair = new biznetgio.NeoliteKeypair(`${name}-key`, {
+      name: `${name}-key`,
+    }, { parent: this });
+
+    const vm = new biznetgio.NeoliteVm(`${name}-vm`, {
+      vmName: name,
+      productId: args.productId,
+      selectOs: args.selectOs,
+      keypairId: keypair.keypairId,
+      cycle: args.cycle,
+      sshAndConsoleUser: args.sshAndConsoleUser,
+      consolePassword: args.consolePassword,
+      payWithCreditCard: args.payWithCreditCard ?? false,
+    }, { parent: this });
+
+    this.vmStatus = vm.status;
+    this.keypairPrivateKey = keypair.privateKey;
+    this.registerOutputs({ vmStatus: this.vmStatus });
+  }
+}
+```
+
+`{ parent: this }` registers the keypair and VM as children of the component in Pulumi's resource tree, so `pulumi up` and the Pulumi Cloud console show them nested under it instead of as two unrelated top-level resources.
+
+Instantiate one per stack:
+
+```typescript
+const stack = pulumi.getStack();
+
+const web = new NeoliteWebServer(`web-${stack}`, {
+  productId: products.products[0].productId,
+  selectOs: osList.oss[0].name,
+  cycle: "m",
+  sshAndConsoleUser: "admin",
+  consolePassword: config.requireSecret("consolePassword"),
+  payWithCreditCard: stack === "production",
+});
+
+export const vmStatus = web.vmStatus;
+```
+
+## Next steps
+
+- [Testing, validation, and guardrails](/tutorials/testing-and-safety) - catch mistakes before this module ever calls the real API

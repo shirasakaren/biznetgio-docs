@@ -1,0 +1,366 @@
+---
+title: "Capstone: a production stack on Biznet GIO"
+description: "Put every tutorial in this track together into one real deployment"
+---
+
+This is where the previous seven tutorials come together into one real thing: a small but genuinely production-shaped deployment, with an environment you iterate on quickly and a production environment that only changes behind review.
+
+## What we're building
+
+- A **NEO Lite Pro VM** as the app tier (`biznetgio_neolite_pro_vm` / `NeoliteProVm`), since it's the dedicated-resource tier meant for real workloads rather than the entry-level NEO Lite.
+- A **NEO Object Storage** instance, bucket, and credential (`biznetgio_object_storage*` / `ObjectStorage*`) for the app's data and backups.
+- Two environments, **staging** and **production**, same code, different sizing and different money.
+- State in a shared backend, secrets in CI, and every change to production going through a reviewed pull request.
+
+<Frame>
+```
+pull request ──▶ CI: plan/preview (staging + production) ──▶ posted as PR comment
+      │                                                              │
+      ▼                                                        human review
+merge to main                                                        │
+      │                                                              ▼
+      ├──▶ CI: apply/up staging  (auto)                     approve production
+      └──▶ CI: apply/up production  (needs reviewer) ────────────────┘
+                        │
+                        ▼
+        Biznet GIO Portal API (real orders)
+                        │
+              ┌─────────┴─────────┐
+              ▼                   ▼
+     NEO Lite Pro VM      NEO Object Storage
+     (app tier)           (bucket + credential)
+```
+</Frame>
+
+## 1. Repository layout
+
+Following [Structure a real project](/tutorials/project-structure):
+
+```
+infra/
+  modules/
+    app-stack/
+      main.tf
+      variables.tf
+      outputs.tf
+  main.tf
+  variables.tf
+  outputs.tf
+  versions.tf
+```
+
+## 2. Two environments
+
+Following [Environments](/tutorials/environments), this uses Terraform workspaces named `staging` and `production` (or, in Pulumi, stacks with the same names). Staging runs with `pay_with_credit_card = false` and the smallest product tier, so every plan can be rehearsed for free; production runs with the real tier and real billing.
+
+## 3. Where state lives
+
+Following [State, remote backends, and team collaboration](/tutorials/state-and-collaboration), this deployment uses the recommended path for both tools rather than the advanced, unverified one: **Terraform Cloud** for the Terraform version, **Pulumi Cloud** (the default) for the Pulumi version. Both give you locking and history without needing to verify a third party's S3 compatibility first.
+
+## 4. Secrets
+
+Following [Manage secrets the right way](/tutorials/secrets-management): the Biznet GIO API token lives in two GitHub Actions environments, `staging` and `production`, the latter with required reviewers turned on. The Pulumi version also needs `PULUMI_ACCESS_TOKEN` alongside it.
+
+## 5. The module
+
+Extending [Reusable modules and components](/tutorials/modules-and-components) with storage alongside the VM. `storage_label` is its own input, kept separate from the environment name, because `biznetgio_object_storage`'s `label` field has its own 6-16 character constraint independent of how long your environment names are.
+
+<Tabs>
+  <Tab title="Terraform">
+    `modules/app-stack/variables.tf`:
+
+    ```hcl
+    variable "name" {
+      type = string
+    } # e.g. "web-staging", 6-16 chars for vm_name
+
+    variable "storage_label" {
+      type = string
+    } # 6-16 chars, [a-zA-Z0-9-_]
+
+    variable "vm_product_id" {
+      type = number
+    }
+
+    variable "select_os" {
+      type = string
+    }
+
+    variable "storage_product_id" {
+      type = number
+    }
+
+    variable "cycle" {
+      type = string
+    }
+
+    variable "ssh_and_console_user" {
+      type = string
+    }
+
+    variable "console_password" {
+      type      = string
+      sensitive = true
+    }
+
+    variable "pay_with_credit_card" {
+      type    = bool
+      default = false
+    }
+
+    variable "storage_quota" {
+      type    = number
+      default = 10
+    }
+    ```
+
+    `modules/app-stack/main.tf`:
+
+    ```hcl
+    resource "biznetgio_neolite_pro_keypair" "this" {
+      name = "${var.name}-key"
+    }
+
+    resource "biznetgio_neolite_pro_vm" "this" {
+      vm_name               = var.name
+      product_id            = var.vm_product_id
+      select_os              = var.select_os
+      keypair_id            = biznetgio_neolite_pro_keypair.this.keypair_id
+      cycle                 = var.cycle
+      ssh_and_console_user  = var.ssh_and_console_user
+      console_password      = var.console_password
+      pay_with_credit_card  = var.pay_with_credit_card
+    }
+
+    resource "biznetgio_object_storage" "this" {
+      product_id           = var.storage_product_id
+      cycle                = var.cycle
+      label                = var.storage_label
+      quota                = var.storage_quota
+      pay_with_credit_card = var.pay_with_credit_card
+    }
+
+    resource "biznetgio_object_storage_bucket" "this" {
+      account_id = biznetgio_object_storage.this.id
+      name       = "${var.name}-assets"
+      acl        = "private"
+    }
+
+    resource "biznetgio_object_storage_credential" "this" {
+      account_id = biznetgio_object_storage.this.id
+    }
+    ```
+
+    `modules/app-stack/outputs.tf`:
+
+    ```hcl
+    output "vm_status" {
+      value = biznetgio_neolite_pro_vm.this.status
+    }
+
+    output "bucket_name" {
+      value = biznetgio_object_storage_bucket.this.name
+    }
+
+    output "access_key" {
+      value     = biznetgio_object_storage_credential.this.access_key
+      sensitive = true
+    }
+
+    output "secret_key" {
+      value     = biznetgio_object_storage_credential.this.secret_key
+      sensitive = true
+    }
+
+    output "keypair_private_key" {
+      value     = biznetgio_neolite_pro_keypair.this.private_key
+      sensitive = true
+    }
+    ```
+
+    Root `main.tf` calls it once per workspace:
+
+    ```hcl
+    data "biznetgio_neolite_pro_products" "all" {}
+
+    data "biznetgio_neolite_pro_os_list" "ubuntu" {
+      product_id = data.biznetgio_neolite_pro_products.all.products[0].product_id
+    }
+
+    module "app" {
+      source                = "./modules/app-stack"
+      name                   = "web-${terraform.workspace}"
+      storage_label          = terraform.workspace == "production" ? "web-prod" : "web-stg"
+      vm_product_id          = data.biznetgio_neolite_pro_products.all.products[0].product_id
+      select_os               = data.biznetgio_neolite_pro_os_list.ubuntu.oss[0].name
+      storage_product_id     = 8
+      cycle                  = "m"
+      ssh_and_console_user   = "admin"
+      console_password       = var.console_password
+      pay_with_credit_card   = terraform.workspace == "production"
+    }
+    ```
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    import * as pulumi from "@pulumi/pulumi";
+    import * as biznetgio from "@shirasakaren/biznetgio";
+
+    export interface AppStackArgs {
+      vmProductId: pulumi.Input<number>;
+      selectOs: pulumi.Input<string>;
+      storageProductId: pulumi.Input<number>;
+      storageLabel: pulumi.Input<string>; // 6-16 chars, [a-zA-Z0-9-_]
+      cycle: pulumi.Input<string>;
+      sshAndConsoleUser: pulumi.Input<string>;
+      consolePassword: pulumi.Input<string>;
+      payWithCreditCard: pulumi.Input<boolean>;
+      storageQuota?: pulumi.Input<number>;
+    }
+
+    export class AppStack extends pulumi.ComponentResource {
+      public readonly vmStatus: pulumi.Output<string>;
+      public readonly bucketName: pulumi.Output<string>;
+      public readonly accessKey: pulumi.Output<string>;
+      public readonly secretKey: pulumi.Output<string>;
+      public readonly keypairPrivateKey: pulumi.Output<string>;
+
+      constructor(name: string, args: AppStackArgs, opts?: pulumi.ComponentResourceOptions) {
+        super("biznetgio-tutorials:index:AppStack", name, {}, opts);
+
+        const keypair = new biznetgio.NeoliteProKeypair(`${name}-key`, {
+          name: `${name}-key`,
+        }, { parent: this });
+
+        const vm = new biznetgio.NeoliteProVm(`${name}-vm`, {
+          vmName: name,
+          productId: args.vmProductId,
+          selectOs: args.selectOs,
+          keypairId: keypair.keypairId,
+          cycle: args.cycle,
+          sshAndConsoleUser: args.sshAndConsoleUser,
+          consolePassword: args.consolePassword,
+          payWithCreditCard: args.payWithCreditCard,
+        }, { parent: this });
+
+        const storage = new biznetgio.ObjectStorage(`${name}-storage`, {
+          productId: args.storageProductId,
+          cycle: args.cycle,
+          label: args.storageLabel,
+          quota: args.storageQuota ?? 10,
+          payWithCreditCard: args.payWithCreditCard,
+        }, { parent: this });
+
+        const bucket = new biznetgio.ObjectStorageBucket(`${name}-assets`, {
+          accountId: storage.id,
+          name: `${name}-assets`,
+          acl: "private",
+        }, { parent: this });
+
+        const credential = new biznetgio.ObjectStorageCredential(`${name}-cred`, {
+          accountId: storage.id,
+        }, { parent: this });
+
+        this.vmStatus = vm.status;
+        this.bucketName = bucket.name;
+        this.accessKey = credential.accessKey;
+        this.secretKey = credential.secretKey;
+        this.keypairPrivateKey = keypair.privateKey;
+        this.registerOutputs({ vmStatus: this.vmStatus, bucketName: this.bucketName });
+      }
+    }
+    ```
+
+    Instantiated once per stack:
+
+    ```typescript
+    const config = new pulumi.Config();
+    const products = biznetgio.neoliteProProductsOutput();
+    const osList = biznetgio.neoliteProOsListOutput({
+      productId: products.products[0].productId,
+    });
+
+    const stack = pulumi.getStack();
+    const isProduction = stack === "production";
+
+    const app = new AppStack(`web-${stack}`, {
+      vmProductId: products.products[0].productId,
+      selectOs: osList.oss[0].name,
+      storageProductId: 8,
+      storageLabel: isProduction ? "web-prod" : "web-stg",
+      cycle: "m",
+      sshAndConsoleUser: "admin",
+      consolePassword: config.requireSecret("consolePassword"),
+      payWithCreditCard: isProduction,
+    });
+
+    export const vmStatus = app.vmStatus;
+    export const bucketName = app.bucketName;
+    ```
+  </Tab>
+</Tabs>
+
+## 6. The pipeline, with a deliberate promotion step
+
+Extending [CI/CD with GitHub Actions](/tutorials/cicd) to two environments instead of one. Staging applies automatically on every merge, since nothing there costs real money or serves real traffic; production needs the required reviewer configured on its GitHub environment:
+
+```yaml
+jobs:
+  apply_staging:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init && terraform workspace select staging
+        working-directory: infra
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+      - run: terraform apply -auto-approve
+        working-directory: infra
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+
+  apply_production:
+    if: github.event_name == 'push'
+    needs: apply_staging
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init && terraform workspace select production
+        working-directory: infra
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+      - run: terraform apply -auto-approve
+        working-directory: infra
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+```
+
+`needs: apply_staging` means production only runs after staging has already applied cleanly; the `environment: production` required reviewer still pauses it for approval regardless.
+
+## 7. Guardrails
+
+Everything from [Testing, validation, and guardrails](/tutorials/testing-and-safety) applies here unchanged: `terraform fmt -check` and `terraform validate` on every PR, the plan posted as a comment, and a reviewer specifically checking that no one-shot trigger or create-only field changed by accident before approving production.
+
+## 8. Wiring it into your systems
+
+These providers provision and manage lifecycle; they are not an inventory system, so a couple of things are deliberately not resource attributes:
+
+- **SSH access**: the console user and password you set (`ssh_and_console_user` / `console_password`) plus the keypair's `private_key` output are what authenticate you. The assigned public IP isn't exposed as a resource attribute on `biznetgio_neolite_pro_vm`; find it in the NEO Lite Pro entry in the [portal](https://portal.biznetgio.com) after the first apply, and record it in whatever inventory your systems already use.
+- **App configuration**: hand the object storage credential's `access_key` and `secret_key` outputs to your app as environment variables or a secret store, pointed at the region's S3-compatible endpoint (`nos.<region>.neo.id`), exactly as the [Object Storage reference](/terraform/resources/object-storage) describes for real workloads.
+
+## 9. Operating it afterward
+
+- **Drift**: a scheduled GitHub Actions workflow (`on: schedule`) running only `plan`/`preview`, not apply, catches changes made outside this pipeline, for example someone editing a resource directly in the portal. Post a comment or alert if the diff is non-empty.
+- **Scaling**: grow the VM by changing `vm_product_id` (triggers a change-package call), grow its disk with `disk_size` (grow-only), grow storage with `quota` (grow-only). None of these require recreating the resource.
+- **Teardown**: destroying production is exactly as real as applying it. Send it through the same pull request and review flow, never as a one-off local command.
+
+## Where to go from here
+
+- [FAQ](/guides/faq) for the operational questions that come up once this is running
+- [Triggers and actions](/guides/triggers) for the destructive one-shot actions this stack deliberately doesn't automate
+- Every tutorial in this track, if any single step above needs more depth than the summary here gives it

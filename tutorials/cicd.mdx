@@ -1,0 +1,141 @@
+---
+title: "CI/CD with GitHub Actions"
+description: "Automate plan and apply (or preview and up) with pull request review"
+---
+
+The goal: open a pull request, a bot posts the plan/preview as a comment automatically, a human reviews it, and merging to `main` applies it for real, gated behind a required approval. This tutorial wires that up for both providers.
+
+<Info>
+  This assumes the [project structure](/tutorials/project-structure) tutorial's `infra/` folder, and a token already stored as a GitHub Actions secret per [Manage secrets the right way](/tutorials/secrets-management).
+</Info>
+
+## Terraform
+
+`.github/workflows/terraform.yml`:
+
+```yaml
+name: terraform
+
+on:
+  pull_request:
+    paths: ["infra/**"]
+  push:
+    branches: [main]
+    paths: ["infra/**"]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: terraform init
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+
+      - run: terraform plan -no-color -out=tfplan
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+
+      - run: terraform show -no-color tfplan > plan.txt
+
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const plan = fs.readFileSync('infra/plan.txt', 'utf8')
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "```\n" + plan.slice(0, 60000) + "\n```"
+            })
+
+  apply:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: terraform init
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+
+      - run: terraform apply -auto-approve
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+```
+
+The `environment: production` line on the `apply` job is what lets you require an approval before it runs: in the repository's **Settings → Environments → production**, add required reviewers, and the job pauses until one of them approves it, even though it already passed CI.
+
+## Pulumi
+
+Pulumi ships an official action that already knows how to comment a preview onto a pull request, so there's no manual scripting step. It needs a second secret, `PULUMI_ACCESS_TOKEN`, a Pulumi Cloud token separate from your Biznet GIO one, because the action logs in to Pulumi Cloud to read and write the stack's state.
+
+`.github/workflows/pulumi.yml`:
+
+```yaml
+name: pulumi
+
+on:
+  pull_request:
+    paths: ["infra/**"]
+  push:
+    branches: [main]
+    paths: ["infra/**"]
+
+jobs:
+  preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pulumi/actions@v7
+        with:
+          command: preview
+          stack-name: production
+          work-dir: infra
+          comment-on-pr: true
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+
+  up:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pulumi/actions@v7
+        with:
+          command: up
+          stack-name: production
+          work-dir: infra
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+```
+
+Same trick as Terraform: `environment: production` on the `up` job gates it behind required reviewers configured in the repository settings.
+
+## Require the check before merge
+
+Turn on branch protection for `main`, and mark the `plan` (Terraform) or `preview` (Pulumi) job as a required status check. That makes it impossible to merge a pull request whose diff nobody has seen.
+
+## Next steps
+
+- [Reusable modules and components](/tutorials/modules-and-components) - package the resources this pipeline deploys so staging and production stay in sync

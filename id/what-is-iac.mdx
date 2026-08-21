@@ -37,6 +37,30 @@ Workflow-nya selalu tiga langkah yang sama:
 2. **Plan** (Terraform) atau **preview** (Pulumi): tools bandingin file lu sama kenyataan, terus nunjukin apa yang bakal berubah.
 3. **Apply**: tools manggil API cloud biar kenyataan match sama file lu, terus nyimpen hasilnya di state.
 
+## Cara tools-nya beneran kerja
+
+Workflow tiga langkah di atas itu cuma permukaannya. Di bawahnya, Terraform dan Pulumi dua-duanya kerja dengan cara yang sama, dibangun dari tiga bagian yang bergerak.
+
+**Provider itu program yang berdiri sendiri.** `biznetgio` gak ketanem di dalam Terraform atau Pulumi. Dia binary yang udah dicompile sendiri (`terraform-provider-biznetgio` / `pulumi-resource-biznetgio`) yang di-download CLI sekali terus dijalanin sebagai subprocess tiap kali lu jalanin command. File `.tf` lu atau program TypeScript lu gak pernah manggil API Biznet GIO langsung, mereka cuma ngejelasin satu resource, terus CLI-nya ngirim penjelasan itu ke process provider lewat koneksi RPC lokal. Provider itu satu-satunya yang ngomong HTTP ke `api.portal.biznetgio.com`. Ini kenapa provider yang sama bisa jalan dari HCL punya Terraform, dan di kasus Pulumi, dari lima bahasa programming yang beda: bahasanya cuma perlu ngehasilin RPC call yang sama, gak perlu implement API client-nya sendiri.
+
+**Semua yang lu deklarasiin jadi graph, bukan list.** Pas konfigurasi lu bilang `keypair_id` punya VM dateng dari resource keypair, tools-nya nyatet itu sebagai edge: keypair sebelum VM. Ditebar di satu file penuh, ini jadi dependency graph, dan CLI-nya jalanin graph itu buat nentuin urutan, bikin keypair sebelum VM yang butuh id-nya, dan balikin urutannya pas `destroy`/`down` biar VM-nya kehapus dulu sebelum keypair yang dia depend ke situ. Resource yang gak ada hubungan satu sama lain dibuat parallel, ini kenapa satu plan dengan sepuluh VM yang gak berhubungan kelar jauh lebih cepet daripada sepuluh API call yang sequential.
+
+<Frame>
+```
+biznetgio_neolite_keypair.main ──┐
+                                  ├──▶ biznetgio_neolite_vm.main
+data.biznetgio_neolite_products ─┘
+
+urutan destroy: kebalik arrow-nya
+```
+</Frame>
+
+**State itu yang bikin "jalanin dua kali" jadi "converge", bukan "duplikat".** Habis tiap apply/up, tools-nya nyatet id dan attribute value yang sekarang dia tau ke state file (Terraform) atau state punya satu stack (Pulumi). Kali berikutnya lu jalanin plan atau preview, tiga hal dibandingin bareng: konfigurasi lu (apa yang lu mau), state terakhir yang diketahui (apa yang tools-nya ingat udah dia buat), dan baca ulang yang fresh dari API beneran (apa yang beneran ada sekarang, disebut refresh). Diff antara tiga itu persis yang jadi plan lu. Ini juga kenapa ganti satu field jarang berarti destroy dan recreate, kalau cuma `label` yang berubah di server bare metal, logic diff-nya provider manggil satu API endpoint yang rename doang, field lainnya dibiarin. Full replacement cuma kejadian buat attribute yang eksplisit ditandain create-only di halaman reference-nya satu resource, soalnya API upstream-nya gak punya cara in-place buat ganti itu.
+
+<Info>
+  Ini alasan mekanisnya kenapa dua rule dari [FAQ](/id/guides/faq) itu ada: secret yang cuma dibalikin sekali pas creation (private key keypair, secret key object storage) survive di state persis soalnya state itu satu-satunya memori permanen tools-nya buat itu, dan update Pulumi yang timeout aman buat diretry soalnya partial state yang udah dia tulis ngebiarin run berikutnya lanjut daripada mulai dari nol lagi.
+</Info>
+
 ## Terraform tuh apa?
 
 [Terraform](https://developer.hashicorp.com/terraform) itu tools IaC dari HashiCorp yang pake bahasa konfigurasi sendiri, namanya HCL. Lu nulis file `.tf`, jalanin `terraform plan` buat liat perubahan, terus `terraform apply` buat benerin.
@@ -87,8 +111,8 @@ const vm = new biznetgio.NeoliteVm("web", {
 Dua-duanya wrap [Biznet GIO Portal API](https://api.portal.biznetgio.com/v1/docs) yang sama. Artinya:
 
 - Lu order layanan beneran (VPS, bare metal, GPU, storage) lewat API yang sama kayak web portal.
-- Lu authenticate pake API token dari [portal](https://portal.biznetgio.com). Liat [Authentication](/authentication).
-- Create dan upgrade bikin order berbayar beneran. Baca [panduan billing](/guides/billing) dulu sebelum apply pertama.
+- Lu authenticate pake API token dari [portal](https://portal.biznetgio.com). Liat [Authentication](/id/authentication).
+- Create dan upgrade bikin order berbayar beneran. Baca [panduan billing](/id/guides/billing) dulu sebelum apply pertama.
 
 ## Glosarium
 

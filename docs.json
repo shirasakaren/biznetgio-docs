@@ -42,6 +42,19 @@
                 ]
               },
               {
+                "group": "Tutorials",
+                "pages": [
+                  "tutorials/project-structure",
+                  "tutorials/environments",
+                  "tutorials/state-and-collaboration",
+                  "tutorials/secrets-management",
+                  "tutorials/cicd",
+                  "tutorials/modules-and-components",
+                  "tutorials/testing-and-safety",
+                  "tutorials/production-deployment"
+                ]
+              },
+              {
                 "group": "Terraform Provider",
                 "pages": [
                   "terraform/installation",
@@ -125,6 +138,19 @@
                   "id/pulumi-quickstart",
                   "id/authentication",
                   "id/registries"
+                ]
+              },
+              {
+                "group": "Tutorial",
+                "pages": [
+                  "id/tutorials/project-structure",
+                  "id/tutorials/environments",
+                  "id/tutorials/state-and-collaboration",
+                  "id/tutorials/secrets-management",
+                  "id/tutorials/cicd",
+                  "id/tutorials/modules-and-components",
+                  "id/tutorials/testing-and-safety",
+                  "id/tutorials/production-deployment"
                 ]
               },
               {

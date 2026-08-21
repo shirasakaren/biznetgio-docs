@@ -1,0 +1,181 @@
+---
+title: "Module dan component yang reusable"
+description: "Bungkus infrastruktur yang berulang jadi satu Terraform module atau Pulumi component"
+---
+
+Begitu dev, staging, dan production butuh bentuk yang sama, satu keypair plus satu VM, cuma beda sizing dan beberapa flag, copy-paste bentuk itu tiga kali artinya benerin bug-nya tiga kali juga. Terraform module dan Pulumi component ngebiarin lu nulis bentuknya sekali terus instantiate per environment.
+
+## Terraform module
+
+```
+infra/
+  modules/
+    neolite-vm/
+      main.tf
+      variables.tf
+      outputs.tf
+  main.tf
+```
+
+`modules/neolite-vm/variables.tf`:
+
+```hcl
+variable "vm_name" {
+  type = string
+}
+
+variable "product_id" {
+  type = number
+}
+
+variable "select_os" {
+  type = string
+}
+
+variable "cycle" {
+  type = string
+}
+
+variable "ssh_and_console_user" {
+  type = string
+}
+
+variable "console_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "pay_with_credit_card" {
+  type    = bool
+  default = false
+}
+```
+
+`modules/neolite-vm/main.tf`:
+
+```hcl
+resource "biznetgio_neolite_keypair" "this" {
+  name = "${var.vm_name}-key"
+}
+
+resource "biznetgio_neolite_vm" "this" {
+  vm_name               = var.vm_name
+  product_id            = var.product_id
+  select_os              = var.select_os
+  keypair_id            = biznetgio_neolite_keypair.this.keypair_id
+  cycle                 = var.cycle
+  ssh_and_console_user  = var.ssh_and_console_user
+  console_password      = var.console_password
+  pay_with_credit_card  = var.pay_with_credit_card
+}
+```
+
+`modules/neolite-vm/outputs.tf`:
+
+```hcl
+output "vm_status" {
+  value = biznetgio_neolite_vm.this.status
+}
+
+output "keypair_private_key" {
+  value     = biznetgio_neolite_keypair.this.private_key
+  sensitive = true
+}
+```
+
+Instantiate sekali per environment dari root module. `data` lookup dan `var.console_password` di sini itu persis yang udah dideklarasiin lengkap di tutorial [quickstart](/id/quickstart) dan [project structure](/id/tutorials/project-structure):
+
+```hcl
+module "web_staging" {
+  source                = "./modules/neolite-vm"
+  vm_name                = "web-staging"
+  product_id            = data.biznetgio_neolite_products.all.products[0].product_id
+  select_os              = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
+  cycle                 = "m"
+  ssh_and_console_user  = "admin"
+  console_password      = var.console_password
+  pay_with_credit_card  = false
+}
+
+module "web_production" {
+  source                = "./modules/neolite-vm"
+  vm_name                = "web-production"
+  product_id            = data.biznetgio_neolite_products.all.products[0].product_id
+  select_os              = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
+  cycle                 = "m"
+  ssh_and_console_user  = "admin"
+  console_password      = var.console_password
+  pay_with_credit_card  = true
+}
+```
+
+Source lokal `./modules/...` udah cukup buat satu repository. Publish ke module registry bisa aja, tapi cuma worth it kalau lebih dari satu repository butuh module yang sama.
+
+## Pulumi component
+
+Yang setara di Pulumi itu `ComponentResource`, dicontohin di sini pake TypeScript:
+
+```typescript
+import * as pulumi from "@pulumi/pulumi";
+import * as biznetgio from "@shirasakaren/biznetgio";
+
+export interface NeoliteWebServerArgs {
+  productId: pulumi.Input<number>;
+  selectOs: pulumi.Input<string>;
+  cycle: pulumi.Input<string>;
+  sshAndConsoleUser: pulumi.Input<string>;
+  consolePassword: pulumi.Input<string>;
+  payWithCreditCard?: pulumi.Input<boolean>;
+}
+
+export class NeoliteWebServer extends pulumi.ComponentResource {
+  public readonly vmStatus: pulumi.Output<string>;
+  public readonly keypairPrivateKey: pulumi.Output<string>;
+
+  constructor(name: string, args: NeoliteWebServerArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("biznetgio-tutorials:index:NeoliteWebServer", name, {}, opts);
+
+    const keypair = new biznetgio.NeoliteKeypair(`${name}-key`, {
+      name: `${name}-key`,
+    }, { parent: this });
+
+    const vm = new biznetgio.NeoliteVm(`${name}-vm`, {
+      vmName: name,
+      productId: args.productId,
+      selectOs: args.selectOs,
+      keypairId: keypair.keypairId,
+      cycle: args.cycle,
+      sshAndConsoleUser: args.sshAndConsoleUser,
+      consolePassword: args.consolePassword,
+      payWithCreditCard: args.payWithCreditCard ?? false,
+    }, { parent: this });
+
+    this.vmStatus = vm.status;
+    this.keypairPrivateKey = keypair.privateKey;
+    this.registerOutputs({ vmStatus: this.vmStatus });
+  }
+}
+```
+
+`{ parent: this }` daftarin keypair dan VM sebagai child dari component ini di resource tree Pulumi, jadi `pulumi up` dan console Pulumi Cloud nunjukin mereka nested di bawahnya, bukan sebagai dua top-level resource yang gak nyambung.
+
+Instantiate satu per stack:
+
+```typescript
+const stack = pulumi.getStack();
+
+const web = new NeoliteWebServer(`web-${stack}`, {
+  productId: products.products[0].productId,
+  selectOs: osList.oss[0].name,
+  cycle: "m",
+  sshAndConsoleUser: "admin",
+  consolePassword: config.requireSecret("consolePassword"),
+  payWithCreditCard: stack === "production",
+});
+
+export const vmStatus = web.vmStatus;
+```
+
+## Langkah berikutnya
+
+- [Testing, validasi, dan guardrail](/id/tutorials/testing-and-safety) - tangkep kesalahan sebelum module ini manggil API beneran

@@ -1,0 +1,140 @@
+---
+title: "Structure a real project"
+description: "Move from a single quickstart file to a project layout that scales"
+---
+
+The quickstart put everything in one file on purpose, so the first VM took five minutes. A real project outlives that file fast: more resources, more people, more than one environment. This tutorial is the layout to grow into before that happens.
+
+<Info>
+  Start here once you've finished the [Terraform quickstart](/quickstart) or the [Pulumi quickstart](/pulumi-quickstart). Everything below assumes you already have one working resource.
+</Info>
+
+## Terraform layout
+
+Terraform reads every `.tf` file in a directory as one configuration, so file boundaries are for humans, not the tool. A layout that scales:
+
+```
+infra/
+  versions.tf        # required_providers, required_version
+  main.tf             # provider block
+  neolite.tf          # NEO Lite resources and data sources
+  storage.tf           # NEO Object Storage resources
+  variables.tf         # input variables
+  outputs.tf           # outputs
+  terraform.tfvars     # local values (gitignored if it holds secrets)
+  .gitignore
+```
+
+`versions.tf`:
+
+```hcl
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    biznetgio = {
+      source  = "registry.terraform.io/shirasakaren/biznetgio"
+      version = "0.1.0"
+    }
+  }
+}
+```
+
+`main.tf` stays just the provider block once credentials come from the environment (see [Authentication](/authentication)):
+
+```hcl
+provider "biznetgio" {}
+```
+
+`variables.tf` for anything that changes between runs or people:
+
+```hcl
+variable "vm_name" {
+  type    = string
+  default = "web-1"
+}
+
+variable "console_password" {
+  type      = string
+  sensitive = true
+}
+```
+
+`outputs.tf` for anything you or another tool needs after apply:
+
+```hcl
+output "vm_status" {
+  value = biznetgio_neolite_vm.main.status
+}
+```
+
+Once a resource group grows past a handful of blocks, split it into its own file named after the product, `neolite.tf`, `storage.tf`, `baremetal.tf`. Terraform does not care; your reviewers will.
+
+`.gitignore`:
+
+```
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+*.tfvars
+```
+
+<Warning>
+  `terraform.tfvars` is plain text. If it ever holds a real value for `console_password` or a token, it must be gitignored, no exceptions. Prefer environment variables (`BIZNETGIO_API_KEY`) for anything secret and keep tfvars for non-secret defaults only.
+</Warning>
+
+## Pulumi layout
+
+A Pulumi project is a regular program in your language, plus two files Pulumi itself reads:
+
+```
+infra/
+  Pulumi.yaml         # project metadata + runtime
+  Pulumi.dev.yaml      # per-stack config, one file per stack
+  index.ts              # or main.py, main.go, Program.cs, App.java
+  neolite.ts             # split out once index.ts grows
+  storage.ts
+  package.json
+```
+
+`Pulumi.yaml`:
+
+```yaml
+name: biznetgio-demo
+runtime: nodejs
+description: NEO Lite VM and object storage for the demo app
+```
+
+Splitting `index.ts` into `neolite.ts`, `storage.ts`, and importing them back in, is a language convention, not a Pulumi requirement. Do it the same way you'd split any other program once it grows past what fits on one screen.
+
+<Tip>
+  `Pulumi.<stack>.yaml` is safe to commit even when it holds a secret set with `pulumi config set --secret`. Pulumi encrypts the value before writing the file. This is the opposite of Terraform's `tfvars`, which is always plain text.
+</Tip>
+
+`.gitignore` for a TypeScript project:
+
+```
+node_modules/
+bin/
+*.tsbuildinfo
+```
+
+(Swap the language-specific ignores for Python's `venv/`/`__pycache__/`, Go's build output, or your target language's equivalent. `Pulumi.yaml` and every `Pulumi.<stack>.yaml` stay tracked.)
+
+## Naming things
+
+Both providers share the terminology introduced on [What is Infrastructure as Code?](/what-is-iac): resource names in code formatting, `disk_size` in Terraform vs `diskSize` in Pulumi. Carry that into your own names too:
+
+- One resource block/declaration per real-world thing, named after what it is (`web`, not `resource1`).
+- Keep the `-key` suffix convention for keypairs (`web-key`) so it reads clearly next to the VM it belongs to.
+- If the same repository holds application code as well, keep infrastructure in its own top-level `infra/` folder next to `app/`, rather than mixed into the app's own directories.
+
+<Info>
+  Every code sample elsewhere in this documentation is written as a single flat file, because that reads best on a reference page. That's a documentation choice, not a recommendation, once your own project is real.
+</Info>
+
+## Next steps
+
+- [Environments](/tutorials/environments) - the same layout, three different configurations for dev, staging, and production

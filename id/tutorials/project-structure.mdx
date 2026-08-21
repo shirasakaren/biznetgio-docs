@@ -1,0 +1,140 @@
+---
+title: "Susun project yang beneran"
+description: "Pindah dari satu file quickstart ke layout project yang bisa scale"
+---
+
+Quickstart sengaja nyimpen semuanya di satu file, biar VM pertama kelar dalam lima menit. Project yang beneran bakal ngelewatin satu file itu dengan cepat: lebih banyak resource, lebih banyak orang, lebih dari satu environment. Tutorial ini layout yang perlu lu pake sebelum itu kejadian.
+
+<Info>
+  Mulai dari sini setelah lu selesai [quickstart Terraform](/id/quickstart) atau [quickstart Pulumi](/id/pulumi-quickstart). Semua di bawah ini nganggep lu udah punya satu resource yang jalan.
+</Info>
+
+## Layout Terraform
+
+Terraform baca semua file `.tf` di satu directory sebagai satu konfigurasi, jadi batasan file itu buat manusia, bukan buat tools-nya. Layout yang bisa scale:
+
+```
+infra/
+  versions.tf        # required_providers, required_version
+  main.tf             # provider block
+  neolite.tf          # resource dan data source NEO Lite
+  storage.tf           # resource NEO Object Storage
+  variables.tf         # input variable
+  outputs.tf           # output
+  terraform.tfvars     # value lokal (gitignore kalau isinya secret)
+  .gitignore
+```
+
+`versions.tf`:
+
+```hcl
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    biznetgio = {
+      source  = "registry.terraform.io/shirasakaren/biznetgio"
+      version = "0.1.0"
+    }
+  }
+}
+```
+
+`main.tf` cuma tinggal provider block doang begitu credential-nya udah dari environment (liat [Authentication](/id/authentication)):
+
+```hcl
+provider "biznetgio" {}
+```
+
+`variables.tf` buat apa aja yang beda-beda tiap run atau tiap orang:
+
+```hcl
+variable "vm_name" {
+  type    = string
+  default = "web-1"
+}
+
+variable "console_password" {
+  type      = string
+  sensitive = true
+}
+```
+
+`outputs.tf` buat apa aja yang lu atau tools lain butuhin setelah apply:
+
+```hcl
+output "vm_status" {
+  value = biznetgio_neolite_vm.main.status
+}
+```
+
+Begitu satu grup resource udah lebih dari beberapa block, pisahin ke file sendiri dinamain sesuai product-nya, `neolite.tf`, `storage.tf`, `baremetal.tf`. Terraform gak peduli; reviewer lu yang bakal peduli.
+
+`.gitignore`:
+
+```
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+*.tfvars
+```
+
+<Warning>
+  `terraform.tfvars` itu plain text. Kalau isinya pernah ada value asli buat `console_password` atau token, wajib di-gitignore, gak ada pengecualian. Lebih baik pake environment variable (`BIZNETGIO_API_KEY`) buat apapun yang sifatnya secret, dan sisain tfvars cuma buat default yang gak secret.
+</Warning>
+
+## Layout Pulumi
+
+Project Pulumi itu program biasa di bahasa lu, plus dua file yang Pulumi sendiri baca:
+
+```
+infra/
+  Pulumi.yaml         # metadata project + runtime
+  Pulumi.dev.yaml      # config per-stack, satu file per stack
+  index.ts              # atau main.py, main.go, Program.cs, App.java
+  neolite.ts             # dipisah begitu index.ts udah gede
+  storage.ts
+  package.json
+```
+
+`Pulumi.yaml`:
+
+```yaml
+name: biznetgio-demo
+runtime: nodejs
+description: NEO Lite VM and object storage for the demo app
+```
+
+Misahin `index.ts` jadi `neolite.ts`, `storage.ts`, terus di-import balik, itu konvensi bahasa, bukan requirement dari Pulumi. Lakuin persis kayak misahin program lain begitu udah kepanjangan buat satu layar.
+
+<Tip>
+  `Pulumi.<stack>.yaml` aman buat di-commit walaupun isinya ada secret yang di-set pake `pulumi config set --secret`. Pulumi encrypt value-nya dulu sebelum nulis ke file. Ini kebalikan dari `tfvars` punya Terraform, yang selalu plain text.
+</Tip>
+
+`.gitignore` buat project TypeScript:
+
+```
+node_modules/
+bin/
+*.tsbuildinfo
+```
+
+(Ganti gitignore-nya sesuai bahasa: `venv/`/`__pycache__/` buat Python, build output-nya Go, atau yang setara di bahasa target lu. `Pulumi.yaml` dan semua `Pulumi.<stack>.yaml` tetep di-track.)
+
+## Penamaan
+
+Kedua provider share terminologi yang diperkenalin di [Infrastructure as Code tuh apa?](/id/what-is-iac): nama resource pake code formatting, `disk_size` di Terraform vs `diskSize` di Pulumi. Bawa itu ke penamaan punya lu juga:
+
+- Satu resource block/declaration per satu hal di dunia nyata, dinamain sesuai apa itu (`web`, bukan `resource1`).
+- Pertahanin konvensi suffix `-key` buat keypair (`web-key`) biar jelas kebacanya deket VM yang punya keypair itu.
+- Kalau repository yang sama juga nyimpen application code, taro infrastruktur di folder `infra/` top-level sendiri deketan sama `app/`, bukan campur di dalam directory-nya app.
+
+<Info>
+  Semua contoh code di halaman lain dokumentasi ini ditulis sebagai satu file flat, karena itu paling enak dibaca di halaman reference. Itu pilihan dokumentasi, bukan rekomendasi, begitu project lu udah beneran.
+</Info>
+
+## Langkah berikutnya
+
+- [Environments](/id/tutorials/environments) - layout yang sama, tiga konfigurasi beda buat dev, staging, dan production

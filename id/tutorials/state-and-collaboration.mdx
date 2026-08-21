@@ -1,0 +1,112 @@
+---
+title: "State, remote backend, dan kolaborasi tim"
+description: "Pindahin state dari laptop lu biar tim bisa kerja bareng dengan aman"
+---
+
+State di laptop lu oke buat demo solo, terus langsung berantakan pas orang kedua join. Cuma ada satu copy, gak ada yang lock pas apply lagi jalan, dan kalau laptopnya hilang, hilang juga satu-satunya catatan soal apa yang beneran ada. Tutorial ini mindahin state ke tempat yang bisa dishare tim dengan aman.
+
+## Kenapa state lokal gagal buat tim
+
+- **Gak bisa dishare.** `plan`/`preview` temen lu gak bisa liat state file lokal lu, jadi dia gak tau apa yang udah ada.
+- **Gak ada locking.** Dua orang jalanin `apply`/`up` di waktu yang sama bisa bikin state korup atau resource keduplikat.
+- **Gak ada history.** Gak ada catatan siapa yang jalanin apa, atau cara buat rollback ke state snapshot sebelumnya.
+- **Gak durable.** Satu laptop hilang, satu-satunya source of truth juga hilang.
+
+## Terraform: remote backend
+
+**Direkomendasiin buat pemula yang mau ke production: Terraform Cloud (HCP Terraform).** Gratis buat tim kecil, nyimpen state secara remote, lock otomatis, dan nyimpen run history.
+
+```hcl
+terraform {
+  cloud {
+    organization = "your-org"
+    workspaces {
+      tags = ["biznetgio"]
+    }
+  }
+}
+```
+
+Pake `tags`, bukan `name`, kalau lu mau ini tetep jalan bareng pola `terraform workspace new`/`select` dari tutorial [environments](/id/tutorials/environments): `name` bikin konfigurasi lu nempel ke cuma satu HCP Terraform workspace, jadi gak ada apa-apa lagi buat di-switch sama `terraform workspace new`. Pake `tags`, tiap CLI workspace lokal ke-mapping ke HCP Terraform workspace-nya sendiri yang match.
+
+<Warning>
+  Bentuk yang diterima buat `tags` udah berubah antar versi Terraform (list of strings di CLI release lama, map key/value di yang baru). Cek [referensi block `cloud` HashiCorp yang paling baru](https://developer.hashicorp.com/terraform/cli/cloud/settings) buat versi yang lu install sebelum ngandelin syntax di atas persis kayak itu.
+</Warning>
+
+Jalanin `terraform login` sekali, terus `terraform init` migrasiin state lokal yang udah ada ke cloud workspace secara otomatis.
+
+<Accordion title="Advanced: self-hosted backend yang S3-compatible">
+  Block `backend "s3"` di Terraform jalan ke endpoint S3-compatible mana aja, gak cuma AWS. [NEO Object Storage](/id/terraform/resources/object-storage) punya Biznet GIO sendiri itu S3-compatible, jadi state bisa diarahin ke bucket yang lu provision pake `biznetgio_object_storage` dan `biznetgio_object_storage_bucket`:
+
+  ```hcl
+  terraform {
+    backend "s3" {
+      bucket = "my-tfstate"
+      key    = "production/terraform.tfstate"
+      region = "us-east-1" # wajib ada karena syntax backend-nya minta, tapi gak berarti apa-apa buat kebanyakan endpoint S3-compatible
+
+      endpoints = {
+        s3 = "https://nos.<region>.neo.id"
+      }
+
+      use_path_style              = true
+      skip_credentials_validation = true
+      skip_region_validation      = true
+      skip_metadata_api_check     = true
+    }
+  }
+  ```
+
+  <Warning>
+    Backend S3 punya Terraform butuh endpoint storage-nya support conditional write biar locking-nya beneran jalan. Konfirmasi dulu ke [support Biznet GIO](mailto:support@biznetgio.com) apakah NEO Object Storage support behavior itu sebelum lu percaya ini buat tim yang jalanin apply bareng-bareng. Sampe lu konfirmasi, anggep setup ini cuma buat satu operator, bukan pengganti backend dengan locking yang udah terverifikasi kayak Terraform Cloud.
+  </Warning>
+</Accordion>
+
+## Pulumi: state backend
+
+**Default-nya Pulumi Cloud**, dan ini yang udah dipake quickstart tanpa konfigurasi tambahan; jalanin `pulumi login` tanpa argumen bakal login ke sana. Dia nyimpen state, lock otomatis, nyimpen history, dan ngatur enkripsi secret buat lu. Free tier-nya udah cukup buat tim kecil.
+
+<Accordion title="Advanced: self-hosted backend">
+  Pulumi juga bisa nyimpen state di folder lokal atau bucket S3-compatible, kepake kalau lu mau state-nya bener-bener gak lewat Pulumi Cloud:
+
+  ```bash
+  # folder lokal - oke buat eksperimen solo, gak ada locking, gak bisa dishare
+  pulumi login file://~/.pulumi-state
+
+  # bucket S3-compatible
+  pulumi login "s3://my-bucket?endpoint=nos.<region>.neo.id&s3ForcePathStyle=true"
+  ```
+
+  <Warning>
+    Caveat-nya sama kayak backend S3 di Terraform: konfirmasi dulu ke [support Biznet GIO](mailto:support@biznetgio.com) apakah write semantics endpoint storage-nya beneran ngasih locking yang aman buat concurrent sebelum lu andelin self-hosted bucket backend buat tim. Kalau ragu, pake Pulumi Cloud aja.
+  </Warning>
+
+  Self-managed backend juga butuh passphrase buat enkripsi secret, gantiin managed key punya Pulumi Cloud:
+
+  ```bash
+  export PULUMI_CONFIG_PASSPHRASE="passphrase yang cuma tim lu tau"
+  ```
+
+  Kalau passphrase-nya hilang, lu kehilangan kemampuan buat decrypt secret config values; stack-nya masih bisa diupdate, tapi lu gak bisa baca secret-nya balik.
+</Accordion>
+
+## Mindahin state antar backend
+
+Dua tools bisa export dan re-import snapshot, ini cara migrasi tanpa harus mulai dari nol:
+
+```bash
+# Terraform
+terraform state pull > state.json   # backup dulu sebelum ganti backend
+
+# Pulumi
+pulumi stack export --file stack.json
+pulumi stack import --file stack.json
+```
+
+## Satu aturan yang lebih penting daripada backend mana yang lu pilih
+
+Jangan pernah edit state file pake tangan. Kalau state sama kenyataan beda, betulin pake `terraform import` / `pulumi import`, atau sesuaiin konfigurasi lu biar match sama kenyataan, bukan buka file JSON-nya. Dan backend apapun yang lu pake, selalu jalanin `plan`/`preview` sebelum `apply`/`up`, biar ada yang liat diff-nya sebelum jadi kenyataan beneran, ini persis yang diautomasi sama [tutorial CI/CD](/id/tutorials/cicd).
+
+## Langkah berikutnya
+
+- [Manage secrets the right way](/id/tutorials/secrets-management) - masukin API token lu ke shared backend itu dan ke CI dengan aman

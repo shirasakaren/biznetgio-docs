@@ -41,3 +41,4 @@
 
 - Document only the five API groups the providers cover: neolites, neolite-pros, baremetals (+additional-ips, +elastic-storages), neo-gpus, object-storages
 - Do not document portal UI-only features or products without a public API
+- The `tutorials/` group is workflow content (project layout, environments, state backends, CI/CD, testing), not resource reference - it may cover generic IaC practices as long as every code example only uses resources from the five API groups above

@@ -1,0 +1,37 @@
+---
+title: "Testing, validasi, dan guardrail"
+description: "Nangkep kesalahan sebelum jadi order beneran"
+---
+
+Tiap create atau upgrade di provider ini adalah order berbayar beneran, dan API-nya sendiri gak punya mode dry-run. Guardrail yang paling penting adalah yang nangkep kesalahan sebelum `apply`/`up` jalan, bukan sesudahnya.
+
+## Static check, di tiap pull request
+
+**Terraform:**
+
+```bash
+terraform fmt -check
+terraform validate
+```
+
+`fmt -check` nangkep drift style, `validate` nangkep error syntax dan type, dua-duanya tanpa nyentuh API atau butuh token beneran. Linter komunitas opsional `tflint` nambahin rule best-practice HCL secara umum; gak ada plugin khusus biznetgio, jadi dia cuma ngecek pattern Terraform yang universal.
+
+**Pulumi:** preview itu sendiri udah jadi dry run lu, dia hitung diff beneran pake token yang valid (dibutuhin buat call data source yang read-only) tapi gak pernah ngubah apa-apa. Di atas itu, program lu cuma kode di bahasa lu, jadi tools bahasanya sendiri berlaku: `tsc --noEmit`, `mypy`, `go vet`, `dotnet build`.
+
+## Diff itu safety check yang sebenarnya
+
+Jangan pernah merge pull request yang plan atau preview-nya belum lu baca. Itu inti dari post diff sebagai komentar PR di [tutorial CI/CD](/id/tutorials/cicd): review kejadian di tempat yang sama dengan code review, bukan langkah terpisah yang gampang keskip.
+
+## Guardrail spesifik buat provider ini
+
+- **Test pake `pay_with_credit_card = false` / `payWithCreditCard: false`.** Resource-nya tetep dibuat tapi stay `Pending` sampe dibayar di portal, jadi satu siklus plan-ke-apply penuh bisa direhearsal tanpa ada charge beneran yang masuk. Liat [panduan billing](/id/guides/billing).
+- **Anggep one-shot trigger dan field create-only sebagai irreversible pas review.** `rebuild_os`, `reset_trigger`, dan [trigger](/id/tutorials/environments) lainnya fire secara destruktif begitu value-nya berubah, dan `fmt`/`validate` Terraform atau type checker Pulumi gak bisa ngasih warning kalau satu plan bakal reinstall OS; manusia yang review diff-lah yang harus nangkep itu.
+- **Preview destroy sebelum bener-bener jalanin.** `terraform plan -destroy` dan `pulumi preview --diff` nunjukin persis apa yang bakal hilang, sebelum `destroy`/`down` bikin itu permanen.
+
+## Policy as code, kalau manual review udah gak cukup
+
+Buat tim yang udah kelewat fase "ada orang yang baca tiap diff," dua ekosistem ini support enforce rule secara otomatis: Pulumi CrossGuard (`pulumi policy new`) atau tooling Sentinel/OPA Terraform (tier berbayar Terraform Cloud, atau `conftest` open-source yang jalan ke `terraform show -json`) bisa nolak plan yang ngelanggar rule, misalnya "stack production gak boleh set `payWithCreditCard` ke false," atau "gak boleh ada resource bare-metal di environment dev." Worth diadopsi kalau manual review udah jadi bottleneck, jangan sebelum itu.
+
+## Langkah berikutnya
+
+- [Capstone: production stack di Biznet GIO](/id/tutorials/production-deployment) - gabungin semua tutorial di track ini jadi satu deployment beneran

@@ -28,9 +28,10 @@ community providers:
 
 ## What's documented
 
-- [What is Infrastructure as Code?](https://biznetgio.creations.ren/what-is-iac) - beginner friendly explainer of IaC, Terraform, and Pulumi
+- [What is Infrastructure as Code?](https://biznetgio.creations.ren/what-is-iac) - beginner friendly explainer of IaC, Terraform, and Pulumi, including how the tools actually work under the hood
 - Quickstarts for [Terraform](https://biznetgio.creations.ren/quickstart) and [Pulumi](https://biznetgio.creations.ren/pulumi-quickstart)
 - [Authentication](https://biznetgio.creations.ren/authentication), [package registries](https://biznetgio.creations.ren/registries), and per-resource references for both providers
+- [Tutorials](https://biznetgio.creations.ren/tutorials/project-structure) - an eight-part path from project structure to a reviewed, CI-deployed production stack: project layout, environments, state and collaboration, secrets management, CI/CD, modules and components, testing and guardrails, and a full production capstone
 - Guides: billing, triggers, development, and FAQ
 - Full Indonesian translation of every page
 
@@ -39,6 +40,7 @@ community providers:
 - `docs.json` - site configuration (navigation, branding, navbar)
 - `index.mdx`, `what-is-iac.mdx`, `quickstart.mdx`, `pulumi-quickstart.mdx`, `authentication.mdx`, `registries.mdx` - getting started
 - `terraform/` and `pulumi/` - per-provider references (installation, resources, importing)
+- `tutorials/` - project structure, environments, state and collaboration, secrets, CI/CD, modules and components, testing and guardrails, and a production capstone
 - `guides/` - billing, triggers, development, FAQ
 - `id/` - Indonesian translation of every page
 

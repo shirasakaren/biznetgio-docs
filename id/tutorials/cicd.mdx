@@ -1,0 +1,141 @@
+---
+title: "CI/CD pake GitHub Actions"
+description: "Automasi plan dan apply (atau preview dan up) dengan review pull request"
+---
+
+Tujuannya: buka pull request, bot ngepost plan/preview sebagai comment otomatis, manusia review, dan merge ke `main` bikin apply beneran, dijaga di belakang approval yang wajib. Tutorial ini nyambungin itu semua buat dua provider-nya.
+
+<Info>
+  Ini nganggep lu udah punya folder `infra/` dari tutorial [project structure](/id/tutorials/project-structure), dan token yang udah disimpen sebagai GitHub Actions secret sesuai [Manage secrets the right way](/id/tutorials/secrets-management).
+</Info>
+
+## Terraform
+
+`.github/workflows/terraform.yml`:
+
+```yaml
+name: terraform
+
+on:
+  pull_request:
+    paths: ["infra/**"]
+  push:
+    branches: [main]
+    paths: ["infra/**"]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: terraform init
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+
+      - run: terraform plan -no-color -out=tfplan
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+
+      - run: terraform show -no-color tfplan > plan.txt
+
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const plan = fs.readFileSync('infra/plan.txt', 'utf8')
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "```\n" + plan.slice(0, 60000) + "\n```"
+            })
+
+  apply:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: terraform init
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+
+      - run: terraform apply -auto-approve
+        env:
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+```
+
+Baris `environment: production` di job `apply` itu yang bikin lu bisa mewajibkan approval sebelum jalan: di repository, **Settings → Environments → production**, tambahin required reviewers, dan job-nya bakal nunggu sampe salah satu dari mereka approve, walaupun CI-nya udah lolos.
+
+## Pulumi
+
+Pulumi punya action resmi yang udah tau caranya comment preview ke pull request, jadi gak perlu scripting manual. Butuh secret kedua, `PULUMI_ACCESS_TOKEN`, token Pulumi Cloud yang beda dari token Biznet GIO lu, soalnya action-nya login ke Pulumi Cloud buat baca dan nulis state stack-nya.
+
+`.github/workflows/pulumi.yml`:
+
+```yaml
+name: pulumi
+
+on:
+  pull_request:
+    paths: ["infra/**"]
+  push:
+    branches: [main]
+    paths: ["infra/**"]
+
+jobs:
+  preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pulumi/actions@v7
+        with:
+          command: preview
+          stack-name: production
+          work-dir: infra
+          comment-on-pr: true
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+
+  up:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pulumi/actions@v7
+        with:
+          command: up
+          stack-name: production
+          work-dir: infra
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          BIZNETGIO_API_KEY: ${{ secrets.BIZNETGIO_API_KEY }}
+```
+
+Trik yang sama kayak Terraform: `environment: production` di job `up` ngejaganya di belakang required reviewers yang diatur di repository settings.
+
+## Wajibin check-nya sebelum merge
+
+Nyalain branch protection buat `main`, terus tandain job `plan` (Terraform) atau `preview` (Pulumi) sebagai required status check. Itu bikin gak mungkin ada pull request yang ke-merge tanpa diff-nya kelihat sama siapapun.
+
+## Langkah berikutnya
+
+- [Reusable modules and components](/id/tutorials/modules-and-components) - bungkus resource yang dideploy pipeline ini biar staging dan production tetep sinkron

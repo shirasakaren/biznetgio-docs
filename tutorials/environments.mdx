@@ -1,0 +1,99 @@
+---
+title: "Environments: dev, staging, and production"
+description: "Keep environments isolated with Terraform workspaces and Pulumi stacks"
+---
+
+One set of configuration files, run against several separate environments, each with its own state and its own settings. That's the whole idea: the same `main.tf` or `index.ts` from the [project structure](/tutorials/project-structure) tutorial, applied three times with three different answers to "how big" and "who pays."
+
+## Terraform workspaces
+
+A workspace is an isolated slot of state within the same backend. Every workspace shares the same configuration files.
+
+```bash
+terraform workspace new staging
+terraform workspace new production
+terraform workspace list
+terraform workspace select staging
+```
+
+Reference the current workspace inside your configuration with `terraform.workspace`. This only shows the part that changes; the `data` lookups for products and OS images and the `biznetgio_neolite_keypair` resource are exactly what the [quickstart](/quickstart) already declared in full:
+
+```hcl
+resource "biznetgio_neolite_vm" "main" {
+  vm_name              = "web-${terraform.workspace}"
+  product_id           = data.biznetgio_neolite_products.all.products[0].product_id
+  select_os            = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
+  keypair_id           = biznetgio_neolite_keypair.main.keypair_id
+  cycle                = "m"
+  ssh_and_console_user = "admin"
+  console_password     = var.console_password
+
+  # cheap and reversible while testing, real money in production
+  pay_with_credit_card = terraform.workspace == "production"
+}
+```
+
+<Warning>
+  Always check which workspace is selected before applying: `terraform workspace show`. Applying to the wrong workspace is the single most common way people accidentally touch production. Consider wrapping `apply` in a script or CI job that requires the workspace name as an explicit argument instead of trusting whatever is currently selected.
+</Warning>
+
+If dev, staging, and production ever need genuinely different resources (not just different values), workspaces stop being the right tool, since all workspaces share one configuration. At that point, move to a directory per environment (`envs/dev`, `envs/staging`, `envs/production`), each with its own backend configuration and `tfvars`, all calling the same shared [module](/tutorials/modules-and-components).
+
+## Pulumi stacks
+
+A stack is Pulumi's native equivalent, and it's the primitive the quickstart already used without naming it.
+
+```bash
+pulumi stack init dev
+pulumi stack init staging
+pulumi stack init production
+pulumi stack ls
+pulumi stack select staging
+```
+
+Each stack gets its own `Pulumi.<stack>.yaml` config file and independent state. Set config per stack explicitly with `--stack`:
+
+```bash
+pulumi config set --stack dev biznetgio:apiToken <dev-token> --secret
+pulumi config set --stack production biznetgio:apiToken <production-token> --secret
+```
+
+Read the current stack's name inside your program with `pulumi.getStack()`. Again, this only shows the part that changes; `products`, `osList`, `keypair`, and `config` are exactly what the [Pulumi quickstart](/pulumi-quickstart) already declared in full:
+
+```typescript
+import * as pulumi from "@pulumi/pulumi";
+import * as biznetgio from "@shirasakaren/biznetgio";
+
+const stack = pulumi.getStack();
+
+const vm = new biznetgio.NeoliteVm("main", {
+  vmName: `web-${stack}`,
+  productId: products.products[0].productId,
+  selectOs: osList.oss[0].name,
+  keypairId: keypair.keypairId,
+  cycle: "m",
+  sshAndConsoleUser: "admin",
+  consolePassword: config.requireSecret("consolePassword"),
+  payWithCreditCard: stack === "production",
+});
+```
+
+<Warning>
+  Same rule as Terraform: check `pulumi stack ls` (the current one is marked) before `pulumi up`. Pass `--stack <name>` explicitly in CI rather than relying on whichever stack was last selected on that runner.
+</Warning>
+
+## A practical dev/staging/production split
+
+A pattern that works well for these providers specifically:
+
+| Environment | `pay_with_credit_card` / `payWithCreditCard` | Product tier | Purpose |
+| --- | --- | --- | --- |
+| dev | `false` | cheapest available | validate plans/previews without a real charge; resource sits `Pending` until paid |
+| staging | `true` | same tier as production | catch real-world behavior before it matters |
+| production | `true` | the real tier | what customers actually use |
+
+Read the [billing guide](/guides/billing) for exactly what `pay_with_credit_card = false` does; it's the cheapest way to rehearse a whole apply/up cycle before committing real money.
+
+## Next steps
+
+- [State, remote backends, and team collaboration](/tutorials/state-and-collaboration) - get each environment's state off your laptop

@@ -1,0 +1,99 @@
+---
+title: "Environment: dev, staging, dan production"
+description: "Isolasiin environment pake Terraform workspace dan Pulumi stack"
+---
+
+Satu set file konfigurasi, dijalanin ke beberapa environment yang beda-beda, masing-masing punya state dan setting sendiri. Itu ide intinya: `main.tf` atau `index.ts` yang sama dari tutorial [project structure](/id/tutorials/project-structure), diapply tiga kali dengan tiga jawaban berbeda buat "seberapa besar" dan "siapa yang bayar."
+
+## Terraform workspace
+
+Workspace itu slot state yang keisolasi di dalam backend yang sama. Semua workspace share file konfigurasi yang sama.
+
+```bash
+terraform workspace new staging
+terraform workspace new production
+terraform workspace list
+terraform workspace select staging
+```
+
+Reference workspace yang aktif di dalam konfigurasi lu pake `terraform.workspace`. Ini cuma nunjukin bagian yang berubah aja; `data` lookup buat product dan OS image sama resource `biznetgio_neolite_keypair` itu persis yang udah dideklarasiin lengkap di [quickstart](/id/quickstart):
+
+```hcl
+resource "biznetgio_neolite_vm" "main" {
+  vm_name              = "web-${terraform.workspace}"
+  product_id           = data.biznetgio_neolite_products.all.products[0].product_id
+  select_os            = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
+  keypair_id           = biznetgio_neolite_keypair.main.keypair_id
+  cycle                = "m"
+  ssh_and_console_user = "admin"
+  console_password     = var.console_password
+
+  # murah dan bisa dibalik pas testing, duit beneran pas production
+  pay_with_credit_card = terraform.workspace == "production"
+}
+```
+
+<Warning>
+  Selalu cek workspace mana yang lagi aktif sebelum apply: `terraform workspace show`. Apply ke workspace yang salah itu cara paling umum orang gak sengaja nyenggol production. Coba bungkus `apply` di script atau CI job yang mewajibkan nama workspace sebagai argumen eksplisit, bukan ngandelin workspace mana yang lagi keselect.
+</Warning>
+
+Kalau dev, staging, dan production butuh resource yang beneran beda (bukan cuma value yang beda), workspace udah bukan tools yang cocok lagi, karena semua workspace share satu konfigurasi yang sama. Di titik itu, pindah ke satu direktori per environment (`envs/dev`, `envs/staging`, `envs/production`), masing-masing punya konfigurasi backend dan `tfvars` sendiri, tapi tetep manggil [module](/id/tutorials/modules-and-components) yang sama-sama dishare.
+
+## Pulumi stack
+
+Stack itu versi native-nya Pulumi, dan ini primitive yang udah dipake quickstart tanpa disebut namanya.
+
+```bash
+pulumi stack init dev
+pulumi stack init staging
+pulumi stack init production
+pulumi stack ls
+pulumi stack select staging
+```
+
+Setiap stack punya file config `Pulumi.<stack>.yaml` sendiri dan state yang independen. Set config per stack secara eksplisit pake `--stack`:
+
+```bash
+pulumi config set --stack dev biznetgio:apiToken <dev-token> --secret
+pulumi config set --stack production biznetgio:apiToken <production-token> --secret
+```
+
+Baca nama stack yang aktif di dalam program lu pake `pulumi.getStack()`. Sekali lagi, ini cuma nunjukin bagian yang berubah; `products`, `osList`, `keypair`, dan `config` itu persis yang udah dideklarasiin lengkap di [quickstart Pulumi](/id/pulumi-quickstart):
+
+```typescript
+import * as pulumi from "@pulumi/pulumi";
+import * as biznetgio from "@shirasakaren/biznetgio";
+
+const stack = pulumi.getStack();
+
+const vm = new biznetgio.NeoliteVm("main", {
+  vmName: `web-${stack}`,
+  productId: products.products[0].productId,
+  selectOs: osList.oss[0].name,
+  keypairId: keypair.keypairId,
+  cycle: "m",
+  sshAndConsoleUser: "admin",
+  consolePassword: config.requireSecret("consolePassword"),
+  payWithCreditCard: stack === "production",
+});
+```
+
+<Warning>
+  Aturan yang sama kayak Terraform: cek `pulumi stack ls` (yang aktif ditandain) sebelum `pulumi up`. Pass `--stack <name>` secara eksplisit di CI, jangan ngandelin stack mana yang terakhir keselect di runner itu.
+</Warning>
+
+## Pola dev/staging/production yang praktis
+
+Pola yang cocok buat provider ini secara spesifik:
+
+| Environment | `pay_with_credit_card` / `payWithCreditCard` | Tier product | Tujuan |
+| --- | --- | --- | --- |
+| dev | `false` | paling murah yang ada | validasi plan/preview tanpa charge beneran; resource nyangkut `Pending` sampe dibayar |
+| staging | `true` | tier yang sama kayak production | nangkep behavior dunia nyata sebelum kejadian beneran |
+| production | `true` | tier beneran | yang beneran dipake customer |
+
+Baca [panduan billing](/id/guides/billing) buat tau tepatnya apa yang `pay_with_credit_card = false` lakuin; itu cara paling murah buat gladi resik satu siklus apply/up penuh sebelum komit duit beneran.
+
+## Langkah berikutnya
+
+- [State, remote backend, dan kolaborasi tim](/id/tutorials/state-and-collaboration) - pindahin state tiap environment dari laptop lu
