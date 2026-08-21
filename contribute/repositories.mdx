@@ -1,0 +1,122 @@
+---
+title: "How the repos are organized"
+description: "A full map of the three repos you can contribute to, what each file does, and where to make each kind of change"
+---
+
+Before you change anything, you need a mental map of the three repos this guide covers. Each one has a small, consistent structure, and most contributions touch a single folder in a single repo.
+
+## The docs site repo
+
+[shirasakaren/biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs) builds this site with [Mintlify](https://mintlify.com). Every page is an MDX file (Markdown plus React style components), and one JSON file, `docs.json`, defines the whole navigation.
+
+```
+biznetgio-docs/
+├── docs.json              # site config: tabs, sidebar groups, colors, navbar
+├── index.mdx              # home page
+├── what-is-iac.mdx        # IaC explainer
+├── quickstart.mdx         # Terraform quickstart
+├── pulumi-quickstart.mdx  # Pulumi quickstart
+├── authentication.mdx     # how to get a Biznet GIO API token
+├── registries.mdx         # where the providers are published
+├── about.mdx              # about the project
+├── tutorials/             # the beginner tutorial track (8 pages + examples)
+├── terraform/             # Terraform provider reference
+├── pulumi/                # Pulumi provider reference
+├── guides/                # billing, triggers, development, FAQ
+├── contribute/            # this section
+├── id/                    # Indonesian translation of every page, same paths
+├── images/  logo/         # images and logos
+├── AGENTS.md              # writing rules for this repo
+├── README.md              # repo overview and local dev instructions
+└── .mintignore            # files Mintlify ignores when building
+```
+
+Key rules for this repo:
+
+- Every page must exist in English at the root and in Indonesian under `id/` with the same relative path. `index.mdx` has `id/index.mdx`, `tutorials/cicd.mdx` has `id/tutorials/cicd.mdx`, and so on. There are no exceptions.
+- Links between pages are relative to the site root, like `/contribute/setup`. In Indonesian pages the same link starts with `/id/`.
+- Navigation lives in `docs.json` only. Adding a page to a folder does nothing until the page is listed in a sidebar group there.
+- The site deploys automatically from the `main` branch through the Mintlify GitHub app. There is no CI file to run; pushing to main is the deploy.
+
+## The Terraform examples repo
+
+[shirasakaren/biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform) has one self-contained example per Biznet GIO product line, plus a `complete/` example that combines two product lines through a reusable module. Together they use every one of the provider's 20 resources and 19 data sources.
+
+```
+biznetgio-example-terraform/
+├── neolite/               # NEO Lite VPS: all 5 resources + all 5 data sources
+├── neolite-pro/           # NEO Lite Pro VPS: all 4 resources + all 5 data sources
+├── baremetal/             # NEO Metal: all 5 resources + all 3 data sources
+├── gpu/                   # NEO GPU: both resources + all 3 data sources
+├── object-storage/        # NEO Object Storage: all 4 resources + all 3 data sources
+├── complete/              # NEO Lite Pro + Object Storage behind a reusable module
+│   └── modules/app-stack/ # the module itself
+├── .github/workflows/ci.yml   # manual dispatch pipeline
+├── .github/ISSUE_TEMPLATE/    # bug, feature, and docs issue forms
+├── .github/pull_request_template.md
+├── CODEOWNERS  CONTRIBUTING.md
+├── README.md               # bilingual overview, per-folder table, cost warning
+└── LICENSE                 # MIT
+```
+
+Each example folder always has the same five files:
+
+| File | What it does |
+| --- | --- |
+| `versions.tf` | Pins the Terraform version and the provider version, and declares the provider (which reads the `BIZNETGIO_API_KEY` environment variable) |
+| `variables.tf` | Declares every input, with defaults where safe. Secrets get no default, on purpose |
+| `main.tf` | The actual infrastructure: data sources, resources, and how they connect |
+| `outputs.tf` | Publishes the values you care about after apply, like the VM status or the keypair private key |
+| `terraform.tfvars.example` | A template you copy to the gitignored `terraform.tfvars` to fill in real values. Only exists in folders that need a console password |
+
+The [Terraform repo guide](/contribute/terraform-guide) walks through these files line by line.
+
+## The Pulumi examples repo
+
+[shirasakaren/biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi) has the same six examples, each written once per supported language:
+
+```
+biznetgio-example-pulumi/
+├── typescript/            # neolite/ neolite-pro/ baremetal/ gpu/ object-storage/ complete/
+├── python/                # same six folders
+├── go/                    # same six folders
+├── dotnet/                # same six folders
+├── java/                  # same six folders
+├── yaml/                  # same six folders (each is a single Pulumi.yaml)
+├── .github/workflows/ci.yml   # manual dispatch pipeline with a language x example matrix
+├── .github/ISSUE_TEMPLATE/    # bug, feature, and docs issue forms
+├── .github/pull_request_template.md
+├── CODEOWNERS  CONTRIBUTING.md
+├── README.md               # bilingual overview, bug-it-caught section, cost warning
+└── LICENSE                 # MIT
+```
+
+Every folder is an independent Pulumi project. It has a `Pulumi.yaml` (project name, runtime, description) plus whatever files that language needs:
+
+| Language | Files |
+| --- | --- |
+| TypeScript | `index.ts` (the program), `package.json` (pinned SDK), `tsconfig.json` |
+| Python | `__main__.py`, `requirements.txt` |
+| Go | `main.go`, `go.mod`, `go.sum` |
+| .NET | `Program.cs`, a `.csproj` named after the project in `Pulumi.yaml` |
+| Java | `pom.xml`, `src/main/java/demo/App.java` |
+| YAML | just `Pulumi.yaml` with `runtime: yaml` |
+
+The `complete/` example in each code language also has one extra file defining the reusable component, like `appStack.ts` or `app_stack.py`. The [Pulumi repo guide](/contribute/pulumi-guide) explains the pattern and every one of the languages.
+
+## Where to make each kind of change
+
+If you know what you want to do but not where to do it, this table is your answer:
+
+| I want to... | Repo | Path |
+| --- | --- | --- |
+| Fix a typo or unclear paragraph | docs | the page file under the section it lives in, plus `id/` copy |
+| Fix wrong code in a reference page | docs | `terraform/resources/*.mdx` or `pulumi/resources/*.mdx`, plus `id/` copy |
+| Add or fix an example of a resource | terraform examples | the product folder, e.g. `gpu/main.tf` |
+| Add or fix an example in one Pulumi language | pulumi examples | that language's folder, then mirror it to the other five |
+| Fix the CI pipeline | examples | `.github/workflows/ci.yml` |
+| Report a provider bug | provider repo | an issue on [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio/issues) or [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio/issues) |
+
+## The provider repos, briefly
+
+The two provider repos are Go codebases that implement the [Biznet GIO API](https://api.portal.biznetgio.com/v1/docs) for Terraform and Pulumi respectively. You usually do not need to touch them: everything a user-facing change needs is visible through the examples and the reference pages. When a provider bug affects the examples or docs, file the issue on the provider repo first, then fix the example or docs page to match the provider's actual behavior, exactly like the [GPU keypair fix](/pulumi/resources/gpu) described in the Pulumi examples README.

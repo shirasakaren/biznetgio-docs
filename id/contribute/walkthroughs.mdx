@@ -1,0 +1,135 @@
+---
+title: "Walkthrough langkah demi langkah"
+description: "Lima skenario kontribusi lengkap dengan semua command, dari typo docs sampai bahasa baru"
+---
+
+Halaman-halaman sebelumnya ngejelasin aturannya. Halaman ini ngubahnya jadi lima run lengkap yang bisa lu ikutin persis, diurutin dari yang paling gampang. Tiap skenario ngasumsi lu udah ngerjain [Local setup](/id/contribute/setup).
+
+## Skenario 1: benerin typo di situs docs
+
+Kontribusi sekecil mungkin, bagus buat belajar alur fork dan PR.
+
+<Steps>
+<Step title="Fork dan clone">
+  Fork [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs), terus:
+  ```bash
+  git clone git@github.com:YOUR-USERNAME/biznetgio-docs.git
+  cd biznetgio-docs
+  git checkout -b docs/fix-typo
+  ```
+</Step>
+<Step title="Temuin halamannya dan benerin dua bahasa">
+  Misal typo-nya ada di `/quickstart`. Copy Inggris-nya `quickstart.mdx`, copy Indonesianya `id/quickstart.mdx`. Benerin Inggris dulu, terus terapin fix yang setara ke halaman Indonesia. Kalau kalimat Indonesianya gak ada persis, benerin maknanya, bukan kata-katanya.
+</Step>
+<Step title="Preview lokal">
+  ```bash
+  npm i -g mint   # one time
+  mint dev        # open http://localhost:3000/quickstart
+  ```
+  Cek dua-dua bahasa pake language switcher di top bar.
+</Step>
+<Step title="Commit dan push">
+  ```bash
+  git add quickstart.mdx id/quickstart.mdx
+  git commit -m "docs: fix typo in quickstart"
+  git push origin docs/fix-typo
+  ```
+</Step>
+<Step title="Buka PR">
+  Buka PR lawan `main` upstream. Sebut halaman mana dan bahasa mana. Maintainer squash merge, dan app Mintlify nge-redeploy situs dari `main` otomatis dalam hitungan menit.
+</Step>
+</Steps>
+
+## Skenario 2: nambah contoh Terraform baru
+
+Misal provider dapet data source baru buat NEO Lite dan lu mau contoh yang nunjukin itu.
+
+<Steps>
+<Step title="Branch dari main yang fresh">
+  ```bash
+  git clone git@github.com:YOUR-USERNAME/biznetgio-example-terraform.git
+  cd biznetgio-example-terraform
+  git remote add upstream https://github.com/shirasakaren/biznetgio-example-terraform.git
+  git fetch upstream && git checkout -b feat/neolite-new-datasource upstream/main
+  ```
+</Step>
+<Step title="Edit contohnya">
+  Kalau data source-nya masuk ke cerita NEO Lite yang udah ada, tambahin ke `neolite/main.tf` dengan banner dan komen section bilingual, ngikutin [Konvensi](/id/contribute/conventions). Referensikan dari resource atau output biar bener-bener kepake.
+</Step>
+<Step title="Validate">
+  ```bash
+  cd neolite
+  terraform fmt -check
+  terraform init
+  terraform validate
+  ```
+  Benerin semuanya sampe tiga-tiganya lolos. Kalau provider punya batas nama buat yang lu tambahin, pendekin namanya.
+</Step>
+<Step title="Update docs dan README di PR yang sama">
+  Tabel README root bilang `neolite/` nge-cover "all 5" data sources; naikin angkanya. Kalau situs docs punya halaman yang nunjukin data source NEO Lite, update `terraform/resources/neolite.mdx` dan `id/terraform/resources/neolite.mdx` di repo docs.
+</Step>
+<Step title="Commit, push, buka PR">
+  ```bash
+  git commit -am "feat(neolite): use the new data source in the example"
+  git push origin feat/neolite-new-datasource
+  ```
+  Isi checklist template PR dengan jujur, termasuk kotak sinkronisasi README dan docs.
+</Step>
+</Steps>
+
+## Skenario 3: nambah contoh Pulumi baru di TypeScript
+
+<Steps>
+<Step title="Copy folder yang paling deket">
+  ```bash
+  git clone git@github.com:YOUR-USERNAME/biznetgio-example-pulumi.git
+  cd biznetgio-example-pulumi
+  git checkout -b feat/new-example
+  cp -r typescript/object-storage typescript/my-new-thing
+  ```
+</Step>
+<Step title="Tulis ulang programnya">
+  Edit `typescript/my-new-thing/index.ts`: banner baru, resource baru, aturan yang sama. Set nama project di `Pulumi.yaml` jadi `biznetgio-example-my-new-thing` dan benerin field `name` di `package.json` biar cocok. Jaga `payWithCreditCard` default ke `false`, opsi one-shot dikomen, dan `toAccountId` di mana pun id ketemu input yang typed number.
+</Step>
+<Step title="Build dan preview">
+  ```bash
+  npm install
+  npx tsc --noEmit
+  ```
+  Type error di tahap ini hampir selalu `toAccountId` yang kelewat atau properti yang gak ada, kayak `keypairId` di `GpuKeypair`. [Panduan repo Pulumi](/id/contribute/pulumi-guide) nge-list yang udah diketahui.
+</Step>
+<Step title="Mirror ke lima bahasa lainnya">
+  Copy contoh setara yang udah ada di tiap bahasa dan translate programnya dengan cara yang sama. YAML dapet versi flat. Komen tetep sama semangatnya, format bilingual yang sama di mana-mana.
+</Step>
+<Step title="Update README dan CI, terus buka PR">
+  Tabel README root, README per folder, dan tiga titik edit CI dari [Pipelines](/id/contribute/pipelines). Terus isi checklist PR dan buka PR lawan `main` upstream.
+</Step>
+</Steps>
+
+## Skenario 4: mirror contoh yang udah ada ke bahasa Pulumi baru
+
+Mekanik dari langkah "lima bahasa lainnya" di Skenario 3, dikerjain dengan bener buat satu bahasa:
+
+1. Pilih bahasa yang lu kuasai dan copy enam folder bahasa yang udah ada, jangan rename apa pun dulu.
+2. Buat tiap folder, ganti file programnya dengan versi bahasa baru, jaga komen bilingual. Translate strukturnya, jangan pernah ngarang perilaku: resource yang sama, default yang sama, urutan yang sama.
+3. Tulis file dependency bahasa baru dengan versi pinned dari [Konvensi](/id/contribute/conventions).
+4. Build tiap folder dengan command bahasanya dari [Local setup](/id/contribute/setup), benerin type error satu per satu.
+5. Update README root cuma kalau dia nge-list coverage bahasa, dan tambahin bahasa itu ke CI di tiga tempat yang disebut [Pipelines](/id/contribute/pipelines).
+
+Kalau ini bahasa baru total, bukan mirror, buka feature request dulu sesuai [Komunikasi](/id/contribute/communication).
+
+## Skenario 5: laporin bug yang lu nemuin pas pake contoh
+
+Lu jalanin `terraform plan` di `gpu/` dan dapet error yang gak bisa lu jelasin.
+
+1. Cari teks error-nya di issues dan Discussions repo dulu.
+2. Cek halaman docs buat resource itu; [keanehan GPU](/id/terraform/resources/gpu) memang didokumentasiin dengan sengaja.
+3. Kalau ini hal baru, buka bug issue lewat [form laporan bug](/id/contribute/issues). Isi folder contoh-nya, versi Terraform lu, command persisnya, output error lengkap, dan apa yang lu harapin.
+4. Tunggu triage. Kalau maintainer bilang itu bug provider, dia bakal mindahin ke repo provider, dan lu bisa ngikutin fix-nya di situ.
+5. Kalau lu juga tau fix buat contoh atau docs-nya, bilang di issue, terus kirim PR setelah issue ngekonfirmasi arahnya.
+
+## Yang dilakuin pas lu mentok
+
+- Baca ulang [Panduan repo Terraform](/id/contribute/terraform-guide) atau [Panduan repo Pulumi](/id/contribute/pulumi-guide) buat area yang lu sentuh.
+- Buka Discussion dengan kode lu sekarang dan error-nya. Itu emang gunanya Discussions.
+- Jaga PR tetep draft selagi lu mikirin; thread review itu tempat yang oke buat nanya begitu PR-nya ada.

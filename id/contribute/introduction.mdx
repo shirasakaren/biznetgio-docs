@@ -1,0 +1,68 @@
+---
+title: "Berkontribusi"
+description: "Semua yang lu butuhin buat kolaborasi di provider Biznet GIO, situs docs, dan repo contoh"
+---
+
+Selamat datang di panduan kolaborasi proyek infrastructure as code Biznet GIO. Semua yang ada di proyek ini open source, dan section ini ngajarin lu persis gimana cara bantu: apa yang ada di mana, gimana tiap bagian kerjanya, konvensi apa yang harus diikutin, gimana buka issues dan pull request, dan gimana pipelines ngejaga tiap perubahan tetap aman.
+
+<Warning>
+  Lu gak butuh pengalaman Terraform, Pulumi, atau Go dulu buat berkontribusi. Halaman [Apa itu Infrastructure as Code?](/id/what-is-iac) ngejelasin dasarnya, dan tiap guide di bawah ini cuma ngasumsi pengetahuan ilmu komputer umum. Semua yang ada di repo-nya sendiri dikomen dalam Bahasa Inggris dan Bahasa Indonesia karena alasan yang sama.
+</Warning>
+
+## Peta proyek
+
+Proyek ini terdiri dari lima repository. Mereka nyambung kayak rantai: dua provider yang ngobrol sama API Biznet GIO, dua repo contoh yang nunjukin tiap fitur provider itu jalan, dan satu situs docs yang ngajarin dua-duanya.
+
+| Repo | Apa itu | Bahasa | Lisensi |
+| --- | --- | --- | --- |
+| [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio) | Provider Terraform-nya sendiri | Go | MIT |
+| [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio) | Provider Pulumi-nya sendiri | Go | MIT |
+| [biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform) | Contoh Terraform yang bisa dijalanin, satu folder per lini produk | HCL | MIT |
+| [biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi) | Contoh yang sama di semua enam bahasa Pulumi | TypeScript, Python, Go, .NET, Java, YAML | MIT |
+| [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs) | Situs docs ini, dibangun pake [Mintlify](https://mintlify.com) | MDX | Apache-2.0 |
+
+Section Contribute ini ngurusin tiga repo yang bisa lu ubah tanpa pengetahuan provider yang dalam: situs docs dan dua repo contoh. Dua repo provider itu codebase Go dengan alur development mereka sendiri; kalau lu nemu bug provider, laporin sebagai issue di repo provider dan biasanya dibenerin di situ duluan.
+
+## Gimana repo-repo saling komunikasi
+
+Tiga repo itu terus-terusan ngerujuk satu sama lain, dan wiring itu bagian dari desainnya:
+
+- Repo contoh nge-link ke tutorial situs docs yang ngejelasin pattern yang mereka pake, kayak [tutorial Capstone](/id/tutorials/production-deployment).
+- Situs docs nge-link ke repo contoh di [halaman examples](/id/tutorials/examples), di menu sidebar GitHub, dan dari halaman reference.
+- Halaman reference situs docs nunjukin code yang harus cocok sama yang provider dan contoh lakuin beneran. Pas contoh nemu mismatch, contoh dan docs dua-duanya dibenerin bareng.
+
+Poin terakhir itu penting banget. Repo ini udah nangkep bug asli di docs dengan compile tiap contoh pake SDK aslinya, contohnya [keanehan GPU keypair id](/id/pulumi/resources/gpu). Kontribusi lu harus ngejaga loop itu tetap jalan: code dulu, docs kedua, dua-duanya konsisten.
+
+## Urutan baca
+
+Ikutin urutan ini kalau lu baru di sini:
+
+1. [Gimana repo-repo diorganisir](/id/contribute/repositories) biar tau semua ada di mana.
+2. [Setup lokal](/id/contribute/setup) buat dapetin tools dan token yang lu butuhin.
+3. [Konvensi](/id/contribute/conventions) buat belajar aturan rumah sebelum lu nulis apa pun.
+4. [Commits dan pull requests](/id/contribute/commits-and-prs) buat belajar alur kontribusinya.
+5. [Issues](/id/contribute/issues) dan [CODEOWNERS dan reviews](/id/contribute/codeowners) buat belajar gimana komunikasi dan review jalan.
+6. [Pipelines](/id/contribute/pipelines) buat ngerti safety net yang tiap perubahan lewatin.
+7. Deep dive repo, [Terraform](/id/contribute/terraform-guide) dan [Pulumi](/id/contribute/pulumi-guide), buat ngerti code-nya sendiri.
+8. [Walkthroughs step-by-step](/id/contribute/walkthroughs) pas lu siap bikin perubahan pertama.
+
+## Standar yang proyek ini ikutin
+
+Tiap konvensi yang proyek ini pake itu standar yang dipublikasiin. Halaman-halaman di atas nge-link ke sumber kanonik buat masing-masing, tapi ini tiga yang paling gede duluan:
+
+<CardGroup cols={3}>
+  <Card title="Conventional Commits" icon="git-commit" href="https://www.conventionalcommits.org">
+    Tiap pesan commit ngikutin spec ini, yang sama kayak yang dipake kebanyakan proyek open source gede.
+  </Card>
+  <Card title="GitHub Flow" icon="git-branch" href="https://docs.github.com/en/get-started/using-github/github-flow">
+    Fork, branch dari main, buka pull request, review, merge. Gak ada yang lebih ribet dari itu.
+  </Card>
+  <Card title="GitHub issue forms dan CODEOWNERS" icon="github" href="https://docs.github.com/en/communities">
+    Issue templates, pull request templates, dan aturan kepemilikan semuanya dikonfigurasi per repo di .github.
+  </Card>
+</CardGroup>
+
+Tiap repo juga punya `CONTRIBUTING.md` di root-nya yang ngerangkum aturannya sendiri dan nge-link balik ke sini:
+
+- [CONTRIBUTING.md contoh Terraform](https://github.com/shirasakaren/biznetgio-example-terraform/blob/main/CONTRIBUTING.md)
+- [CONTRIBUTING.md contoh Pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi/blob/main/CONTRIBUTING.md)

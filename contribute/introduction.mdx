@@ -1,0 +1,68 @@
+---
+title: "Contribute"
+description: "Everything you need to collaborate on the Biznet GIO providers, docs site, and example repos"
+---
+
+Welcome to the collaboration guide for the Biznet GIO infrastructure as code project. Everything in this project is open source, and this section teaches you exactly how to help: what lives where, how the pieces work, which conventions to follow, how to open issues and pull requests, and how the pipelines keep every change safe.
+
+<Warning>
+  You do not need prior Terraform, Pulumi, or Go experience to contribute. The [What is Infrastructure as Code?](/what-is-iac) page explains the basics, and each guide below assumes only general computer science knowledge. Everything in the repos themselves is commented in English and Bahasa Indonesia for the same reason.
+</Warning>
+
+## The project map
+
+Five repositories make up this project. They form a chain: two providers that talk to the Biznet GIO API, two example repos that show every feature of those providers working, and one docs site that teaches both.
+
+| Repo | What it is | Language | License |
+| --- | --- | --- | --- |
+| [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio) | The Terraform provider itself | Go | MPL-2.0 |
+| [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio) | The Pulumi provider itself | Go | Apache-2.0 |
+| [biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform) | Runnable Terraform examples, one folder per product line | HCL | MIT |
+| [biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi) | The same examples in all six Pulumi languages | TypeScript, Python, Go, .NET, Java, YAML | MIT |
+| [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs) | This docs site, built with [Mintlify](https://mintlify.com) | MDX | Apache-2.0 |
+
+This Contribute section covers the three repos you can change without deep provider knowledge: the docs site and the two example repos. The two provider repos are Go codebases with their own development flow; if you find a provider bug, report it as an issue on the provider repo and it usually gets fixed there first.
+
+## How the repos communicate
+
+The three repos reference each other constantly, and that wiring is part of the design:
+
+- The example repos link to the docs site tutorials that explain the patterns they use, like the [Capstone tutorial](/tutorials/production-deployment).
+- The docs site links to the example repos on its [examples page](/tutorials/examples), in the sidebar GitHub menu, and from the reference pages.
+- The docs site reference pages show code that must match what the providers and examples actually do. When the examples catch a mismatch, both the examples and the docs get fixed together.
+
+That last point matters a lot. This repo already caught real bugs in the docs by compiling every example against the real SDKs, for example the [GPU keypair id quirk](/pulumi/resources/gpu). Your contributions should keep that loop going: code first, docs second, both consistent.
+
+## Reading order
+
+Follow this order if you are new here:
+
+1. [How the repos are organized](/contribute/repositories) to know where everything lives.
+2. [Local setup](/contribute/setup) to get the tools and tokens you need.
+3. [Conventions](/contribute/conventions) to learn the house rules before you write anything.
+4. [Commits and pull requests](/contribute/commits-and-prs) to learn the contribution workflow.
+5. [Issues](/contribute/issues) and [CODEOWNERS and reviews](/contribute/codeowners) to learn how communication and review work.
+6. [Pipelines](/contribute/pipelines) to understand the safety net every change runs through.
+7. The repo deep dives, [Terraform](/contribute/terraform-guide) and [Pulumi](/contribute/pulumi-guide), to understand the code itself.
+8. [Step-by-step walkthroughs](/contribute/walkthroughs) when you are ready to make your first change.
+
+## Standards this project follows
+
+Every convention this project uses is a published standard. The pages above link to the canonical source for each one, but here are the big three up front:
+
+<CardGroup cols={3}>
+  <Card title="Conventional Commits" icon="git-commit" href="https://www.conventionalcommits.org">
+    Every commit message follows this spec, the same one used by most large open source projects.
+  </Card>
+  <Card title="GitHub Flow" icon="git-branch" href="https://docs.github.com/en/get-started/using-github/github-flow">
+    Fork, branch from main, open a pull request, review, merge. Nothing more complicated than that.
+  </Card>
+  <Card title="GitHub issue forms and CODEOWNERS" icon="github" href="https://docs.github.com/en/communities">
+    Issue templates, pull request templates, and ownership rules are all configured per repo in .github.
+  </Card>
+</CardGroup>
+
+Every repo also has a `CONTRIBUTING.md` at its root that summarizes its own rules and links back here:
+
+- [Terraform examples CONTRIBUTING.md](https://github.com/shirasakaren/biznetgio-example-terraform/blob/main/CONTRIBUTING.md)
+- [Pulumi examples CONTRIBUTING.md](https://github.com/shirasakaren/biznetgio-example-pulumi/blob/main/CONTRIBUTING.md)

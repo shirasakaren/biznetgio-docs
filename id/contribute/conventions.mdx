@@ -1,0 +1,117 @@
+---
+title: "Konvensi"
+description: "Aturan penamaan, komentar, formatting, version pinning, dan safety yang wajib diikutin tiap kontribusi, lengkap dengan link ke standar resminya"
+---
+
+Konvensi ada biar siapapun yang kontribusi bisa baca file mana aja dan langsung ngerti apa yang lagi terjadi. Aturannya cuma sedikit, dan tiap aturan nge-link ke standar resmi asalnya.
+
+## Penamaan
+
+Ikutin nama yang udah ada di tiap repo. Nama-nama itu ngikutin konvensi ekosistemnya masing-masing:
+
+| Hal | Konvensi | Contoh |
+| --- | --- | --- |
+| Nama folder Terraform | huruf kecil dengan hyphen | `object-storage/` |
+| Nama resource Terraform | pendek, satu kata atau hyphenated, tanpa nomor | `biznetgio_neolite_vm.main`, `biznetgio_neolite_disk.extra` |
+| Variable dan attribute Terraform | snake_case | `pay_with_credit_card`, `console_password` |
+| Nama resource Pulumi (argumen pertama) | huruf kecil dengan hyphen, deskriptif | `"neolite-example"`, `"example-app-key"` |
+| Variable dan config key Pulumi | camelCase | `consolePassword`, `payWithCreditCard` |
+| Nama project Pulumi | `biznetgio-example-<example>` | `biznetgio-example-gpu` |
+| Nama class di kode | PascalCase | `AppStack`, `AppStackArgs` |
+| Tipe Go yang di-export | PascalCase, gaya Go | `NewAppStack`, `VmProductId` |
+
+Biznet GIO punya batas nama sendiri, dan contoh-contohnya wajib nurutin itu. Inget hal-hal ini pas lu rename sesuatu:
+
+- Nama VM (`vm_name` / `vmName`): 6 sampai 16 karakter
+- Nama service disk (`service_name` / `serviceName`): 6 sampai 16 karakter
+- Label Object Storage (`label` / `storageLabel`): 6 sampai 16 karakter
+- Username SSH dan console: 6 sampai 32 karakter, cuma huruf, angka, dash, dan dot
+
+Halaman referensi nge-dokumentasiin batas per resource: [Terraform NEO Lite](/id/terraform/resources/neolite), [Pulumi NEO Lite](/id/pulumi/resources/neolite), dan tetangga-tetangganya. Rentang batas itu yang bikin contoh-contohnya pake nama pendek kayak `example-app` daripada nama panjang yang deskriptif.
+
+## Komentar bilingual
+
+Setiap file kode di repo contoh dimulai dengan banner comment dan dikomen dalam Bahasa Inggris dan Bahasa Indonesia di sepanjang file. Formatnya udah ditetapin:
+
+```hcl
+# ============================================================================
+# English: What this whole file does, in plain casual English.
+#
+# Indonesia: Apa yang file ini lakuin, pake Bahasa Indonesia yang santai.
+# ============================================================================
+```
+
+Terus tiap section dapet divider dengan dua bahasa:
+
+```hcl
+# --- The VM itself ---------------------------------------------------
+# --- VM-nya sendiri --------------------------------------------------
+```
+
+Aturannya:
+
+- Inggris dulu, Indonesia kedua, selalu.
+- Nada santai, kayak lagi ngejelasin ke temen. Gak ada bahasa dokumentasi formal di dalam komentar kode.
+- Istilah teknis tetep dalam Bahasa Inggris di dalam formatting kode, baik di komentar maupun di situs docs.
+- Kode baru yang lu tambahin wajib ngikutin pola yang sama. Ini konvensi paling penting di repo-repo ini; justru ini inti dari semuanya biar ramah buat pemula.
+
+Halaman situs docs gak bilingual per file. Tiap halaman ada dua kali, sekali dalam Bahasa Inggris dan sekali di bawah `id/`, ngikutin [AGENTS.md](https://github.com/shirasakaren/biznetgio-docs/blob/main/AGENTS.md) di repo docs.
+
+## Gak ada em dash atau en dash
+
+Project ini gak pernah pake em dash atau en dash, baik di halaman docs, komentar kode, README, maupun commit message. Hyphen doang. Aturan ini bikin tiap file ASCII-safe dan editor tiap kontributor konsisten, dan berlaku untuk dua-dua bahasa. Kalau kalimat butuh jeda, tulis ulang aja atau pake koma atau hyphen.
+
+## Formatting, per bahasa
+
+Formatting ngikutin tool kanonik tiap ekosistem. Link-nya ngarah ke dokumentasi resmi masing-masing:
+
+| Bahasa | Standar | Link | Cara CI ngeceknya |
+| --- | --- | --- | --- |
+| Terraform (HCL) | `terraform fmt`, style guide | [konvensi gaya HashiCorp](https://developer.hashicorp.com/terraform/language/style) | `terraform fmt -check` gagalin CI job kalau ada diff |
+| TypeScript | gaya Prettier, indent 2 spasi, double quotes | [prettier.io](https://prettier.io/) | `tsc --noEmit` ngecek type; formatting nyamain file yang udah ada berdasarkan konvensi |
+| Python | PEP 8, snake_case | [PEP 8](https://peps.python.org/pep-0008/) | `pip install` nge-resolve requirements yang di-pin |
+| Go | `gofmt`, effective Go | [formatting Effective Go](https://go.dev/doc/effective_go#formatting) | `go build ./...` nge-compile tiap contoh |
+| .NET | konvensi C#, `dotnet format` | [konvensi coding C# Microsoft](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions) | `dotnet build` |
+| Java | Google Java Style | [google.github.io/styleguide](https://google.github.io/styleguide/javaguide.html) | `mvn -q compile` |
+| YAML | YAML polos 2 spasi | [spesifikasi yaml.org](https://yaml.org/spec/) | di-parse pake YAML loader di CI |
+
+Jalanin formatter sebelum commit, di bahasa apa pun yang lu sentuh. Kalau formatting sebuah file melenceng dari tetangganya, review PR lu bakal minta lu benerin.
+
+## Version pinning
+
+Setiap contoh nge-pin versi SDK dan provider yang persis sama dengan yang dipake pas dibangun. Jangan naikin versi sembarangan, dan jangan pernah ninggalin versi yang gak di-pin di folder baru:
+
+| Bahasa | Versi yang di-pin |
+| --- | --- |
+| Terraform | `required_version = ">= 1.0"`, provider `registry.terraform.io/shirasakaren/biznetgio` di `0.1.0` |
+| TypeScript | `@pulumi/pulumi ^3.142.0`, `@shirasakaren/biznetgio ^0.1.7` |
+| Python | `pulumi>=3.231.0,<4.0.0`, `pulumi-biznetgio>=0.1.7` |
+| Go | Go `1.25.11`, `pulumi/sdk/v3 v3.256.0`, `pulumi-biznetgio v0.1.7` |
+| .NET | `Pulumi 3.*`, `Shirasakaren.Biznetgio 0.1.7`, `net8.0` |
+| Java | `com.pulumi:pulumi:1.0.0`, `ren.shirasaka:biznetgio:0.1.7`, Java 17 |
+| YAML | gak ada yang di-pin, CLI yang nge-resolve provider |
+
+SDK provider-nya ada di Terraform Registry dan Pulumi Registry masing-masing, liat [Registries](/id/registries). Naik versi dilakukan dengan sengaja, di PR sendiri, dicerminkan ke semua folder sekaligus biar repo gak pernah campur-campur.
+
+## Safety biaya
+
+Repo-repo ini bikin infrastruktur beneran yang ditagih, jadi aturan safety-nya langsung di-encode ke dalam kode:
+
+- `pay_with_credit_card` (Terraform) dan `payWithCreditCard` (Pulumi) default-nya `false` di mana-mana. Order `false` tetep bikin resource beneran, tapi invoice-nya dibiarin belum dibayar di portal. Baca [Billing and orders](/id/guides/billing) buat gambaran lengkapnya.
+- Opsi destruktif atau one-shot kayak `power_state`, `rebuild_os`, `migrate_to_pro`, dan `rebuild_trigger` ada di kode tapi di-comment out. Masing-masing bawa komentar yang ngejelasin fungsinya dan bahwa dia ngehapus disk atau ngabisin duit. Uncomment satu-satu, jangan sekaligus.
+- README `baremetal/` dan `gpu/` bawa warning biaya ekstra karena mereka lini produk paling mahal. Pertahanin warning itu kalau lu nyentuh folder-folder tersebut.
+- Secret gak pernah masuk git. Terraform pake `terraform.tfvars` yang di-gitignore dengan template `.example` yang di-commit; Pulumi pake `pulumi config set --secret` dan file `Pulumi.<stack>.yaml` di-gitignore.
+
+Contoh baru apa pun yang lu tambahin wajib nurunin keempat aturan ini. PR yang nambahin default yang ditagih atau commit secret bakal dapet review yang emang pantas.
+
+## Konvensi situs docs
+
+Repo docs punya aturan nulis sendiri, semuanya ada di [AGENTS.md](https://github.com/shirasakaren/biznetgio-docs/blob/main/AGENTS.md):
+
+- Tiap halaman punya frontmatter `title` dan `description`; description cuma satu kalimat.
+- Heading pake sentence case; prosa pake active voice, orang kedua.
+- Halaman Inggris dan Indonesia wajib sinkron dengan relative path yang sama.
+- Link internal di halaman Indonesia mulai dengan `/id/`.
+- Gak ada em dash atau en dash, sama kayak repo contoh.
+
+Pas lu ngubah behavior di repo contoh, cek apakah ada halaman docs yang masih nunjukin behavior lama. Kalau iya, benerin docs-nya di PR yang sama atau PR terhubung, dalam dua bahasa. Fix [GPU keypair](/id/pulumi/resources/gpu) dan typing account id justru perubahan berpasangan kayak gini.

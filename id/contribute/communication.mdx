@@ -1,0 +1,55 @@
+---
+title: "Komunikasi"
+description: "Di mana obrolan terjadi, etika issues dan review, aturan sinkronisasi docs, dan kebijakan rilis"
+---
+
+Kontribusi itu obrolan, dan project ini cukup kecil jadi beberapa aturan simpel udah cukup biar tiap obrolan tetap berguna. Halaman ini nge-cover di mana ngomong, gimana ngomong, dan kebijakan yang ngejaga dua bahasa dan tiga repo itu tetap sinkron.
+
+## Di mana obrolan terjadi
+
+Semua obrolan terjadi di GitHub, terbuka buat publik:
+
+| Channel | Buat apa |
+| --- | --- |
+| Issues di repo contoh | laporan bug, feature requests, masalah docs, lewat [tiga form](/id/contribute/issues) |
+| [Discussions](https://docs.github.com/en/discussions) di repo contoh | pertanyaan, ide sebelum jadi proposal, sharing apa yang lu bikin |
+| Issues di [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio/issues) dan [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio/issues) | bug level provider |
+| Thread pull request | diskusi soal perubahannya sendiri |
+
+Gak ada chat room atau mailing list. Issues dan discussions publik itu arsipnya, jadi orang berikutnya bisa nyari dan nemuin apa yang lu temuin.
+
+## Etika issue
+
+- Cari dulu sebelum posting; jawabannya sering udah ada di issue, Discussion, atau halaman docs.
+- Satu topik per issue, dan tetep di topik itu. Kalau muncul topik sampingan, buka issue kedua dan link keduanya.
+- Anggep niat baik dan jawab dengan hal spesifik, bukan nada. Bug report yang singkat bukan kekasaran; itu ringkas.
+- Redact secret dari semua yang lu paste. Output di contoh-contoh ini termasuk private keys dan secret keys; begitu ke-post, mereka publik selamanya.
+
+## Etika review pull request
+
+- Jaga PR tetap kecil dan satu tujuan. Reviewer bisa jawab PR sepuluh baris dalam hitungan menit; PR seribu baris dengan tiga fitur cuma dapet satu yang di-review dengan bener.
+- Minta review cuma pas checklist template PR kelar. Checklist itu definisi selesai yang disepakati bareng.
+- Jawab komen review dengan perubahan kode atau alasan tertulis. Jawaban "will fix later" yang gak pernah direalisasi itu cara PR busuk.
+- Review itu asinkron dan bisa makan sehari atau lebih. Kalau ada yang urgent, bilang di PR dan jelasin kenapa, dengan sopan.
+
+## Aturan sinkronisasi docs
+
+Situs docs itu bilingual, dan itu invariant yang keras, bukan preferensi. Semua aturan dari [AGENTS.md](https://github.com/shirasakaren/biznetgio-docs/blob/main/AGENTS.md) di repo docs:
+
+- Tiap halaman ada di Bahasa Inggris dan di bawah `id/` dengan relative path yang sama. PR yang nambah halaman Inggris tanpa salinan Indonesianya itu gak lengkap.
+- Halaman Indonesia pakai tone casual gen-z, kalimat pendek, istilah teknis di Bahasa Inggris dalam format kode. Code blocks identik di semua bahasa.
+- Link internal di halaman Indonesia mulai dengan `/id/`.
+- Gak ada em dashes atau en dashes di dua-dua bahasa, dan aturan yang sama berlaku buat komen kode dan commit messages.
+
+Pas sebuah contoh berubah, tanya satu pertanyaan: ada halaman docs yang nunjukin perilaku lama? Kalau iya, update docs ikut ship di PR yang sama atau yang di-link. Fix keypair GPU dan fix typing account id itu contoh model dari workflow berpasangan ini, kelihatan di [referensi GPU Pulumi](/id/pulumi/resources/gpu).
+
+## Rilis dan pengumuman
+
+- Repo contoh gak motong releases atau version tags. `main` itu rilisnya, dan README bilang gitu secara implisit: clone, dan lu udah dapet versi terbaru.
+- Provider rilis lewat registry mereka, [Terraform Registry](https://registry.terraform.io/providers/shirasakaren/biznetgio) dan [Pulumi Registry](https://www.pulumi.com/registry/packages/biznetgio), liat [Registries](/id/registries).
+- Situs docs ship terus-menerus; tiap merge ke `main` itu deploy.
+- Perubahan gede, kayak contoh baru atau bahasa baru, diumumin di Discussion biar user dan kontributor bisa kasih masukan sebelum PR dibuka.
+
+## Tanya dulu buat hal-hal gede
+
+Satu-satunya aturan bener soal scope: kalau sebuah perubahan bakal nyentuh tiap folder, tiap bahasa, atau tiap halaman, proposal dulu di Discussion atau feature request sebelum nulis. Fix kecil harusnya langsung muncul sebagai PR; yang gede pantas dapet obrolan dulu. Itu ngejaga waktu review maintainer buat nge-review, dan ngejaga kontributor dari nulis enam bahasa kode buat ide yang sebenernya butuh di-reshape.

@@ -1,0 +1,92 @@
+---
+title: "Commits dan pull requests"
+description: "Conventional Commits, penamaan branch, template PR, dan siklus lengkap dari fork sampai merge"
+---
+
+Workflow kontribusinya [GitHub Flow](https://docs.github.com/en/get-started/using-github/github-flow) polos: fork, branch dari `main`, commit, buka pull request, review, squash merge. Gak ada yang lain. Satu-satunya aturan internal cuma soal gimana commit dan PR ditulis.
+
+## Commit message
+
+Ketiga repo pake [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). Formatnya:
+
+```text
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Tipe
+
+| Tipe | Dipake buat |
+| --- | --- |
+| `feat` | contoh baru, halaman baru, fitur baru |
+| `fix` | membetulkan behavior atau kode yang salah |
+| `docs` | cuma dokumentasi: README, komentar, halaman situs docs, template |
+| `ci` | pipeline di `.github/workflows/` |
+| `refactor` | restrukturisasi tanpa ngubah behavior |
+| `test` | cuma test dan check |
+| `chore` | semua yang lain, kayak file license atau ignore |
+
+### Scope
+
+Scope nge-namain area-nya, dan dia mencerminkan susunan repo. Contoh beneran dari sejarah repo-repo ini:
+
+```text
+fix: correct GPU keypair and account-id typing in reference examples
+docs: add example repos page with real repo links
+docs: add contribution guide, PR and issue templates, CODEOWNERS
+```
+
+Dengan scope, commit yang sama bakal jadi `fix(gpu): correct GPU keypair and account-id typing` atau `docs(tutorials): add example repos page`. Dua-duanya boleh. Aturan yang selalu berlaku:
+
+- Imperative mood, present tense: "add X", jangan pernah "added X" atau "adds X".
+- Tipe pake huruf kecil, gak ada titik di akhir.
+- Satu perubahan logis per commit. Pisahin kerjaan yang gak berhubungan.
+- Commit message juga gak boleh pake em dash atau en dash, sama kayak di tempat lain di project ini.
+
+### Body dan footer
+
+Body ngejelasin kenapa-nya kalau title aja gak cukup, terutama buat apa pun yang ngubah behavior yang ditagih. Baris footer kayak `Closes #123` nge-link issue dan nutupnya otomatis pas merge, liat [referensi GitHub](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue).
+
+## Penamaan branch
+
+Branch dari `main`, kasih nama `<type>/<short-description>`, kayak `fix/gpu-keypair-id` atau `docs/contribute-section`. Namanya cuma perlu kebaca di daftar PR; gak ada yang maksa.
+
+## Pull request
+
+Pas lu buka PR, GitHub ngisi description dari [pull request template](https://github.com/shirasakaren/biznetgio-example-terraform/blob/main/.github/pull_request_template.md) repo. Template-nya berupa checklist, dan checklist itu definisi selesainya:
+
+- Komentar bilingual di kode baru, gak ada em atau en dash
+- Contohnya build di bahasanya, atau validate di folder yang disentuh
+- Gak ada secret, `payWithCreditCard` tetep `false`
+- README dan tabel di root di-update
+- Halaman situs docs di-update dalam dua bahasa kalau behavior berubah
+
+Tiap kotak yang gak dicentang itu komentar review yang tinggal nunggu waktu. Centang sendiri sebelum minta review; reviewer bakal ngecek ulang.
+
+<Steps>
+<Step title="Fork dan branch">
+  Fork repo dari GitHub web UI, clone fork lu, dan bikin branch dari `main` yang terbaru. Pertahanin [upstream remote](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/configuring-a-remote-repository-for-a-fork) tetap terkonfigurasi biar lu bisa pull `main` terbaru sebelum push.
+</Step>
+<Step title="Bikin perubahannya dan cek secara lokal">
+  Ikutin [Conventions](/id/contribute/conventions), terus jalanin check dari [Local setup](/id/contribute/setup) di setiap folder yang lu sentuh. Buat repo docs, jalanin `mint dev` dan liat halamannya di browser.
+</Step>
+<Step title="Buka draft PR">
+  Buka PR sebagai draft kalau lu mau feedback awal, terus tandai ready pas checklist-nya kelar. Link issue yang ditutup di description atau footer.
+</Step>
+<Step title="Review">
+  CODEOWNERS otomatis minta review dari pemilik repo, liat [CODEOWNERS and reviews](/id/contribute/codeowners). Harapin review-nya ngecek checklist template, konvensi, dan apakah docs dan kode berubah barengan.
+</Step>
+<Step title="Merge">
+  Maintainer squash merge ke `main`, yang bikin history tetap linear dan satu commit per perubahan. Buat repo docs, merge ke `main` juga sekaligus deploy; aplikasi Mintlify nge-ship situsnya dalam hitungan menit. Buat repo contoh, maintainer boleh jalanin CI manual setelahnya.
+</Step>
+</Steps>
+
+## Yang terjadi setelah merge
+
+- Repo docs: situs di biznetgio.creations.ren redeploy otomatis dari `main`.
+- Repo contoh: gak ada yang jalan otomatis. [Pipelines](/id/contribute/pipelines) sengaja manual dispatch, karena `apply` dan `up` bikin order beneran. Maintainer nge-trigger run `validate` atau `build` setelah review, dan apa pun yang punya side effect beneran cuma pas emang diinginkan.
+
+Satu aturan terakhir: project ini gak pake CI pas push, branch protection dengan required check, atau rilis otomatis. Model safety-nya review manusia plus jalanin pipeline manual dengan sengaja. Itu pilihan desain yang dijelasin di [Pipelines](/id/contribute/pipelines), dan itu sebabnya checklist PR lebih penting di sini daripada di kebanyakan repo.

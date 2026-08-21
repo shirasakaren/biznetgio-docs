@@ -1,0 +1,55 @@
+---
+title: "Communication"
+description: "Where conversations happen, the etiquette of issues and reviews, docs sync rules, and the release policy"
+---
+
+Contributions are conversations, and this project is small enough that a few simple rules keep every conversation useful. This page covers where to talk, how to talk, and the policies that keep the two languages and the three repos in sync.
+
+## Where conversations happen
+
+Every conversation happens on GitHub, in public:
+
+| Channel | Use for |
+| --- | --- |
+| Issues on the example repos | bug reports, feature requests, docs problems, via the [three forms](/contribute/issues) |
+| [Discussions](https://docs.github.com/en/discussions) on the example repos | questions, ideas before they are proposals, sharing what you built |
+| Issues on [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio/issues) and [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio/issues) | provider level bugs |
+| Pull request threads | discussion of the change itself |
+
+There is no chat room or mailing list. Public issues and discussions are the archive, so the next person can search and find what you found.
+
+## Issue etiquette
+
+- Search before posting; the answer often exists in an issue, a Discussion, or on a docs page.
+- One topic per issue, and stay on it. If a side topic appears, open a second issue and link them.
+- Assume good faith and reply with specifics, not tone. A terse bug report is not rudeness; it is brevity.
+- Redact secrets from everything you paste. Outputs in these examples include private keys and secret keys; once posted, they are public forever.
+
+## Pull request review etiquette
+
+- Keep PRs small and single purpose. A reviewer can give a ten line PR an answer in minutes; a thousand line PR with three features gets one of them reviewed well.
+- Ask for review only when the PR template checklist is done. The checklist is the shared definition of done.
+- Answer review comments with a code change or a written reason. A stale "will fix later" is how PRs rot.
+- Reviews are asynchronous and can take a day or more. If something is urgent, say so in the PR and why, politely.
+
+## Docs sync rules
+
+The docs site is bilingual, and that is a hard invariant, not a preference. Every rule from [AGENTS.md](https://github.com/shirasakaren/biznetgio-docs/blob/main/AGENTS.md) in the docs repo:
+
+- Every page exists in English and under `id/` with the same relative path. A PR that adds an English page without its Indonesian copy is incomplete.
+- Indonesian pages are casual gen-z tone, short sentences, technical terms in English inside code formatting. Code blocks are identical across languages.
+- Internal links in Indonesian pages start with `/id/`.
+- No em dashes or en dashes in either language, and the same rule applies to code comments and commit messages.
+
+When an example changes, ask one question: does any docs page show the old behavior? If yes, the docs update ships in the same PR or a linked one. The GPU keypair fix and the account id typing fix are the model examples of this paired workflow, visible on the [Pulumi GPU reference](/pulumi/resources/gpu).
+
+## Releases and announcements
+
+- The example repos do not cut releases or version tags. `main` is the release, and the READMEs say so implicitly: clone, and you have the latest.
+- The providers release through their registries, [Terraform Registry](https://registry.terraform.io/providers/shirasakaren/biznetgio) and [Pulumi Registry](https://www.pulumi.com/registry/packages/biznetgio), see [Registries](/registries).
+- The docs site ships continuously; every merge to `main` is a deploy.
+- Big changes, like a new example or a new language, get announced in a Discussion so users and contributors can weigh in before the PR opens.
+
+## Ask first for big things
+
+The only real rule about scope: if a change would touch every folder, every language, or every page, propose it in a Discussion or feature request before writing it. Small fixes should just appear as PRs; big ones earn a conversation first. That keeps the maintainer's review time for reviewing, and keeps contributors from writing six languages of code for an idea that needed reshaping.

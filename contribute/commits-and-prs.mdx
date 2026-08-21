@@ -1,0 +1,92 @@
+---
+title: "Commits and pull requests"
+description: "Conventional Commits, branch naming, the PR template, and the full fork to merge lifecycle"
+---
+
+The contribution workflow is plain [GitHub Flow](https://docs.github.com/en/get-started/using-github/github-flow): fork, branch from `main`, commit, open a pull request, review, squash merge. Nothing more. The only house rules are about how commits and PRs are written.
+
+## Commit messages
+
+All three repos use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). The format is:
+
+```text
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+
+| Type | Use for |
+| --- | --- |
+| `feat` | a new example, a new page, a new feature |
+| `fix` | correcting wrong behavior or wrong code |
+| `docs` | documentation only: README, comments, docs site pages, templates |
+| `ci` | the pipelines in `.github/workflows/` |
+| `refactor` | restructuring without changing behavior |
+| `test` | tests and checks only |
+| `chore` | everything else, like license or ignore files |
+
+### Scopes
+
+The scope names the area, and it mirrors the repo layout. Real examples from the repos' history:
+
+```text
+fix: correct GPU keypair and account-id typing in reference examples
+docs: add example repos page with real repo links
+docs: add contribution guide, PR and issue templates, CODEOWNERS
+```
+
+With scopes, the same commits would read `fix(gpu): correct GPU keypair and account-id typing` or `docs(tutorials): add example repos page`. Either form is fine. The rules that always apply:
+
+- Imperative mood, present tense: "add X", never "added X" or "adds X".
+- Lowercase type, no period at the end.
+- One logical change per commit. Split unrelated work.
+- No em dashes or en dashes in commit messages either, same as everywhere else in this project.
+
+### Body and footers
+
+The body explains why when the title is not enough, especially for anything that changes billable behavior. Footer lines like `Closes #123` link issues and close them automatically on merge, see [GitHub's reference](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue).
+
+## Branch naming
+
+Branch from `main`, name the branch `<type>/<short-description>`, like `fix/gpu-keypair-id` or `docs/contribute-section`. The name just has to be readable in the PR list; nothing enforces it.
+
+## The pull request
+
+When you open a PR, GitHub fills the description from the repo's [pull request template](https://github.com/shirasakaren/biznetgio-example-terraform/blob/main/.github/pull_request_template.md). The template is a checklist, and the checklist is the definition of done:
+
+- Bilingual comments on new code, no em or en dashes
+- The example builds in its language, or validates in the touched folders
+- No secrets, `payWithCreditCard` stays `false`
+- READMEs and the root tables updated
+- Docs site pages updated in both languages when behavior changed
+
+Every unchecked box is a review comment waiting to happen. Check them yourself before asking for review; the reviewer will check them again.
+
+<Steps>
+<Step title="Fork and branch">
+  Fork the repo from the GitHub web UI, clone your fork, and create the branch from an up to date `main`. Keep the [upstream remote](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/configuring-a-remote-repository-for-a-fork) configured so you can pull the latest `main` before pushing.
+</Step>
+<Step title="Make the change and check it locally">
+  Follow [Conventions](/contribute/conventions), then run the checks from [Local setup](/contribute/setup) in every folder you touched. For the docs repo, run `mint dev` and look at the page in the browser.
+</Step>
+<Step title="Open a draft PR">
+  Open the PR as a draft if you want early feedback, then mark it ready when the checklist is done. Link any issues it closes in the description or footer.
+</Step>
+<Step title="Review">
+  CODEOWNERS automatically requests a review from the repo owner, see [CODEOWNERS and reviews](/contribute/codeowners). Expect the review to check the template checklist, the conventions, and whether docs and code changed together.
+</Step>
+<Step title="Merge">
+  The maintainer squash merges into `main`, which keeps the history linear and one commit per change. For the docs repo, merging into `main` is also the deploy; the Mintlify app ships the site within minutes. For the example repos, the maintainer may run the manual CI afterwards.
+</Step>
+</Steps>
+
+## What happens after merge
+
+- Docs repo: the site at biznetgio.creations.ren redeploys automatically from `main`.
+- Example repos: nothing runs automatically. The [Pipelines](/contribute/pipelines) are manual dispatch on purpose, because `apply` and `up` place real orders. The maintainer triggers a `validate` or `build` run after review, and anything with real side effects only when it is wanted.
+
+One last rule: the project does not use CI on push, branch protection with required checks, or automated releases. The safety model is human review plus deliberate, manual pipeline runs. That is a design choice described in [Pipelines](/contribute/pipelines), and it is why the PR checklist matters more than in most repos.

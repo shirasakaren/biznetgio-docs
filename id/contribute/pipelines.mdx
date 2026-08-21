@@ -1,0 +1,59 @@
+---
+title: "Pipelines"
+description: "Penjelasan baris per baris soal dua workflow CI manual dispatch, secret yang mereka butuhin, dan cara nge-extend mereka"
+---
+
+Dua repo contoh nge-ship workflow GitHub Actions yang cuma jalan pas ada manusia yang sengaja nge-trigger. Halaman ini ngejelasin kenapa, tiap step ngapain, dan gimana cara nambahin contoh atau bahasa baru ke matrix. Situs docs gak punya file workflow sama sekali; dia deploy lewat aplikasi Mintlify.
+
+## Kenapa manual doang
+
+Semua pipeline di sini dideklarasikan sebagai `workflow_dispatch`, [event workflow yang di-trigger manual](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_dispatch) punya GitHub. Mereka gak pernah jalan pas push dan gak pernah dijadwalin. Alasannya keamanan biaya: action yang menarik (`apply`, `up`, `destroy`) bikin order beneran di akun Biznet GIO beneran, jadi mereka gak boleh ke-trigger gara-gara commit. `destroy` yang ke-trigger dari push itu resep insiden; pilihan manual dari tab Actions itu resep gladi resik.
+
+Action default di tiap workflow itu yang aman: `validate` buat Terraform, `build` buat Pulumi. Dua-duanya gak butuh credential sama sekali.
+
+## Pipeline Terraform
+
+File lengkapnya ada di [ci.yml di biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform/blob/main/.github/workflows/ci.yml). Dari atas ke bawah:
+
+1. **Trigger dan input.** Dua dropdown pilihan: `example` (satu folder, atau `all`) dan `action` (`validate`, `plan`, `apply`, `destroy`). File workflow itu sendiri dokumentasinya; deskripsi tiap input ngejelasin mana yang butuh credential dan mana yang bikin order beneran.
+2. **Permissions.** `contents: read`, minimum yang dibutuhin checkout. Workflow-nya gak bisa nulis ke repo.
+3. **Job `discover`.** Ngubah pilihan `all` jadi daftar konkret dari enam folder dan nge-publish sebagai job output, yang jadi matrix di job berikutnya. Ini script shell kecil, karena matrix GitHub harus berupa daftar konkret.
+4. **Job `run`.** Matrix di atas folder yang dipilih dengan `fail-fast: false`, biar satu contoh yang rusak gak ngebatalin yang lain. Steps:
+   - `actions/checkout@v4` ngambil kodenya.
+   - [`hashicorp/setup-terraform@v3`](https://github.com/hashicorp/setup-terraform) nginstall Terraform.
+   - `terraform fmt -check` bikin job gagal kalau ada file yang formatnya gak kanonik. Ini gerbang formatting dari [Conventions](/id/contribute/conventions).
+   - `terraform init` download provider yang di-pin dari registry.
+   - `terraform validate` nge-type-check seluruh folder tanpa credential atau panggilan API.
+   - `terraform plan` cuma jalan pas action-nya `plan`, `apply`, atau `destroy`, dengan secret `BIZNETGIO_API_KEY` dan console password yang di-expose sebagai environment variable `TF_VAR_console_password`. Buat `destroy` dia plan dengan `-destroy`.
+   - `terraform apply -auto-approve` atau `terraform destroy -auto-approve` cuma jalan pas dipilih secara eksplisit.
+
+Secret yang dipake: `BIZNETGIO_API_KEY` buat action mana pun di luar validate, dan `EXAMPLE_CONSOLE_PASSWORD` (di-map ke `TF_VAR_console_password`, konvensi Terraform buat [set variabel dari environment](https://developer.hashicorp.com/terraform/language/values/variables#environment-variables)) buat folder yang butuh console password.
+
+## Pipeline Pulumi
+
+File lengkapnya di [ci.yml di biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi/blob/main/.github/workflows/ci.yml). Filosofi yang sama, cuma satu dimensi lagi:
+
+1. **Trigger dan input.** Tiga dropdown: `language`, `example`, dan `action` (`build`, `preview`, `up`, `destroy`).
+2. **Job `discover`.** Nge-cross-product bahasa dan contoh yang dipilih jadi matrix pasangan `{language, example}` pakai `jq -nc`. Ini trik ekspansi `all` yang sama kayak workflow Terraform, tapi karena cross product, `all` kali `all` melebar jadi 36 job.
+3. **Job `run`.** Matrix di atas pasangan-pasangan itu, `fail-fast: false`, dengan working directory diset ke `<language>/<example>`. Steps:
+   - `actions/checkout@v4`.
+   - Toolchain dan build per bahasa, di-gate dengan `if:` pada bahasa: [`setup-node@v4`](https://github.com/actions/setup-node) dengan Node 20 plus `npm install && npx tsc --noEmit` buat TypeScript; [`setup-python@v5`](https://github.com/actions/setup-python) dengan Python 3.11 plus `pip install -r requirements.txt`; [`setup-go@v5`](https://github.com/actions/setup-go) di-pin ke `1.25.x` plus `go build ./...`; [`setup-dotnet@v4`](https://github.com/actions/setup-dotnet) dengan .NET 8 plus `dotnet build`; [`setup-java@v4`](https://github.com/actions/setup-java) dengan Temurin 17 plus `mvn -q compile`; dan parse YAML satu baris buat bahasa `yaml`.
+   - [`pulumi/actions@v7`](https://github.com/pulumi/actions) jalanin command yang dipilih (`preview`, `up`, atau `destroy`) ke stack `dev` di folder contoh, cuma pas action-nya bukan `build`. Dia butuh `PULUMI_ACCESS_TOKEN` (auth Pulumi Cloud) dan `BIZNETGIO_API_KEY` (provider baca dari environment).
+
+Pin Go di `1.25.x` ada karena `go.mod` Go SDK butuh toolchain yang terbaru; komen di workflow bilang buat jaga tetap sinkron sama repo provider. Kalau lu naikin Go di contoh, naikin juga di situ.
+
+## Nambahin contoh atau bahasa baru
+
+Daftar matrix di-hardcode di file workflow, jadi nge-extend matrix artinya ngubah workflow di PR yang sama dengan folder barunya:
+
+| Perubahan | Edit di mana |
+| --- | --- |
+| Folder contoh Terraform baru | daftar `options:` di input `example`, dan daftar folder di job `discover` |
+| Folder contoh Pulumi baru | daftar `options:` di input `example` dan daftar `examples` di job `discover` |
+| Bahasa Pulumi baru total | daftar `options:` di input `language`, daftar `langs` di job `discover`, plus blok toolchain dan build baru yang di-gate `if:` di job `run` |
+
+Dua workflow itu YAML biasa yang ngikutin [sintaks workflow GitHub Actions](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions). Pattern job `discover` (hitung matrix di satu job, konsumsi di job berikutnya lewat `fromJson`) adalah [resep dynamic matrix](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) resmi dari dokumentasi Actions.
+
+## Pipeline situs docs
+
+Repo docs gak punya workflow Actions. Perubahan yang di-merge ke `main` di-build dan di-deploy oleh GitHub app Mintlify, yang dikonfigurasi di [deployments](https://github.com/shirasakaren/biznetgio-docs/deployments) repo. Verifikasi lokal sebelum merge itu `mint dev` plus cek link yang teliti, kayak yang dijelasin di [Local setup](/id/contribute/setup). Kalau deploy pernah keliatan basi, halaman riwayat deployment nunjukin commit hash dari situs yang lagi live.

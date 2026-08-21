@@ -1,0 +1,72 @@
+---
+title: "Issues"
+description: "The three issue forms, when to use Discussions instead, and how to write an issue that gets fixed fast"
+---
+
+Issues are how bugs and ideas enter the project. Both example repos have three structured issue forms, configured as YAML under `.github/ISSUE_TEMPLATE/`, using GitHub's [issue forms](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository) feature. The docs repo keeps the same forms as well.
+
+## The three forms
+
+### Bug report
+
+For anything that is broken or behaves differently than the docs say. The form asks for:
+
+- Which example and language (the Pulumi form has a dropdown for the six languages)
+- Exact tool versions, like the Terraform or `pulumi` version
+- Ordered steps to reproduce
+- Expected behavior versus actual behavior, with the full error output pasted
+
+The reproduction steps are the most important part. A bug without steps is a conversation, not a bug report.
+
+### Feature request
+
+For a new example, a new language pattern, or an improvement. The form asks for the problem first, then the proposal, then alternatives you already tried. The problem-first structure exists because the best feature request is a description of something you could not do; the proposal may change in review, the problem does not.
+
+### Docs improvement
+
+For wrong, unclear, or missing comments and READMEs. Docs bugs are real bugs here: the entire point of the example repos is teaching, so a confusing comment is a defect, not a nicety. The form asks for the file and section, the exact line that is wrong, and a suggested rewrite.
+
+## Issues versus Discussions
+
+Use [GitHub Discussions](https://docs.github.com/en/discussions) on the repo instead of an issue when:
+
+- You have a question about how something works
+- You want to share what you built with the examples
+- You want to discuss an idea before proposing it
+- Something is not broken, it just surprises you
+
+Both example repos have Discussions enabled and linked from the issue form's contact links, so people get routed there instead of opening a blank issue.
+
+## Labels
+
+The issue forms assign a label per kind: `bug`, `enhancement`, or `documentation`. Beyond those, a minimal set keeps triage simple:
+
+| Label | Meaning |
+| --- | --- |
+| `bug` | incorrect behavior, from the bug form |
+| `enhancement` | a proposal, from the feature form |
+| `documentation` | docs or comments, from the docs form |
+| `good first issue` | small and self-contained, ideal for a first contribution |
+| `help wanted` | the maintainer welcomes help on this one |
+| `question` | needs discussion, may move to Discussions |
+
+Maintainers add the last three during triage. There is no service level agreement on response times; this is a community project, and issues get attention in the order they come in. A complete issue with reproduction steps moves fastest because it needs the fewest follow-up questions.
+
+## Writing an issue that gets fixed fast
+
+1. Search first, both open and closed issues, plus Discussions. The GPU keypair quirk, for example, is already documented in [the Pulumi GPU reference](/pulumi/resources/gpu) and in the example code comments.
+2. One issue per problem. Two bugs in one issue means one of them gets lost.
+3. Fill every field the form gives you. The forms were designed to capture what a maintainer needs.
+4. Paste full error output, not a paraphrase. Errors contain the resource name and the failing attribute.
+5. Say what you expected and what you got, in those words.
+6. Never put secrets in an issue. Redact tokens and passwords; the examples' outputs include private keys and secret keys, and pasting them means rotating them.
+
+## Triage, from the maintainer side
+
+A new issue goes through three questions: is it a provider bug, an example bug, or a docs bug? The answer decides the repo:
+
+- Provider bug: moved to [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio/issues) or [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio/issues), then the examples and docs are updated to match the provider's real behavior once fixed.
+- Example bug: fixed in the example repo, mirrored across languages, docs updated in the same PR or a linked one.
+- Docs bug: fixed in both languages on the docs repo.
+
+The [step-by-step walkthroughs](/contribute/walkthroughs) cover each of these paths end to end.

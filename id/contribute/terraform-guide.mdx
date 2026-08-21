@@ -1,0 +1,148 @@
+---
+title: "Panduan repo Terraform"
+description: "Gimana contoh-contoh Terraform jalan file per file, apa yang dikerjain modulnya, dan gimana cara nambahin contoh baru"
+---
+
+Ini deep dive ke [biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform). Diasumsikan lu udah baca [What is Infrastructure as Code?](/id/what-is-iac) atau ngerti apa itu Terraform plan. Kalau ada istilah yang bikin bingung, [NEO Lite reference](/id/terraform/resources/neolite) mendokumentasikan semua resource dan data source yang dipake di sini.
+
+## Apa itu kode Terraform, dalam satu paragraf
+
+Konfigurasi Terraform itu sekumpulan deklarasi, bukan script. Lu nulis apa yang harus ada (VM dengan nama ini, OS ini, keypair ini) dan Terraform nyari tau API call apa yang dibutuhin buat sampe ke sana. Resource itu hal yang mau dibikin; data source itu lookup read-only ke yang udah ada. Semuanya dihubungkan lewat reference, kayak `biznetgio_neolite_keypair.main.keypair_id` yang artinya "atribut keypair id dari keypair bernama main". Terraform baca reference-referensi itu, ngurutin API call-nya, dan nunjukin plan sebelum ngelakuin apa pun.
+
+## Lima file di tiap folder
+
+Tiap folder contoh punya anatomi yang sama, yang juga layout standar yang diajarin [project structure tutorial](/id/tutorials/project-structure):
+
+### versions.tf
+
+```hcl
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    biznetgio = {
+      source  = "registry.terraform.io/shirasakaren/biznetgio"
+      version = "0.1.0"
+    }
+  }
+}
+
+provider "biznetgio" {}
+```
+
+Dua tugas. Pertama, pinning: `terraform init` download persis provider versi 0.1.0 dari Terraform Registry biar contoh selalu jalan di versi yang dia udah dites. Kedua, wiring: blok provider kosong baca `BIZNETGIO_API_KEY` dari environment, makanya credential gak pernah muncul di file mana pun.
+
+### variables.tf
+
+Semua input yang diterima folder, dideklarasikan dengan type dan default:
+
+```hcl
+variable "console_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "pay_with_credit_card" {
+  type    = bool
+  default = false
+}
+```
+
+`console_password` sengaja gak punya default: password beneran gak boleh di-hardcode di file yang di-commit, jadi satu-satunya jalan masuk itu `TF_VAR_console_password` atau `terraform.tfvars` yang gitignored. `pay_with_credit_card` default-nya `false` di mana-mana, aturan keamanan biaya dari [Conventions](/id/contribute/conventions).
+
+### terraform.tfvars.example
+
+Template nilai beneran yang di-commit, yang lu copy ke `terraform.tfvars` yang gitignored terus lu isi. File `.example` gak pernah berisi secret beneran, cuma bentuknya aja.
+
+### main.tf
+
+Infrastrukturnya sendiri. Contoh `neolite/main.tf` ngejelasin seluruh produk sesuai urutan pemakaiannya:
+
+1. **Catalog lookups.** `data "biznetgio_neolite_products" "all"` baca semua paket yang lagi dijual Biznet GIO, dan blok `locals` milih yang pertama buat demo. Data source kedua, `biznetgio_neolite_os_list`, ngelist image OS buat produk itu, dan yang ketiga ngecek ketersediaan IP. `select_os` VM diambil dari list ini, jadi contoh gak pernah hardcode product id atau nama OS yang bisa aja gak ada lagi.
+2. **Keypair-nya.** `biznetgio_neolite_keypair.main` dibikin cukup dengan nama. Private key balik cuma sekali, pas create, dan contoh nge-export dia sebagai output dengan komen yang nyuruh lu langsung nyimpen.
+3. **VM-nya.** `biznetgio_neolite_vm.main` ngambil `product_id` dari lookup produk, `select_os` dari daftar OS, dan `keypair_id` dari keypair. Opsi destruktif kayak `power_state`, `rebuild_os`, dan `migrate_to_pro` ada tapi di-comment out, masing-masing dengan komen yang nyebutin biaya atau bahayanya.
+4. **Disk tambahan.** `biznetgio_neolite_disk.extra` nempel ke VM lewat `neolite_account_id = biznetgio_neolite_vm.main.id`, dan `service_name`-nya `extra-disk`, cukup pendek buat batas 6 sampai 16 karakter.
+5. **Snapshot dan restore.** Snapshot berbayar dari VM, terus `biznetgio_neolite_vm_from_snapshot.restored` ngubahnya jadi VM kedua dengan tagihan terpisah. Rantai reference ini, snapshot id masuk ke restore, gitu cara Terraform ngekspresiin "yang ini depend ke yang itu".
+6. **Raw lookups.** Dua data source ngebalikin JSON yang gak dimodelin dari upstream API, di-expose sebagai output buat iseng-iseng dari CLI.
+
+Baca komen di file-nya langsung; tiap step ini dijelasin baris per baris dalam dua bahasa.
+
+### outputs.tf
+
+```hcl
+output "vm_status" {
+  value = biznetgio_neolite_vm.main.status
+}
+```
+
+Output itu yang lu periksa setelah apply dan yang dikonsumsi kode lain. Nilai sensitif kayak private key keypair ditandain `sensitive = true` biar gak pernah ke-print asal-asalan.
+
+## Modul di complete/
+
+`complete/` nunjukin bentuk production yang sama kayak [Capstone tutorial](/id/tutorials/production-deployment): tier app (VM NEO Lite Pro) plus data bucket (Object Storage), dibungkus jadi module yang reusable.
+
+Root `complete/main.tf` cuma ngelakuin lookup dan konfigurasi: dia baca katalog produk, milih OS, dan manggil module:
+
+```hcl
+module "app" {
+  source               = "./modules/app-stack"
+  name                 = "example-app"
+  storage_label        = "example-app"
+  vm_product_id        = data.biznetgio_neolite_pro_products.all.products[0].product_id
+  select_os            = data.biznetgio_neolite_pro_os_list.ubuntu.oss[0].name
+  storage_product_id   = 8
+  cycle                = "m"
+  ssh_and_console_user = "admin"
+  console_password     = var.console_password
+  pay_with_credit_card = var.pay_with_credit_card
+}
+```
+
+Module itu folder berisi lima file yang sama, dipanggil dengan argumen, bukan dideklarasikan inline. Semua hal soal "satu app" pindah ke `modules/app-stack/`: keypair, VM, subscription storage, bucket, dan credential. `variables.tf`-nya mendokumentasikan tiap input, termasuk batas 6 sampai 16 karakter. `outputs.tf`-nya nandain access key, secret key, dan private key sebagai sensitif, karena pemanggil module yang bertanggung jawab nyimpennya.
+
+Dua detail yang perlu lu tau sebelum nyalin module ini:
+
+- Module anak punya blok `required_providers` sendiri dengan source `registry.terraform.io/shirasakaren/biznetgio` yang sama. Tanpa itu, Terraform ngasumsi namespace default `hashicorp/*` buat provider di dalam module anak dan gagal dengan error missing provider. Kalau lu mindahin module keluar dari repo ini, pertahanin blok itu.
+- Variabel `storage_label` module sengaja dipisah dari `name`. Nama VM dan storage label dua-duanya punya batas 6 sampai 16 karakter, tapi di-validasi terpisah sama API, jadi module-nya njaga dua-duanya sebagai knobs independen.
+
+## Keanehan GPU
+
+`gpu/main.tf` mendokumentasikan dua keanehan nyata yang ada karena bentuk upstream API-nya:
+
+- `biznetgio_gpu_keypair` gak nge-export atribut `keypair_id`, cuma `id`, yang mana udah jadi keypair id-nya. Instance nge-reference `biznetgio_gpu_keypair.main.id`, beda dari semua resource keypair lain di repo.
+- `subscription` dan `on_demand` itu atribut bertipe object, bukan block. Mereka di-assign dengan `=`, dan persis salah satu harus diset. Contohnya pake `subscription = { cycle = "m" }` dan nyimpen alternatif `on_demand` yang di-comment out.
+
+Dua keanehan ini ketemu dari compile contoh-contoh ini dan sekarang didokumentasikan di [Terraform GPU reference](/id/terraform/resources/gpu). Loop itu, contoh nangkep bug provider dan docs, dijelasin di [How the repos are organized](/id/contribute/repositories).
+
+## baremetal/ dan object-storage/, singkatnya
+
+`baremetal/` nunjukin alur NEO Metal: server dengan public IP bawaan, floating IP tambahan yang di-order terus di-assign ke server, dan elastic storage yang nempel ke server pas create. Dia juga lookup image OS rebuild yang valid dan config akses out-of-band OpenVPN. Ini lini paling mahal, jadi README-nya bawa warning biaya ekstra.
+
+`object-storage/` nunjukin alur paling murah: subscription, bucket, credential, dan upload satu file (`index.html`) lewat control plane API. Komennya nyatet kalau endpoint upload itu oke buat satu file kecil, dan yang massal harus pake tooling S3 beneran dengan credential.
+
+## Nambahin folder contoh baru
+
+Misal lu mau contoh produk baru, atau varian kedua dari yang udah ada. Steps:
+
+<Steps>
+<Step title="Copy folder yang paling mirip">
+  Copy folder produk yang mirip sama yang lu mau, ke folder baru yang dinamain sesuai contohnya. Mulai dari `object-storage/` buat yang simpel, dari `complete/` kalau lu mau pattern module.
+</Step>
+<Step title="Tulis ulang main.tf buat bentuk baru">
+  Pertahanin banner header dan komen bilingual-nya. Pertahanin semua aturan keamanan biaya: `pay_with_credit_card` default-nya `false`, opsi destruktif di-comment out, secret cuma lewat variable.
+</Step>
+<Step title="Hormati batas nama API">
+  Jalanin `terraform validate` dan perhatiin error soal `vm_name`, `service_name`, atau `label`. Batasnya 6 sampai 16 karakter buat field-field itu; kalau validasi gagal, pendekin nama-nya.
+</Step>
+<Step title="Update README-nya">
+  Tambahin baris folder ke tabel README root (jumlah resource dan data source harus bener), dan tulis README folder sendiri ngikutin format bilingual punya yang lain.
+</Step>
+<Step title="Daftarin folder di CI">
+  Tambahin nama folder ke daftar `options:` di input `example` dan ke daftar job `discover` di `.github/workflows/ci.yml`, kayak yang dijelasin [Pipelines](/id/contribute/pipelines).
+</Step>
+<Step title="Validasi semuanya">
+  Dari dalam folder baru jalanin `terraform fmt -check`, `terraform init`, dan `terraform validate`. Terus buka PR dan isi checklist di PR template.
+</Step>
+</Steps>
+
+Kalau contoh baru ngajarin sesuatu yang belum dicover situs docs, pertimbangkan update halaman reference di PR yang sama, dalam dua bahasa.

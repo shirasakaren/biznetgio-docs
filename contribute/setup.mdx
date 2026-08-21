@@ -1,0 +1,115 @@
+---
+title: "Local setup"
+description: "Tools, accounts, and tokens you need before contributing, with every version this project pins"
+---
+
+This page gets your machine ready to contribute to any of the three repos. Total time is about twenty minutes the first time, and everything here is free.
+
+## Accounts
+
+<Steps>
+<Step title="Create or sign in to GitHub">
+  All contribution happens through GitHub. Sign in at [github.com](https://github.com), then [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the repo you want to change. You never push directly to the main repos; you push to your fork and open a pull request.
+</Step>
+<Step title="Get a Biznet GIO API token">
+  The providers talk to Biznet GIO with an API token, created from the portal as described in [Authentication](/authentication). You only need this to run `plan`, `apply`, `preview`, or `up`. Static checks like `terraform validate` and `pulumi preview` with mocks work without it.
+</Step>
+<Step title="Optionally create a Pulumi Cloud account">
+  Running the Pulumi examples with real state requires a free [Pulumi Cloud](https://www.pulumi.com/docs/iac/concepts/state/) account, and the CI pipeline needs a personal access token from it. Skip this until you actually run something.
+</Step>
+</Steps>
+
+## Tooling
+
+Install exactly the versions this project uses. The CI pipelines pin the same ones, so a change that builds on your machine builds in CI:
+
+| Tool | Version | Where it is pinned | Install link |
+| --- | --- | --- | --- |
+| Git | any recent | not pinned | [git-scm.com](https://git-scm.com/downloads) |
+| Terraform | 1.0 or newer | `versions.tf` in every folder | [developer.hashicorp.com](https://developer.hashicorp.com/terraform/install) |
+| Pulumi CLI | current | not pinned | [pulumi.com](https://www.pulumi.com/docs/iac/cli/) |
+| Node.js | 20 | CI `node-version` | [nodejs.org](https://nodejs.org/en/download) |
+| Python | 3.11 | CI `python-version` | [python.org](https://www.python.org/downloads/) |
+| Go | 1.25.x | `go.mod` and CI `go-version` | [go.dev](https://go.dev/doc/install) |
+| .NET SDK | 8.0.x | `.csproj` `net8.0` and CI | [dotnet.microsoft.com](https://dotnet.microsoft.com/en-us/download) |
+| Java (Temurin) | 17 | `pom.xml` and CI | [adoptium.net](https://adoptium.net/) |
+| Maven | current | not pinned | [maven.apache.org](https://maven.apache.org/install.html) |
+| Mintlify CLI | current | not pinned | `npm i -g mint` |
+
+Go 1.25 is not a typo. The Pulumi Go SDK's `go.mod` declares a recent toolchain requirement, so older Go versions refuse to build. If you see a `go: go.mod requires go >= 1.25` error, update Go.
+
+<Info>
+  You do not need all six Pulumi language toolchains. Install the one you want to contribute in. The CI pipeline runs all six for you anyway.
+</Info>
+
+## Cloning and first run
+
+The three repos are plain git clones. Fork first, then:
+
+```bash
+git clone git@github.com:YOUR-USERNAME/biznetgio-docs.git
+git clone git@github.com:YOUR-USERNAME/biznetgio-example-terraform.git
+git clone git@github.com:YOUR-USERNAME/biznetgio-example-pulumi.git
+```
+
+Then verify each one works on your machine.
+
+### Docs site
+
+```bash
+cd biznetgio-docs
+npm i -g mint     # one time, installs the Mintlify CLI
+mint dev          # preview at http://localhost:3000
+```
+
+Every saved change hot-reloads. The local preview is the best way to check MDX before committing.
+
+### Terraform examples
+
+```bash
+cd biznetgio-example-terraform/object-storage
+terraform fmt -check
+terraform init
+terraform validate
+```
+
+All three commands must pass. They need no credentials; `terraform validate` is a static check that never calls the Biznet GIO API.
+
+### Pulumi examples
+
+One build command per language, from inside the example folder:
+
+```bash
+cd biznetgio-example-pulumi/typescript/neolite
+npm install && npx tsc --noEmit
+
+cd ../../python/neolite
+pip install -r requirements.txt
+
+cd ../../go/neolite
+go build ./...
+
+cd ../../dotnet/neolite
+dotnet build
+
+cd ../../java/neolite
+mvn -q compile
+```
+
+YAML needs no build; any YAML parser accepting `yaml/neolite/Pulumi.yaml` is the check.
+
+## CI secrets, for maintainers
+
+The example repos' pipelines run on manual dispatch and most actions need repo secrets. Configure these in your fork's `Settings > Secrets and variables > Actions` if you want to run the full pipelines from your own fork:
+
+| Secret | Where | Needed by |
+| --- | --- | --- |
+| `BIZNETGIO_API_KEY` | both example repos | `plan`/`apply`/`destroy` (Terraform), `preview`/`up`/`destroy` (Pulumi) |
+| `EXAMPLE_CONSOLE_PASSWORD` | terraform examples | `plan`/`apply`/`destroy` on folders that take a console password |
+| `PULUMI_ACCESS_TOKEN` | pulumi examples | `preview`/`up`/`destroy` |
+
+Never set these unless you mean it. `apply`, `up`, and `destroy` place real orders on the account whose token you configure, which is exactly why the pipelines are manual only. See [Pipelines](/contribute/pipelines) for the full explanation.
+
+## You are ready
+
+From here, read [Conventions](/contribute/conventions) so your first change matches the house style, then pick a walkthrough from the [step-by-step guide](/contribute/walkthroughs).

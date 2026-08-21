@@ -37,10 +37,11 @@ community providers:
 
 ## Structure
 
-- `docs.json` - site configuration (navigation, branding, navbar)
+- `docs.json` - site configuration (navigation, branding, navbar). The top bar has three tabs: Docs, Contribute, and the GitHub menu
 - `index.mdx`, `what-is-iac.mdx`, `quickstart.mdx`, `pulumi-quickstart.mdx`, `authentication.mdx`, `registries.mdx` - getting started
 - `terraform/` and `pulumi/` - per-provider references (installation, resources, importing)
 - `tutorials/` - project structure, environments, state and collaboration, secrets, CI/CD, modules and components, testing and guardrails, and a production capstone
+- `contribute/` - the collaboration guide: repo maps, conventions, commit and PR workflow, issues, CODEOWNERS, pipelines, per-repo deep dives, and step-by-step walkthroughs
 - `guides/` - billing, triggers, development, FAQ
 - `id/` - Indonesian translation of every page
 

@@ -1,0 +1,72 @@
+---
+title: "Issues"
+description: "Tiga form issue, kapan pake Discussions sebagai gantinya, dan gimana nulis issue yang cepet ke-fix"
+---
+
+Issue adalah cara bug dan ide masuk ke project. Dua-duanya repo contoh punya tiga form issue terstruktur, dikonfigurasi sebagai YAML di bawah `.github/ISSUE_TEMPLATE/`, pake fitur [issue forms](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository) GitHub. Repo docs juga nyimpen form yang sama.
+
+## Tiga form
+
+### Bug report
+
+Buat apa pun yang rusak atau kelakuannya beda dari yang dikata-in docs. Form-nya nanya:
+
+- Contoh dan bahasa mana (form Pulumi punya dropdown untuk enam bahasa)
+- Versi tool yang persis, kayak versi Terraform atau `pulumi`
+- Langkah-langkah berurutan buat reproduce
+- Expected behavior versus behavior aslinya, dengan output error lengkap yang di-paste
+
+Langkah reproduce adalah bagian paling penting. Bug tanpa langkah itu cuma obrolan, bukan bug report.
+
+### Feature request
+
+Buat contoh baru, pattern bahasa baru, atau improvement. Form-nya nanya masalahnya dulu, terus proposal, terus alternatif yang udah lu coba. Struktur masalah-dulu ada karena feature request terbaik itu deskripsi tentang sesuatu yang gak bisa lu lakuin; proposal boleh berubah pas review, masalahnya gak.
+
+### Docs improvement
+
+Buat komentar dan README yang salah, gak jelas, atau hilang. Bug docs itu bug beneran di sini: inti dari repo contoh itu ngajar, jadi komentar yang bikin bingung itu cacat, bukan sekadar hiasan. Form-nya nanya file dan section-nya, baris persis yang salah, dan usulan tulis ulang.
+
+## Kapan pake Issue, kapan pake Discussions
+
+Pake [GitHub Discussions](https://docs.github.com/en/discussions) di repo daripada issue kalau:
+
+- Lu punya pertanyaan soal gimana sesuatu jalan
+- Lu mau share apa yang udah lu bangun pake contoh-contohnya
+- Lu mau diskusiin ide sebelum ngusulin
+- Sesuatu gak rusak, cuma bikin lu kaget
+
+Dua-duanya repo contoh nge-enable Discussions dan nge-link dari contact link di form issue, jadi orang-orang diarahin ke sana daripada buka issue kosong.
+
+## Label
+
+Form issue nge-assign satu label per jenis: `bug`, `enhancement`, atau `documentation`. Selain itu, set minimal bikin triage tetap simpel:
+
+| Label | Artinya |
+| --- | --- |
+| `bug` | behavior yang salah, dari form bug |
+| `enhancement` | sebuah proposal, dari form feature |
+| `documentation` | docs atau komentar, dari form docs |
+| `good first issue` | kecil dan self-contained, ideal buat kontribusi pertama |
+| `help wanted` | maintainer nyambut bantuan buat yang ini |
+| `question` | butuh diskusi, bisa dipindah ke Discussions |
+
+Maintainer nambahin tiga label terakhir pas triage. Gak ada service level agreement soal waktu respons; ini project komunitas, dan issue dapet perhatian sesuai urutan masuknya. Issue yang lengkap dengan langkah reproduce bergerak paling cepet karena paling dikit butuh pertanyaan susulan.
+
+## Nulis issue yang cepet ke-fix
+
+1. Search dulu, baik issue yang masih open maupun yang udah closed, plus Discussions. Keanehan GPU keypair, contohnya, udah di-dokumentasiin di [the Pulumi GPU reference](/id/pulumi/resources/gpu) dan di komentar kode contoh.
+2. Satu issue per masalah. Dua bug dalam satu issue artinya salah satunya bakal nyasar.
+3. Isi tiap field yang form-nya kasih. Form-nya didesain buat nangkep apa yang maintainer butuhin.
+4. Paste output error yang lengkap, bukan paraphrase. Error berisi nama resource dan attribute yang gagal.
+5. Kata-in apa yang lu harapin dan apa yang lu dapet, dengan kata-kata itu.
+6. Jangan pernah taruh secret di issue. Redact token dan password; output contoh-contohnya termasuk private key dan secret key, dan nge-paste itu artinya harus rotate semuanya.
+
+## Triage, dari sisi maintainer
+
+Issue baru melewati tiga pertanyaan: ini bug provider, bug contoh, atau bug docs? Jawabannya nentuin repo-nya:
+
+- Bug provider: dipindah ke [terraform-provider-biznetgio](https://github.com/shirasakaren/terraform-provider-biznetgio/issues) atau [pulumi-biznetgio](https://github.com/shirasakaren/pulumi-biznetgio/issues), terus contoh dan docs di-update biar nyamain behavior asli provider setelah ke-fix.
+- Bug contoh: di-fix di repo contoh, dicerminkan ke semua bahasa, docs di-update di PR yang sama atau PR terhubung.
+- Bug docs: di-fix dalam dua bahasa di repo docs.
+
+[Step-by-step walkthroughs](/id/contribute/walkthroughs) nge-cover tiap jalur ini end to end.

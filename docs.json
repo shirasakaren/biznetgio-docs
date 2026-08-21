@@ -97,6 +97,34 @@
             ]
           },
           {
+            "tab": "Contribute",
+            "icon": "handshake",
+            "groups": [
+              {
+                "group": "Contributing",
+                "pages": [
+                  "contribute/introduction",
+                  "contribute/repositories",
+                  "contribute/setup",
+                  "contribute/conventions",
+                  "contribute/commits-and-prs",
+                  "contribute/issues",
+                  "contribute/codeowners",
+                  "contribute/communication"
+                ]
+              },
+              {
+                "group": "Under the hood",
+                "pages": [
+                  "contribute/pipelines",
+                  "contribute/terraform-guide",
+                  "contribute/pulumi-guide",
+                  "contribute/walkthroughs"
+                ]
+              }
+            ]
+          },
+          {
             "tab": "GitHub",
             "align": "end",
             "menu": [
@@ -119,6 +147,11 @@
                 "item": "Pulumi examples",
                 "href": "https://github.com/shirasakaren/biznetgio-example-pulumi",
                 "icon": "zap"
+              },
+              {
+                "item": "Docs source",
+                "href": "https://github.com/shirasakaren/biznetgio-docs",
+                "icon": "book-open"
               },
               {
                 "item": "Author on GitHub",
@@ -197,6 +230,34 @@
                 "group": "Tentang",
                 "pages": [
                   "id/about"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Contribute",
+            "icon": "handshake",
+            "groups": [
+              {
+                "group": "Berkontribusi",
+                "pages": [
+                  "id/contribute/introduction",
+                  "id/contribute/repositories",
+                  "id/contribute/setup",
+                  "id/contribute/conventions",
+                  "id/contribute/commits-and-prs",
+                  "id/contribute/issues",
+                  "id/contribute/codeowners",
+                  "id/contribute/communication"
+                ]
+              },
+              {
+                "group": "Di balik layar",
+                "pages": [
+                  "id/contribute/pipelines",
+                  "id/contribute/terraform-guide",
+                  "id/contribute/pulumi-guide",
+                  "id/contribute/walkthroughs"
                 ]
               }
             ]

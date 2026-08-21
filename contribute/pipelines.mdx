@@ -1,0 +1,59 @@
+---
+title: "Pipelines"
+description: "Line by line explanation of the two manual dispatch CI workflows, the secrets they need, and how to extend them"
+---
+
+Both example repos ship a GitHub Actions workflow that runs only when a human deliberately triggers it. This page explains why, what each step does, and how to add a new example or language to the matrix. The docs site has no workflow file at all; it deploys through the Mintlify app.
+
+## Why manual only
+
+Every pipeline here is declared `workflow_dispatch`, GitHub's [manually triggered workflow event](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_dispatch). They never run on push and never on a schedule. The reason is cost safety: the interesting actions (`apply`, `up`, `destroy`) place real orders on a real Biznet GIO account, so they must never fire because of a commit. A push-triggered `destroy` is how you get an incident; a manual choice from the Actions tab is how you get a rehearsal.
+
+The default action in each workflow is the safe one: `validate` for Terraform, `build` for Pulumi. Both need zero credentials.
+
+## The Terraform pipeline
+
+The full file is [ci.yml in biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform/blob/main/.github/workflows/ci.yml). From top to bottom:
+
+1. **Trigger and inputs.** Two choice dropdowns: `example` (a folder, or `all`) and `action` (`validate`, `plan`, `apply`, `destroy`). The workflow file itself is the documentation; each input description says what needs credentials and what places real orders.
+2. **Permissions.** `contents: read`, the minimum a checkout needs. The workflow cannot write to the repo.
+3. **The `discover` job.** Turns the `all` choice into a concrete list of the six folders and publishes it as a job output, which becomes the matrix in the next job. It is a small shell script, because GitHub matrices must be concrete lists.
+4. **The `run` job.** A matrix over the chosen folders with `fail-fast: false`, so one broken example does not cancel the others. Steps:
+   - `actions/checkout@v4` gets the code.
+   - [`hashicorp/setup-terraform@v3`](https://github.com/hashicorp/setup-terraform) installs Terraform.
+   - `terraform fmt -check` fails the job if any file is not canonically formatted. This is the formatting gate from [Conventions](/contribute/conventions).
+   - `terraform init` downloads the pinned provider from the registry.
+   - `terraform validate` type checks the whole folder without any credentials or API calls.
+   - `terraform plan` runs only when the action is `plan`, `apply`, or `destroy`, with the `BIZNETGIO_API_KEY` secret and the console password exposed as the `TF_VAR_console_password` environment variable. For `destroy` it plans with `-destroy`.
+   - `terraform apply -auto-approve` or `terraform destroy -auto-approve` run only when explicitly chosen.
+
+Secrets used: `BIZNETGIO_API_KEY` for any action past validate, and `EXAMPLE_CONSOLE_PASSWORD` (mapped to `TF_VAR_console_password`, the Terraform convention for [setting variables from the environment](https://developer.hashicorp.com/terraform/language/values/variables#environment-variables)) for the folders that take a console password.
+
+## The Pulumi pipeline
+
+The full file is [ci.yml in biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi/blob/main/.github/workflows/ci.yml). Same philosophy, one more dimension:
+
+1. **Trigger and inputs.** Three dropdowns: `language`, `example`, and `action` (`build`, `preview`, `up`, `destroy`).
+2. **The `discover` job.** Cross-products the chosen language and example into a matrix of `{language, example}` pairs using `jq -nc`. This is the same `all` expansion trick as the Terraform workflow, but the cross product means `all` by `all` fans out into 36 jobs.
+3. **The `run` job.** A matrix over those pairs, `fail-fast: false`, with the working directory set to `<language>/<example>`. Steps:
+   - `actions/checkout@v4`.
+   - Per-language toolchain and build, gated with `if:` on the language: [`setup-node@v4`](https://github.com/actions/setup-node) with Node 20 plus `npm install && npx tsc --noEmit` for TypeScript; [`setup-python@v5`](https://github.com/actions/setup-python) with Python 3.11 plus `pip install -r requirements.txt`; [`setup-go@v5`](https://github.com/actions/setup-go) pinned to `1.25.x` plus `go build ./...`; [`setup-dotnet@v4`](https://github.com/actions/setup-dotnet) with .NET 8 plus `dotnet build`; [`setup-java@v4`](https://github.com/actions/setup-java) with Temurin 17 plus `mvn -q compile`; and a one-liner YAML parse for the `yaml` language.
+   - [`pulumi/actions@v7`](https://github.com/pulumi/actions) runs the chosen command (`preview`, `up`, or `destroy`) against the `dev` stack in the example's folder, only when the action is not `build`. It needs `PULUMI_ACCESS_TOKEN` (Pulumi Cloud auth) and `BIZNETGIO_API_KEY` (the provider reads it from the environment).
+
+The Go pin at `1.25.x` exists because the Go SDK's `go.mod` requires a recent toolchain; the comment in the workflow says to keep it in lockstep with the provider repo. If you bump Go in the examples, bump it there too.
+
+## Adding a new example or language
+
+The matrix lists are hardcoded in the workflow files, so extending the matrix means editing the workflow in the same PR as the new folder:
+
+| Change | Edit these places |
+| --- | --- |
+| New Terraform example folder | the `example` input's `options:` list, and the `discover` job's folder list |
+| New Pulumi example folder | the `example` input's `options:` list and the `discover` job's `examples` list |
+| A whole new Pulumi language | the `language` input's `options:` list, the `discover` job's `langs` list, plus a new `if:` gated toolchain and build block in the `run` job |
+
+Both workflows are plain YAML following the [GitHub Actions workflow syntax](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions). The `discover` job pattern (compute a matrix in one job, consume it in the next via `fromJson`) is the official [dynamic matrix recipe](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) from the Actions documentation.
+
+## The docs site pipeline
+
+The docs repo has no Actions workflow. Changes merged to `main` are built and deployed by the Mintlify GitHub app, configured in the repo's [deployments](https://github.com/shirasakaren/biznetgio-docs/deployments). Local verification before merging is `mint dev` plus careful link checks, as described in [Local setup](/contribute/setup). If a deploy ever looks stale, the deployment history page shows the commit hash of the live site.

@@ -1,0 +1,117 @@
+---
+title: "Conventions"
+description: "Naming, comments, formatting, version pinning, and safety rules every contribution must follow, with links to the canonical standards"
+---
+
+Conventions exist so any contributor can read any file and know what is happening. The rules are few, and each links to the published standard it comes from.
+
+## Naming
+
+Follow the existing names in each repo. They follow the conventions of their own ecosystems:
+
+| Thing | Convention | Example |
+| --- | --- | --- |
+| Terraform folder names | lowercase with hyphens | `object-storage/` |
+| Terraform resource names | short, one word or hyphenated, no numbering | `biznetgio_neolite_vm.main`, `biznetgio_neolite_disk.extra` |
+| Terraform variables and attributes | snake_case | `pay_with_credit_card`, `console_password` |
+| Pulumi resource names (first argument) | lowercase with hyphens, descriptive | `"neolite-example"`, `"example-app-key"` |
+| Pulumi variables and config keys | camelCase | `consolePassword`, `payWithCreditCard` |
+| Pulumi project names | `biznetgio-example-<example>` | `biznetgio-example-gpu` |
+| Class names in code | PascalCase | `AppStack`, `AppStackArgs` |
+| Go exported types | PascalCase, Go style | `NewAppStack`, `VmProductId` |
+
+Biznet GIO enforces its own name limits, and the examples must respect them. Keep these in mind when you rename things:
+
+- VM names (`vm_name` / `vmName`): 6 to 16 characters
+- Disk service names (`service_name` / `serviceName`): 6 to 16 characters
+- Object Storage labels (`label` / `storageLabel`): 6 to 16 characters
+- SSH and console usernames: 6 to 32 characters, letters, numbers, dash, dot only
+
+The reference pages document the limits per resource: [Terraform NEO Lite](/terraform/resources/neolite), [Pulumi NEO Lite](/pulumi/resources/neolite), and their neighbors. The limit ranges are why the examples use short names like `example-app` instead of long descriptive ones.
+
+## Bilingual comments
+
+Every code file in the example repos starts with a banner comment and is commented in English and Bahasa Indonesia throughout. The format is fixed:
+
+```hcl
+# ============================================================================
+# English: What this whole file does, in plain casual English.
+#
+# Indonesia: Apa yang file ini lakuin, pake Bahasa Indonesia yang santai.
+# ============================================================================
+```
+
+Then each section gets a divider with both languages:
+
+```hcl
+# --- The VM itself ---------------------------------------------------
+# --- VM-nya sendiri --------------------------------------------------
+```
+
+The rules:
+
+- English first, Indonesian second, always.
+- Casual tone, like explaining to a friend. No formal documentation speak inside code comments.
+- Technical terms stay in English inside code formatting, both in comments and on the docs site.
+- New code you add must follow the same pattern. This is the single most important convention in these repos; it is the whole point of them being beginner friendly.
+
+The docs site pages are not bilingual per file. Each page exists twice, once in English and once under `id/`, following [AGENTS.md](https://github.com/shirasakaren/biznetgio-docs/blob/main/AGENTS.md) in the docs repo.
+
+## No em dashes or en dashes
+
+This project never uses em dashes or en dashes, in docs pages, in code comments, in READMEs, or in commit messages. Hyphens only. The rule keeps every file ASCII-safe and every contributor's editor consistent, and it applies to both languages. When a sentence needs a pause, rewrite it or use a comma or a hyphen.
+
+## Formatting, per language
+
+Formatting follows each ecosystem's canonical tool. The links go to the official documentation for each:
+
+| Language | Standard | Link | How CI checks it |
+| --- | --- | --- | --- |
+| Terraform (HCL) | `terraform fmt`, style guide | [HashiCorp style conventions](https://developer.hashicorp.com/terraform/language/style) | `terraform fmt -check` fails the CI job on any diff |
+| TypeScript | Prettier style, 2 space indent, double quotes | [prettier.io](https://prettier.io/) | `tsc --noEmit` type checks; formatting matches the existing files by convention |
+| Python | PEP 8, snake_case | [PEP 8](https://peps.python.org/pep-0008/) | `pip install` resolves the pinned requirements |
+| Go | `gofmt`, effective Go | [Effective Go formatting](https://go.dev/doc/effective_go#formatting) | `go build ./...` compiles every example |
+| .NET | C# conventions, `dotnet format` | [Microsoft C# coding conventions](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions) | `dotnet build` |
+| Java | Google Java Style | [google.github.io/styleguide](https://google.github.io/styleguide/javaguide.html) | `mvn -q compile` |
+| YAML | plain 2 space YAML | [yaml.org spec](https://yaml.org/spec/) | parsed with a YAML loader in CI |
+
+Run the formatter before committing, in any language you touched. If a file's formatting drifts from its neighbors, your PR review will ask you to fix it.
+
+## Version pinning
+
+Every example pins the exact SDK and provider versions it was built against. Do not bump versions casually, and never leave a version unpinned in a new folder:
+
+| Language | Pinned versions |
+| --- | --- |
+| Terraform | `required_version = ">= 1.0"`, provider `registry.terraform.io/shirasakaren/biznetgio` at `0.1.0` |
+| TypeScript | `@pulumi/pulumi ^3.142.0`, `@shirasakaren/biznetgio ^0.1.7` |
+| Python | `pulumi>=3.231.0,<4.0.0`, `pulumi-biznetgio>=0.1.7` |
+| Go | Go `1.25.11`, `pulumi/sdk/v3 v3.256.0`, `pulumi-biznetgio v0.1.7` |
+| .NET | `Pulumi 3.*`, `Shirasakaren.Biznetgio 0.1.7`, `net8.0` |
+| Java | `com.pulumi:pulumi:1.0.0`, `ren.shirasaka:biznetgio:0.1.7`, Java 17 |
+| YAML | nothing to pin, the CLI resolves the provider |
+
+The provider SDKs live in the Terraform Registry and the Pulumi Registry respectively, see [Registries](/registries). Version bumps happen deliberately, in their own PR, mirrored across all folders at once so the repo never has a mix.
+
+## Cost safety
+
+These repos create real, billable infrastructure, so they encode safety rules directly into the code:
+
+- `pay_with_credit_card` (Terraform) and `payWithCreditCard` (Pulumi) default to `false` everywhere. A `false` order still creates the real resource but leaves the invoice unpaid in the portal. Read [Billing and orders](/guides/billing) for the full picture.
+- Destructive or one-shot options like `power_state`, `rebuild_os`, `migrate_to_pro`, and `rebuild_trigger` are present in the code but commented out. Each carries a comment saying what it does and that it wipes disks or spends money. Uncomment one at a time, never a batch.
+- `baremetal/` and `gpu/` READMEs carry an extra cost warning because they are the most expensive product lines. Keep those warnings if you touch those folders.
+- Secrets never enter git. Terraform uses the gitignored `terraform.tfvars` with a committed `.example` template; Pulumi uses `pulumi config set --secret` and `Pulumi.<stack>.yaml` files are gitignored.
+
+Any new example you add must inherit all four rules. A PR that adds a billable default or commits a secret gets the review it deserves.
+
+## Docs site conventions
+
+The docs repo has its own writing rules, all in [AGENTS.md](https://github.com/shirasakaren/biznetgio-docs/blob/main/AGENTS.md):
+
+- Every page has `title` and `description` frontmatter; descriptions are one sentence.
+- Headings are sentence case; prose is active voice, second person.
+- English and Indonesian pages must stay in sync with the same relative path.
+- Internal links in Indonesian pages start with `/id/`.
+- No em dashes or en dashes, same as the example repos.
+
+When you change behavior in an example repo, check whether any docs page shows the old behavior. If it does, fix the docs in the same PR or a linked one, in both languages. The [GPU keypair](/pulumi/resources/gpu) and account id typing fixes were exactly this kind of paired change.

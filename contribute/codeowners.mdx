@@ -1,0 +1,52 @@
+---
+title: "CODEOWNERS and reviews"
+description: "How the CODEOWNERS file routes reviews, its matching rules, and how to claim ownership of a path"
+---
+
+Every repo has a `CODEOWNERS` file at its root. It tells GitHub who owns which files, and GitHub turns that into review requests automatically. This page explains how the mechanism works and how to read and change the file.
+
+## What CODEOWNERS does
+
+When a pull request changes files that match an entry in `CODEOWNERS`, GitHub automatically requests a review from the listed owners, as described in [GitHub's documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners). It does not block merges and it does not grant permissions; it is a routing table for review requests.
+
+The file in all three repos is minimal:
+
+```text
+* @shirasakaren
+```
+
+`*` matches every file in the repo, so every PR requests review from the repo owner. That is the whole current policy: one maintainer reviews everything, and CODEOWNERS makes sure nothing merges without them seeing it.
+
+## Matching rules
+
+The rules follow [GitHub's CODEOWNERS syntax](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-syntax):
+
+- Paths match gitignore style patterns: `*` is a wildcard, `*.tf` matches all Terraform files, `docs/` matches a folder and everything in it.
+- The last matching line wins. Order matters; specific paths must come after the catch-all `*`.
+- Comments start with `#`. Each line maps a path to one or more owners, separated by spaces.
+- Owners are GitHub usernames or team names like `@username` or `@org/team-name`.
+
+A realistic future version might look like:
+
+```text
+*             @shirasakaren
+/contribute/  @shirasakaren @docs-volunteer
+*.tf          @shirasakaren @terraform-examples-team
+```
+
+Here a PR touching `contribute/` pages requests both reviewers, and any `.tf` file requests the Terraform team, while everything else falls back to the repo owner.
+
+## Adding yourself as an owner
+
+If you become a regular contributor to one area, ask the maintainer to add you to `CODEOWNERS` for that path in a normal PR. Two rules:
+
+- Only add yourself or people who asked; never volunteer someone else.
+- Only claim paths you are willing to review promptly. Ownership means review requests, not glory.
+
+## Review expectations, both sides
+
+For the author: answer review comments by changing the code or explaining why not, and do not take a request for changes personally. The checklist in the [PR template](/contribute/commits-and-prs) exists so reviews stay about the checklist and the conventions instead of taste.
+
+For the reviewer: use the template checklist as the script, check that docs and code changed together, and verify cost safety (the `payWithCreditCard` default, commented out destructive options). If a PR is good, approve it; if it needs small fixes, request them; if the approach is wrong, say so early and plainly.
+
+Review happens asynchronously. The maintainer is in one timezone, contributors are in several; a round trip can take a day or more. That is normal for this project and is why [Communication](/contribute/communication) asks you to keep PRs small and self-contained.

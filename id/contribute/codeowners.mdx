@@ -1,0 +1,52 @@
+---
+title: "CODEOWNERS dan review"
+description: "Gimana file CODEOWNERS ngatur review, aturan matching-nya, dan gimana cara ngakuin kepemilikan sebuah path"
+---
+
+Setiap repo punya file `CODEOWNERS` di root-nya. File itu ngasih tau GitHub siapa yang punya file mana, terus GitHub otomatis ngubahnya jadi permintaan review. Halaman ini ngejelasin gimana mekanismenya jalan dan gimana cara baca dan ubah file-nya.
+
+## Apa yang CODEOWNERS lakukan
+
+Pas ada pull request yang ngubah file yang cocok sama entri di `CODEOWNERS`, GitHub otomatis minta review dari owner yang terdaftar, kayak yang dijelasin di [dokumentasi GitHub](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners). Dia gak ngeblokir merge dan gak ngasih permission; dia cuma tabel routing buat permintaan review.
+
+File di tiga repo itu minimal banget:
+
+```text
+* @shirasakaren
+```
+
+`*` cocok sama semua file di repo, jadi tiap PR minta review dari owner repo. Itu seluruh kebijakan saat ini: satu maintainer nge-review semuanya, dan CODEOWNERS mastiin gak ada yang merge tanpa diliat dulu.
+
+## Aturan matching
+
+Aturannya ngikutin [sintaks CODEOWNERS GitHub](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-syntax):
+
+- Path cocok dengan pattern ala gitignore: `*` itu wildcard, `*.tf` cocok sama semua file Terraform, `docs/` cocok sama satu folder dan semua isinya.
+- Baris yang cocok paling akhir yang menang. Urutan penting; path spesifik harus ditaruh setelah `*` yang catch-all.
+- Komentar dimulai dengan `#`. Tiap baris memetakan satu path ke satu atau lebih owner, dipisah spasi.
+- Owner itu username GitHub atau nama tim kayak `@username` atau `@org/team-name`.
+
+Versi masa depan yang realistis bisa keliatan kayak gini:
+
+```text
+*             @shirasakaren
+/contribute/  @shirasakaren @docs-volunteer
+*.tf          @shirasakaren @terraform-examples-team
+```
+
+Di sini PR yang nyentuh halaman `contribute/` minta review dua-duanya, dan file `.tf` mana pun minta tim Terraform, sementara sisanya jatuh ke owner repo.
+
+## Nambahin diri lu sebagai owner
+
+Kalau lu udah jadi kontributor rutin di satu area, minta maintainer buat nambahin lu ke `CODEOWNERS` buat path itu lewat PR biasa. Dua aturan:
+
+- Cuma tambahin diri lu sendiri atau orang yang udah minta; jangan pernah nunjuk orang lain.
+- Cuma ngakuin path yang lu mau review dengan cepet. Kepemilikan artinya permintaan review, bukan kebanggaan.
+
+## Ekspektasi review, dari dua sisi
+
+Buat author: jawab komentar review dengan ngubah kode atau ngejelasin kenapa gak, dan jangan bawa perasaan pas diminta perubahan. Checklist di [PR template](/id/contribute/commits-and-prs) ada biar review tetap fokus ke checklist dan konvensi, bukan selera.
+
+Buat reviewer: pake checklist template sebagai skrip, cek kalau docs dan code berubah barengan, dan verifikasi keamanan biaya (default `payWithCreditCard`, opsi destruktif yang di-comment out). Kalau PR-nya bagus, approve; kalau butuh perbaikan kecil, minta; kalau pendekatannya salah, bilang dari awal dengan jelas.
+
+Review jalan secara asinkron. Maintainer ada di satu timezone, kontributor di beberapa; satu putaran bisa makan waktu sehari atau lebih. Itu normal buat project ini dan makanya [Communication](/id/contribute/communication) minta lu jaga PR tetap kecil dan mandiri.

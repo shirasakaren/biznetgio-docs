@@ -1,0 +1,115 @@
+---
+title: "Setup lokal"
+description: "Tools, akun, dan token yang lu butuhin sebelum berkontribusi, lengkap dengan tiap versi yang proyek ini pin"
+---
+
+Halaman ini nyiapin mesin lu buat berkontribusi ke salah satu dari tiga repo. Total waktunya sekitar dua puluh menit pas pertama kali, dan semua yang di sini gratis.
+
+## Akun
+
+<Steps>
+<Step title="Bikin atau login ke GitHub">
+  Semua kontribusi lewat GitHub. Login di [github.com](https://github.com), terus [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) repo yang mau lu ubah. Lu gak pernah push langsung ke repo utama; lu push ke fork lu dan buka pull request.
+</Step>
+<Step title="Dapetin token API Biznet GIO">
+  Provider ngobrol sama Biznet GIO pake token API, yang dibikin dari portal kayak yang dijelasin di [Authentication](/id/authentication). Lu cuma butuh ini buat jalanin `plan`, `apply`, `preview`, atau `up`. Cek statis kayak `terraform validate` dan `pulumi preview` pake mocks tetep jalan tanpa itu.
+</Step>
+<Step title="Opsional: bikin akun Pulumi Cloud">
+  Ngejalanin contoh Pulumi dengan state asli butuh akun [Pulumi Cloud](https://www.pulumi.com/docs/iac/concepts/state/) gratis, dan pipeline CI butuh personal access token dari situ. Skip ini sampe lu beneran ngejalanin sesuatu.
+</Step>
+</Steps>
+
+## Tools
+
+Install persis versi yang proyek ini pake. Pipeline CI ngepin yang sama, jadi perubahan yang build di mesin lu juga build di CI:
+
+| Tool | Versi | Di mana di-pin | Link install |
+| --- | --- | --- | --- |
+| Git | yang terbaru aja | gak di-pin | [git-scm.com](https://git-scm.com/downloads) |
+| Terraform | 1.0 atau lebih baru | `versions.tf` di tiap folder | [developer.hashicorp.com](https://developer.hashicorp.com/terraform/install) |
+| Pulumi CLI | terkini | gak di-pin | [pulumi.com](https://www.pulumi.com/docs/iac/cli/) |
+| Node.js | 20 | CI `node-version` | [nodejs.org](https://nodejs.org/en/download) |
+| Python | 3.11 | CI `python-version` | [python.org](https://www.python.org/downloads/) |
+| Go | 1.25.x | `go.mod` dan CI `go-version` | [go.dev](https://go.dev/doc/install) |
+| .NET SDK | 8.0.x | `.csproj` `net8.0` dan CI | [dotnet.microsoft.com](https://dotnet.microsoft.com/en-us/download) |
+| Java (Temurin) | 17 | `pom.xml` dan CI | [adoptium.net](https://adoptium.net/) |
+| Maven | terkini | gak di-pin | [maven.apache.org](https://maven.apache.org/install.html) |
+| Mintlify CLI | terkini | gak di-pin | `npm i -g mint` |
+
+Go 1.25 bukan typo. `go.mod` Pulumi Go SDK ngedeclare requirement toolchain yang baru, jadi versi Go lama nolak buat build. Kalau lu liat error `go: go.mod requires go >= 1.25`, update Go.
+
+<Info>
+  Lu gak butuh keenam toolchain bahasa Pulumi. Install yang mau lu kontribusiin. Pipeline CI ngejalanin keenamnya buat lu kok.
+</Info>
+
+## Clone dan first run
+
+Tiga repo itu clone git biasa. Fork dulu, terus:
+
+```bash
+git clone git@github.com:YOUR-USERNAME/biznetgio-docs.git
+git clone git@github.com:YOUR-USERNAME/biznetgio-example-terraform.git
+git clone git@github.com:YOUR-USERNAME/biznetgio-example-pulumi.git
+```
+
+Terus verifikasi tiap repo jalan di mesin lu.
+
+### Situs docs
+
+```bash
+cd biznetgio-docs
+npm i -g mint     # one time, installs the Mintlify CLI
+mint dev          # preview at http://localhost:3000
+```
+
+Tiap perubahan yang disimpan hot-reload. Preview lokal itu cara terbaik buat cek MDX sebelum commit.
+
+### Contoh Terraform
+
+```bash
+cd biznetgio-example-terraform/object-storage
+terraform fmt -check
+terraform init
+terraform validate
+```
+
+Ketiga command harus lolos. Mereka gak butuh credential; `terraform validate` itu cek statis yang gak pernah manggil API Biznet GIO.
+
+### Contoh Pulumi
+
+Satu command build per bahasa, dari dalam folder contoh:
+
+```bash
+cd biznetgio-example-pulumi/typescript/neolite
+npm install && npx tsc --noEmit
+
+cd ../../python/neolite
+pip install -r requirements.txt
+
+cd ../../go/neolite
+go build ./...
+
+cd ../../dotnet/neolite
+dotnet build
+
+cd ../../java/neolite
+mvn -q compile
+```
+
+YAML gak butuh build; parser YAML apa pun yang nerima `yaml/neolite/Pulumi.yaml` itu udah jadi ceknya.
+
+## Secrets CI, buat maintainers
+
+Pipeline repo contoh jalan pake manual dispatch dan kebanyakan actions butuh repo secrets. Konfigurasi ini di `Settings > Secrets and variables > Actions` fork lu kalau mau jalanin pipeline lengkap dari fork lu sendiri:
+
+| Secret | Di mana | Dibutuhin oleh |
+| --- | --- | --- |
+| `BIZNETGIO_API_KEY` | dua repo contoh | `plan`/`apply`/`destroy` (Terraform), `preview`/`up`/`destroy` (Pulumi) |
+| `EXAMPLE_CONSOLE_PASSWORD` | contoh terraform | `plan`/`apply`/`destroy` di folder yang nerima console password |
+| `PULUMI_ACCESS_TOKEN` | contoh pulumi | `preview`/`up`/`destroy` |
+
+Gak usah set ini kecuali lu beneran niat. `apply`, `up`, dan `destroy` bikin order asli di akun yang token-nya lu konfigurasi, itu persis kenapa pipelines-nya cuma manual. Liat [Pipelines](/id/contribute/pipelines) buat penjelasan lengkap.
+
+## Lu udah siap
+
+Dari sini, baca [Konvensi](/id/contribute/conventions) biar perubahan pertama lu cocok sama gaya rumah, terus pilih walkthrough dari [guide step-by-step](/id/contribute/walkthroughs).

@@ -1,0 +1,135 @@
+---
+title: "Step-by-step walkthroughs"
+description: "Five complete contribution scenarios with every command, from a docs typo to a new language"
+---
+
+The previous pages explain the rules. This page turns them into five complete runs you can follow exactly, in order of difficulty. Each assumes you have done [Local setup](/contribute/setup).
+
+## Scenario 1: fix a typo on the docs site
+
+The smallest possible contribution, good for learning the fork and PR flow.
+
+<Steps>
+<Step title="Fork and clone">
+  Fork [biznetgio-docs](https://github.com/shirasakaren/biznetgio-docs), then:
+  ```bash
+  git clone git@github.com:YOUR-USERNAME/biznetgio-docs.git
+  cd biznetgio-docs
+  git checkout -b docs/fix-typo
+  ```
+</Step>
+<Step title="Find the page and fix both languages">
+  Say the typo is on `/quickstart`. The English copy is `quickstart.mdx`, the Indonesian copy is `id/quickstart.mdx`. Fix the English first, then apply the equivalent fix to the Indonesian page. If the Indonesian sentence does not exist verbatim, fix the meaning, not the words.
+</Step>
+<Step title="Preview locally">
+  ```bash
+  npm i -g mint   # one time
+  mint dev        # open http://localhost:3000/quickstart
+  ```
+  Check both languages with the language switcher in the top bar.
+</Step>
+<Step title="Commit and push">
+  ```bash
+  git add quickstart.mdx id/quickstart.mdx
+  git commit -m "docs: fix typo in quickstart"
+  git push origin docs/fix-typo
+  ```
+</Step>
+<Step title="Open the PR">
+  Open the PR against the upstream `main`. Mention which page and which language. The maintainer squash merges, and the Mintlify app redeploys the site from `main` automatically within minutes.
+</Step>
+</Steps>
+
+## Scenario 2: add a new Terraform example
+
+Say the provider gained a new data source for NEO Lite and you want an example showing it.
+
+<Steps>
+<Step title="Branch from a fresh main">
+  ```bash
+  git clone git@github.com:YOUR-USERNAME/biznetgio-example-terraform.git
+  cd biznetgio-example-terraform
+  git remote add upstream https://github.com/shirasakaren/biznetgio-example-terraform.git
+  git fetch upstream && git checkout -b feat/neolite-new-datasource upstream/main
+  ```
+</Step>
+<Step title="Edit the example">
+  If the data source belongs in the existing NEO Lite story, add it to `neolite/main.tf` with the bilingual banner and section comments, following [Conventions](/contribute/conventions). Reference it from a resource or an output so it is actually exercised.
+</Step>
+<Step title="Validate">
+  ```bash
+  cd neolite
+  terraform fmt -check
+  terraform init
+  terraform validate
+  ```
+  Fix everything until all three pass. If the provider has a name limit on something you added, shorten the name.
+</Step>
+<Step title="Update the docs and READMEs in the same PR">
+  The root README table says `neolite/` covers "all 5" data sources; bump the count. If the docs site has a page showing NEO Lite data sources, update `terraform/resources/neolite.mdx` and `id/terraform/resources/neolite.mdx` in the docs repo.
+</Step>
+<Step title="Commit, push, open the PR">
+  ```bash
+  git commit -am "feat(neolite): use the new data source in the example"
+  git push origin feat/neolite-new-datasource
+  ```
+  Fill the PR template checklist honestly, including the README and docs sync boxes.
+</Step>
+</Steps>
+
+## Scenario 3: add a new Pulumi example in TypeScript
+
+<Steps>
+<Step title="Copy the closest folder">
+  ```bash
+  git clone git@github.com:YOUR-USERNAME/biznetgio-example-pulumi.git
+  cd biznetgio-example-pulumi
+  git checkout -b feat/new-example
+  cp -r typescript/object-storage typescript/my-new-thing
+  ```
+</Step>
+<Step title="Rewrite the program">
+  Edit `typescript/my-new-thing/index.ts`: new banner, new resources, same rules. Set the project name in `Pulumi.yaml` to `biznetgio-example-my-new-thing` and fix the `name` field in `package.json` to match. Keep `payWithCreditCard` defaulting to `false`, one-shot options commented out, and `toAccountId` wherever an id meets a number typed input.
+</Step>
+<Step title="Build and preview">
+  ```bash
+  npm install
+  npx tsc --noEmit
+  ```
+  Type errors at this stage are almost always a missed `toAccountId` or a property that does not exist, like `keypairId` on `GpuKeypair`. The [Pulumi repo guide](/contribute/pulumi-guide) lists the known ones.
+</Step>
+<Step title="Mirror to the other five languages">
+  Copy the equivalent existing example in each language and translate the program the same way. YAML gets the flat version. Comments stay identical in spirit, the same bilingual format everywhere.
+</Step>
+<Step title="Update READMEs and CI, then open the PR">
+  Root README table, the per-folder READMEs, and the three CI edit points from [Pipelines](/contribute/pipelines). Then fill the PR checklist and open the PR against upstream `main`.
+</Step>
+</Steps>
+
+## Scenario 4: mirror an existing example into a new Pulumi language
+
+The mechanics of the "other five languages" step from Scenario 3, done properly for one language:
+
+1. Pick the language you know and copy the six folders of an existing language, renaming nothing yet.
+2. For each folder, replace the program file with the new language's version, keeping the bilingual comments. Translate the structure, never invent behavior: same resources, same defaults, same order.
+3. Write the new language's dependency file with the pinned versions from [Conventions](/contribute/conventions).
+4. Build each folder with the language's command from [Local setup](/contribute/setup), fixing type errors one by one.
+5. Update the root README only if it lists language coverage, and add the language to the CI in the three places [Pipelines](/contribute/pipelines) names.
+
+If the whole thing is a new language rather than a mirror, open a feature request first per [Communication](/contribute/communication).
+
+## Scenario 5: report a bug you found while using an example
+
+You ran `terraform plan` in `gpu/` and got an error you cannot explain.
+
+1. Search the repo's issues and Discussions for the error text first.
+2. Check the docs page for that resource; the [GPU quirks](/terraform/resources/gpu) are documented on purpose.
+3. If it is new, open a bug issue through the [bug report form](/contribute/issues). Fill in the example folder, your Terraform version, the exact commands, the full error output, and what you expected.
+4. Wait for triage. If the maintainer says it is a provider bug, they will move it to the provider repo, and you can follow the fix there.
+5. If you also know the fix for the example or docs, say so in the issue, then send the PR once the issue confirms the direction.
+
+## What to do when you are stuck
+
+- Re-read the [Terraform repo guide](/contribute/terraform-guide) or [Pulumi repo guide](/contribute/pulumi-guide) for the area you are touching.
+- Open a Discussion with your current code and the error. That is exactly what Discussions are for.
+- Keep the PR draft while you figure it out; the review thread is a fine place to ask once the PR exists.

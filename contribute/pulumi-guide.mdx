@@ -1,0 +1,176 @@
+---
+title: "Pulumi repo guide"
+description: "How the Pulumi examples work in all six languages, the component pattern, the id conversion quirk, and how to add an example or a language"
+---
+
+This is the deep dive into [biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi). It assumes you have read [What is Infrastructure as Code?](/what-is-iac) or know what a Pulumi stack is. The [Pulumi reference pages](/pulumi/resources/neolite) document every resource used here.
+
+## What a Pulumi program is, in one paragraph
+
+A Pulumi program is a real program in a real language, not a markup file. You write ordinary code that calls `new biznetgio.NeoliteVm(...)` the way you would call any constructor, and Pulumi's engine records every resource in a graph instead of executing the constructor's side effects. References between resources, like `keypair.keypairId` passed into the VM, become edges in that graph, so the engine knows to create the keypair before the VM. The program then declares outputs, and `pulumi up` drives the graph against the Biznet GIO API. The same program structure exists in all six languages because it is the same engine underneath.
+
+## A project's anatomy
+
+Each folder is an independent Pulumi project. `Pulumi.yaml` declares the identity:
+
+```yaml
+name: biznetgio-example-neolite
+runtime: nodejs
+description: NEO Lite walkthrough - every resource and data source this service has
+```
+
+`runtime` picks the language engine. Around that file each language brings its own files, listed in [How the repos are organized](/contribute/repositories). Two concepts appear in every language's program:
+
+- **Config.** The stack's settings, like `consolePassword`, set with `pulumi config set --secret consolePassword <value>` and read in the program with `config.requireSecret("consolePassword")`. Stack state lives in `Pulumi.<stack>.yaml` files, which are gitignored so secrets never enter git.
+- **Stacks.** `pulumi stack init dev` creates an independent deployment target per folder. One example's stack can never touch another's.
+
+## The id conversion convention
+
+The single most important convention in this repo is the `toAccountId` helper, and it exists because of a real type mismatch between Pulumi and the upstream API:
+
+- Pulumi resource `id`s are always strings.
+- Several Biznet GIO inputs that accept those ids (`neoliteAccountId`, `snapshotId`, `metalAccountId`, `additionalIpId`, and the `accountId` on GPU functions) are typed as numbers in the SDKs, because the upstream API sends numbers.
+
+Passing a string `id` into a number typed input is a compile error in every typed language, so each language has its own conversion:
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+function toAccountId(id: pulumi.Input<string>): pulumi.Output<number> {
+  return pulumi.output(id).apply((value) => Number(value));
+}
+
+const disk = new biznetgio.NeoliteDisk("extra", {
+  // ...
+  neoliteAccountId: toAccountId(vm.id),
+});
+```
+</Tab>
+<Tab title="Python">
+```python
+def to_account_id(resource_id: pulumi.Input[str]) -> pulumi.Output[int]:
+    return pulumi.Output.from_input(resource_id).apply(int)
+
+disk = biznetgio.NeoliteDisk("extra",
+    neolite_account_id=to_account_id(vm.id),
+    # ...
+)
+```
+</Tab>
+<Tab title="Go">
+```go
+// The SDK's ID() returns a pulumi.IDOutput; convert with ToIntOutput().
+disk, err := biznetgio.NewNeoliteDisk(ctx, "extra", &biznetgio.NeoliteDiskArgs{
+    NeoliteAccountId: vm.ID().ToIntOutput(),
+    // ...
+})
+```
+</Tab>
+<Tab title=".NET">
+```csharp
+var disk = new Biznetgio.NeoliteDisk("extra", new Biznetgio.NeoliteDiskArgs
+{
+    NeoliteAccountId = vm.Id.Apply(v => int.Parse(v)),
+    // ...
+});
+```
+</Tab>
+<Tab title="Java">
+```java
+var disk = new NeoliteDisk("extra", NeoliteDiskArgs.builder()
+    .neoliteAccountId(vm.id().applyValue(Integer::parseInt))
+    // ...
+    .build());
+```
+</Tab>
+<Tab title="YAML">
+```yaml
+extraDisk:
+  type: biznetgio:index:NeoliteDisk
+  properties:
+    neoliteAccountId: ${fn::toNumber(vm.id)}
+```
+</Tab>
+</Tabs>
+
+Three exceptions to remember:
+
+- `GpuKeypair` exposes no `keypairId` property, only `id`, which already is the keypair id. The GPU examples convert `keypair.id` with the same helper and carry a comment explaining why, matching the [Pulumi GPU reference](/pulumi/resources/gpu).
+- Object Storage's `accountId` fields are string typed, so no conversion happens anywhere in `object-storage/` or the storage part of `complete/`.
+- YAML uses `fn::toNumber`, the built in function, instead of a helper.
+
+Both quirks were found by compiling this repo against the real SDKs, and the docs site was updated to match. When you add code that passes an `id` anywhere, check which type the input wants before writing the reference.
+
+## The component in complete/
+
+`complete/` bundles "one app" (NEO Lite Pro VM plus Object Storage bucket and credential) into a reusable component, the Pulumi equivalent of the Terraform module. The TypeScript version is `appStack.ts`:
+
+- `AppStackArgs` is a plain interface listing the component's inputs. Every field is typed `pulumi.Input<...>`, which means a caller may pass either a plain value or a live output from another resource.
+- `AppStack` extends `pulumi.ComponentResource`, registered with the type string `"biznetgio-example:index:AppStack"` in its `super(...)` call.
+- Each child resource is created with `{ parent: this }` in its options. That one line puts every child in a tree under the component, which is what makes `pulumi destroy` tear the whole stack down in the right order.
+- Outputs are assigned to public fields, then published with `this.registerOutputs(...)`, which makes them appear in `pulumi stack output`.
+
+The same pattern exists in every code language, with language appropriate naming:
+
+| Language | File | Component registration |
+| --- | --- | --- |
+| TypeScript | `appStack.ts` | `class AppStack extends pulumi.ComponentResource`, `super("biznetgio-example:index:AppStack", ...)` |
+| Python | `app_stack.py` | `class AppStack(pulumi.ComponentResource)`, `super().__init__("biznetgio-example:index:AppStack", name, {}, opts)` |
+| Go | `app_stack.go` | `func NewAppStack(ctx, name, args, opts...)`, `ctx.RegisterComponentResource(...)`, children get `pulumi.Parent(app)` |
+| .NET | `AppStack.cs` | `class AppStack : Pulumi.ComponentResource` |
+| Java | `AppStack.java` + `AppStackArgs.java` | separate args class, the Java convention |
+
+YAML cannot define components, a language limitation, so `yaml/complete/` shows the same five resources flat, with a comment explaining the difference. The [modules and components tutorial](/tutorials/modules-and-components) teaches the pattern itself.
+
+## Version pinning and the Go detail
+
+Every language pins the SDK and provider versions it was built against, listed in the table in [Conventions](/contribute/conventions). One pin needs special care: the Go SDK's `go.mod` requires a recent toolchain, which is why the Go folders declare `go 1.25.11` and the CI installs `1.25.x`. The workflow comment says to keep it in lockstep with the provider repo. If Go updates ever break a build, that pin is the first thing to check.
+
+## Adding a new example
+
+The steps mirror the Terraform ones, plus a language matrix:
+
+<Steps>
+<Step title="Copy the closest example in the same language">
+  Copy the folder for the closest product line. Keep the `Pulumi.yaml` name and description format, `biznetgio-example-<example>`.
+</Step>
+<Step title="Rewrite the program for the new shape">
+  Keep the bilingual banner and comments, the `toAccountId` helper where needed, and the cost safety defaults (`payWithCreditCard` defaults to `false`, one-shot options commented out).
+</Step>
+<Step title="Build it">
+  Run the language's build command from [Local setup](/contribute/setup). Fix type errors until it compiles; the type checker will catch every id conversion you missed.
+</Step>
+<Step title="Mirror it to the other five languages">
+  Each example must exist in every language, so the contribution is six programs. Translate the TypeScript structure, not the comments; the comments stay the same bilingual format in every language. YAML gets the flat version of whatever the component would be.
+</Step>
+<Step title="Update READMEs and CI">
+  Update the root README table and the per-folder READMEs, and register the new example in the `example` input options and the `discover` job list in the workflow, as [Pipelines](/contribute/pipelines) describes.
+</Step>
+<Step title="Open the PR">
+  Fill the PR template checklist, which asks exactly these questions.
+</Step>
+</Steps>
+
+## Adding a whole new language
+
+Pulumi supports more runtimes than the six here. Adding one means:
+
+1. Copy one existing language folder's six examples and rewrite the programs in the new language, keeping every comment.
+2. Pin the SDK and provider versions in that language's dependency file.
+3. Add the language to the CI `language` input options, the `discover` job's `langs` list, and a new build leg with the right setup action.
+
+Discuss the language in a [feature request](/contribute/issues) first. A new language is a big mirroring commitment, since every future example change must be translated six or seven times.
+
+## Running an example, for reference
+
+```bash
+cd typescript/object-storage
+npm install
+pulumi stack init dev
+pulumi config set --secret consolePassword "<password>"   # only examples with a VM
+export BIZNETGIO_API_KEY="<token>"
+pulumi preview
+pulumi up
+```
+
+`preview` is the plan; `up` is the apply. The full user facing walkthrough is the [Pulumi quickstart](/pulumi-quickstart), and the examples page lists what each folder covers.

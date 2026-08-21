@@ -1,0 +1,148 @@
+---
+title: "Terraform repo guide"
+description: "How the Terraform examples work file by file, what the module does, and how to add a new example"
+---
+
+This is the deep dive into [biznetgio-example-terraform](https://github.com/shirasakaren/biznetgio-example-terraform). It assumes you have read [What is Infrastructure as Code?](/what-is-iac) or know what a Terraform plan is. If a term confuses you, the [NEO Lite reference](/terraform/resources/neolite) documents every resource and data source used here.
+
+## What Terraform code is, in one paragraph
+
+A Terraform configuration is a set of declarations, not a script. You write what should exist (a VM with this name, this OS, this keypair) and Terraform figures out the API calls needed to get there. Resources are the things to create; data sources are read-only lookups into what already exists. Everything is connected by references, like `biznetgio_neolite_keypair.main.keypair_id` meaning "the keypair id attribute of the keypair named main". Terraform reads those references, orders the API calls, and shows you a plan before doing anything.
+
+## The five files of every folder
+
+Every example folder has the same anatomy, which is also the standard layout the [project structure tutorial](/tutorials/project-structure) teaches:
+
+### versions.tf
+
+```hcl
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    biznetgio = {
+      source  = "registry.terraform.io/shirasakaren/biznetgio"
+      version = "0.1.0"
+    }
+  }
+}
+
+provider "biznetgio" {}
+```
+
+Two jobs. First, pinning: `terraform init` downloads exactly provider version 0.1.0 from the Terraform Registry so the example always runs against the version it was tested with. Second, wiring: the empty provider block reads `BIZNETGIO_API_KEY` from the environment, which is why no credentials ever appear in a file.
+
+### variables.tf
+
+Every input the folder accepts, declared with types and defaults:
+
+```hcl
+variable "console_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "pay_with_credit_card" {
+  type    = bool
+  default = false
+}
+```
+
+`console_password` deliberately has no default: a real password must never be hardcoded in a committed file, so the only way in is `TF_VAR_console_password` or the gitignored `terraform.tfvars`. `pay_with_credit_card` defaults to `false` everywhere, the cost safety rule from [Conventions](/contribute/conventions).
+
+### terraform.tfvars.example
+
+A template of real values, committed, that you copy to the gitignored `terraform.tfvars` and fill in. The `.example` file never contains a real secret, only the shape of one.
+
+### main.tf
+
+The infrastructure itself. The `neolite/main.tf` example walks through the whole product in the order you would use it:
+
+1. **Catalog lookups.** `data "biznetgio_neolite_products" "all"` reads every package Biznet GIO currently sells, and a `locals` block picks the first one for the demo. A second data source, `biznetgio_neolite_os_list`, lists the OS images for that product, and a third checks IP availability. The VM's `select_os` comes from this list, so the example never hardcodes a product id or OS name that could stop existing.
+2. **The keypair.** `biznetgio_neolite_keypair.main` is created with just a name. The private key comes back exactly once, at create time, and the example exports it as an output with a comment telling you to save it immediately.
+3. **The VM.** `biznetgio_neolite_vm.main` pulls its `product_id` from the products lookup, its `select_os` from the OS list, and its `keypair_id` from the keypair. Destructive options like `power_state`, `rebuild_os`, and `migrate_to_pro` are present but commented out, each with a comment naming its cost or danger.
+4. **The extra disk.** `biznetgio_neolite_disk.extra` attaches to the VM via `neolite_account_id = biznetgio_neolite_vm.main.id`, and its `service_name` is `extra-disk`, short enough for the 6 to 16 character limit.
+5. **Snapshot and restore.** A paid snapshot of the VM, then `biznetgio_neolite_vm_from_snapshot.restored` turns it into a second VM with a separate bill. This chain of references, snapshot id into restore, is how Terraform expresses "this depends on that".
+6. **Raw lookups.** Two data sources return unmodeled JSON from the upstream API, exposed as outputs for poking around from the CLI.
+
+Read the comments in the file itself; every one of these steps is explained line by line in both languages.
+
+### outputs.tf
+
+```hcl
+output "vm_status" {
+  value = biznetgio_neolite_vm.main.status
+}
+```
+
+Outputs are what you inspect after apply and what other code consumes. Sensitive values like the keypair private key are marked `sensitive = true` so they never print casually.
+
+## The module in complete/
+
+`complete/` shows the same production shape as the [Capstone tutorial](/tutorials/production-deployment): an app tier (NEO Lite Pro VM) plus a data bucket (Object Storage), bundled as a reusable module.
+
+The root `complete/main.tf` only does lookups and configuration: it reads the product catalog, picks an OS, and calls the module:
+
+```hcl
+module "app" {
+  source               = "./modules/app-stack"
+  name                 = "example-app"
+  storage_label        = "example-app"
+  vm_product_id        = data.biznetgio_neolite_pro_products.all.products[0].product_id
+  select_os            = data.biznetgio_neolite_pro_os_list.ubuntu.oss[0].name
+  storage_product_id   = 8
+  cycle                = "m"
+  ssh_and_console_user = "admin"
+  console_password     = var.console_password
+  pay_with_credit_card = var.pay_with_credit_card
+}
+```
+
+A module is a folder of the same five files called with arguments instead of declared inline. Everything about "one app" moves into `modules/app-stack/`: the keypair, the VM, the storage subscription, the bucket, and the credential. Its `variables.tf` documents each input, including the 6 to 16 character limits. Its `outputs.tf` marks the access key, secret key, and private key as sensitive, because the module's caller owns the responsibility for saving them.
+
+Two details worth knowing before you copy this module:
+
+- The child module has its own `required_providers` block with the same `registry.terraform.io/shirasakaren/biznetgio` source. Without it, Terraform assumes the default `hashicorp/*` namespace for providers inside child modules and fails with a missing provider error. If you move a module out of this repo, keep that block.
+- The module's `storage_label` variable is separate from `name` on purpose. The VM name and the storage label both have 6 to 16 character limits, but they are validated separately by the API, so the module keeps them as independent knobs.
+
+## The GPU quirks
+
+`gpu/main.tf` documents two real quirks that exist because of how the upstream API is shaped:
+
+- `biznetgio_gpu_keypair` exports no `keypair_id` attribute, only `id`, which already is the keypair id. The instance references `biznetgio_gpu_keypair.main.id`, unlike every other keypair resource in the repo.
+- `subscription` and `on_demand` are object typed attributes, not blocks. They are assigned with `=`, and exactly one of them must be set. The example uses `subscription = { cycle = "m" }` and keeps an `on_demand` alternative commented out.
+
+Both quirks were discovered by compiling these examples and are now documented on the [Terraform GPU reference](/terraform/resources/gpu). That loop, examples catching provider and docs bugs, is described in [How the repos are organized](/contribute/repositories).
+
+## baremetal/ and object-storage/, briefly
+
+`baremetal/` shows the NEO Metal flow: a server with a bundled public IP, an additional floating IP ordered and then assigned to the server, and elastic storage bound to the server at creation time. It also looks up valid rebuild OS images and the OpenVPN out-of-band access config. It is the most expensive line, so its README carries an extra cost warning.
+
+`object-storage/` shows the cheapest flow: subscription, bucket, credential, and a one-file upload (`index.html`) through the control plane API. Its comments note that the upload endpoint is fine for one small file, and anything bulk should use real S3 tooling with the credential.
+
+## Adding a new example folder
+
+Say you want a new product example, or a second flavor of an existing one. The steps:
+
+<Steps>
+<Step title="Copy the closest folder">
+  Copy the product folder that resembles what you want, into a new folder named after the example. Start from `object-storage/` for anything simple, from `complete/` if you want the module pattern.
+</Step>
+<Step title="Rewrite main.tf for the new shape">
+  Keep the header banner and the bilingual comments. Keep every cost safety rule: `pay_with_credit_card` defaulting to `false`, destructive options commented out, secrets only through variables.
+</Step>
+<Step title="Respect the API name limits">
+  Run `terraform validate` and watch for errors about `vm_name`, `service_name`, or `label`. The limits are 6 to 16 characters for those fields; if validation fails, shorten the names.
+</Step>
+<Step title="Update the READMEs">
+  Add the folder's row to the root README table (resources and data sources counts must be right), and write the folder's own README following the bilingual format of the others.
+</Step>
+<Step title="Register the folder in CI">
+  Add the folder name to the `example` input's `options:` list and to the `discover` job's list in `.github/workflows/ci.yml`, as [Pipelines](/contribute/pipelines) describes.
+</Step>
+<Step title="Validate everything">
+  From inside the new folder run `terraform fmt -check`, `terraform init`, and `terraform validate`. Then open the PR and fill the checklist in the PR template.
+</Step>
+</Steps>
+
+If the new example teaches something the docs site does not cover yet, consider a reference page update in the same PR, in both languages.

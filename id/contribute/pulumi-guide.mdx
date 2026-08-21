@@ -1,0 +1,176 @@
+---
+title: "Panduan repo Pulumi"
+description: "Gimana contoh-contoh Pulumi jalan di keenam bahasa, pattern component, keanehan konversi id, dan gimana nambah contoh atau bahasa baru"
+---
+
+Ini deep dive ke [biznetgio-example-pulumi](https://github.com/shirasakaren/biznetgio-example-pulumi). Halaman ini ngasumsi lu udah baca [Apa itu Infrastructure as Code?](/id/what-is-iac) atau udah tau apa itu Pulumi stack. [Halaman referensi Pulumi](/id/pulumi/resources/neolite) ngedokumentasiin semua resource yang dipake di sini.
+
+## Apa itu Pulumi program, dalam satu paragraf
+
+Pulumi program itu program beneran di bahasa beneran, bukan file markup. Lu nulis kode biasa yang manggil `new biznetgio.NeoliteVm(...)` kayak manggil constructor biasa, dan engine Pulumi nyatet tiap resource di dalam graph, bukan ngejalanin side effects dari constructor-nya. Referensi antar resource, kayak `keypair.keypairId` yang dilewatin ke VM, jadi edge di graph itu, jadi engine tau harus bikin keypair dulu sebelum VM. Program-nya terus deklarasiin outputs, dan `pulumi up` ngejalanin graph itu lawan API Biznet GIO. Struktur program yang sama ada di keenam bahasa karena engine di bawahnya emang sama.
+
+## Anatomi sebuah project
+
+Tiap folder itu Pulumi project independen. `Pulumi.yaml` deklarasiin identitasnya:
+
+```yaml
+name: biznetgio-example-neolite
+runtime: nodejs
+description: NEO Lite walkthrough - every resource and data source this service has
+```
+
+`runtime` milih engine bahasanya. Di sekitar file itu, tiap bahasa bawa file-nya sendiri, yang didaftarin di [Gimana repo-nya diatur](/id/contribute/repositories). Dua konsep muncul di program tiap bahasa:
+
+- **Config.** Pengaturan stack, kayak `consolePassword`, di-set dengan `pulumi config set --secret consolePassword <value>` dan dibaca di program dengan `config.requireSecret("consolePassword")`. State stack tinggal di file `Pulumi.<stack>.yaml`, yang di-gitignore biar secret gak pernah masuk git.
+- **Stacks.** `pulumi stack init dev` bikin deployment target independen per folder. Stack satu contoh gak akan pernah nyentuh punya contoh lain.
+
+## Konvensi konversi id
+
+Konvensi paling penting di repo ini adalah helper `toAccountId`, dan dia ada karena ada ketidakcocokan tipe beneran antara Pulumi dan API upstream-nya:
+
+- `id` resource Pulumi selalu string.
+- Beberapa input Biznet GIO yang nerima id itu (`neoliteAccountId`, `snapshotId`, `metalAccountId`, `additionalIpId`, dan `accountId` di function GPU) di-typed sebagai number di SDK, karena API upstream kirim number.
+
+Ngelewatin `id` string ke input yang typed number itu compile error di semua bahasa typed, jadi tiap bahasa punya konversinya sendiri:
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+function toAccountId(id: pulumi.Input<string>): pulumi.Output<number> {
+  return pulumi.output(id).apply((value) => Number(value));
+}
+
+const disk = new biznetgio.NeoliteDisk("extra", {
+  // ...
+  neoliteAccountId: toAccountId(vm.id),
+});
+```
+</Tab>
+<Tab title="Python">
+```python
+def to_account_id(resource_id: pulumi.Input[str]) -> pulumi.Output[int]:
+    return pulumi.Output.from_input(resource_id).apply(int)
+
+disk = biznetgio.NeoliteDisk("extra",
+    neolite_account_id=to_account_id(vm.id),
+    # ...
+)
+```
+</Tab>
+<Tab title="Go">
+```go
+// The SDK's ID() returns a pulumi.IDOutput; convert with ToIntOutput().
+disk, err := biznetgio.NewNeoliteDisk(ctx, "extra", &biznetgio.NeoliteDiskArgs{
+    NeoliteAccountId: vm.ID().ToIntOutput(),
+    // ...
+})
+```
+</Tab>
+<Tab title=".NET">
+```csharp
+var disk = new Biznetgio.NeoliteDisk("extra", new Biznetgio.NeoliteDiskArgs
+{
+    NeoliteAccountId = vm.Id.Apply(v => int.Parse(v)),
+    // ...
+});
+```
+</Tab>
+<Tab title="Java">
+```java
+var disk = new NeoliteDisk("extra", NeoliteDiskArgs.builder()
+    .neoliteAccountId(vm.id().applyValue(Integer::parseInt))
+    // ...
+    .build());
+```
+</Tab>
+<Tab title="YAML">
+```yaml
+extraDisk:
+  type: biznetgio:index:NeoliteDisk
+  properties:
+    neoliteAccountId: ${fn::toNumber(vm.id)}
+```
+</Tab>
+</Tabs>
+
+Tiga pengecualian yang perlu diinget:
+
+- `GpuKeypair` gak nge-expose properti `keypairId`, cuma `id`, yang emang udah jadi id keypair-nya. Contoh GPU ngonversi `keypair.id` dengan helper yang sama dan bawa komentar yang ngejelasin kenapa, cocok sama [referensi GPU Pulumi](/id/pulumi/resources/gpu).
+- Field `accountId` Object Storage di-typed string, jadi gak ada konversi di mana pun di `object-storage/` atau bagian storage dari `complete/`.
+- YAML pake `fn::toNumber`, function bawaan, bukan helper.
+
+Dua-duanya keanehan ini ketemu pas repo ini di-compile lawan SDK aslinya, dan situs docs-nya diupdate biar cocok. Pas lu nambah kode yang ngelewatin `id` ke mana pun, cek dulu tipe yang dimau input-nya sebelum nulis referensinya.
+
+## Component di complete/
+
+`complete/` nge-bundel "satu app" (VM NEO Lite Pro plus bucket dan credential Object Storage) jadi component reusable, padanan Pulumi dari module Terraform. Versi TypeScript-nya adalah `appStack.ts`:
+
+- `AppStackArgs` itu interface simpel yang nge-list input component-nya. Tiap field di-typed `pulumi.Input<...>`, yang artinya caller boleh ngelewatin nilai biasa atau output hidup dari resource lain.
+- `AppStack` extends `pulumi.ComponentResource`, didaftarin dengan type string `"biznetgio-example:index:AppStack"` di panggilan `super(...)`-nya.
+- Tiap child resource dibikin dengan `{ parent: this }` di options-nya. Satu baris itu naro semua child di tree bawah component, dan itu yang bikin `pulumi destroy` ngehancurin seluruh stack dalam urutan yang bener.
+- Outputs di-assign ke public fields, terus dipublish dengan `this.registerOutputs(...)`, yang bikin mereka muncul di `pulumi stack output`.
+
+Pattern yang sama ada di semua bahasa kode, dengan penamaan yang sesuai bahasa:
+
+| Bahasa | File | Registrasi component |
+| --- | --- | --- |
+| TypeScript | `appStack.ts` | `class AppStack extends pulumi.ComponentResource`, `super("biznetgio-example:index:AppStack", ...)` |
+| Python | `app_stack.py` | `class AppStack(pulumi.ComponentResource)`, `super().__init__("biznetgio-example:index:AppStack", name, {}, opts)` |
+| Go | `app_stack.go` | `func NewAppStack(ctx, name, args, opts...)`, `ctx.RegisterComponentResource(...)`, anak-anak dapet `pulumi.Parent(app)` |
+| .NET | `AppStack.cs` | `class AppStack : Pulumi.ComponentResource` |
+| Java | `AppStack.java` + `AppStackArgs.java` | kelas args terpisah, konvensi Java |
+
+YAML gak bisa ngedefinein component, itu keterbatasan bahasa, jadi `yaml/complete/` nunjukin lima resource yang sama secara flat, dengan komentar yang ngejelasin bedanya. [Tutorial modules and components](/id/tutorials/modules-and-components) ngajarin pattern-nya sendiri.
+
+## Pinning versi dan detail Go
+
+Tiap bahasa nge-pin versi SDK dan provider yang dia dibangun lawan, yang didaftarin di tabel [Konvensi](/id/contribute/conventions). Satu pin perlu perhatian ekstra: `go.mod` SDK Go butuh toolchain yang relatif baru, makanya folder Go deklarasiin `go 1.25.11` dan CI nginstall `1.25.x`. Komen workflow bilang buat jaga biar sejalan dengan repo provider. Kalau update Go pernah ngerusak build, pin itu yang pertama dicek.
+
+## Nambah contoh baru
+
+Langkahnya nyeremin langkah Terraform, plus matriks bahasa:
+
+<Steps>
+<Step title="Copy contoh yang paling deket di bahasa yang sama">
+  Copy folder dari lini produk yang paling deket. Jaga format nama dan deskripsi `Pulumi.yaml`, `biznetgio-example-<example>`.
+</Step>
+<Step title="Tulis ulang program buat bentuk yang baru">
+  Jaga banner dan komentar bilingual, helper `toAccountId` di tempat yang butuh, dan default aman biaya (`payWithCreditCard` default ke `false`, opsi one-shot dikomen).
+</Step>
+<Step title="Build">
+  Jalanin command build bahasanya dari [Local setup](/id/contribute/setup). Benerin type error sampe compile; type checker bakal nangkep semua konversi id yang lu kelewat.
+</Step>
+<Step title="Mirror ke lima bahasa lainnya">
+  Tiap contoh harus ada di tiap bahasa, jadi kontribusinya enam program. Translate struktur TypeScript-nya, bukan komennya; komennya tetep format bilingual yang sama di tiap bahasa. YAML dapet versi flat dari apapun bentuk component-nya.
+</Step>
+<Step title="Update README dan CI">
+  Update tabel README root dan README per folder, dan daftarin contoh baru di input options `example` dan daftar job `discover` di workflow, kayak yang dijelasin [Pipelines](/id/contribute/pipelines).
+</Step>
+<Step title="Buka PR">
+  Isi checklist template PR, yang nanya persis pertanyaan-pertanyaan ini.
+</Step>
+</Steps>
+
+## Nambah bahasa baru seutuhnya
+
+Pulumi dukung runtime lebih banyak dari enam yang ada di sini. Nambah satu berarti:
+
+1. Copy enam contoh folder bahasa yang udah ada dan tulis ulang programnya di bahasa baru, jaga semua komen.
+2. Pin versi SDK dan provider di file dependency bahasa itu.
+3. Tambahin bahasa itu ke input options `language` di CI, daftar `langs` di job `discover`, dan leg build baru dengan setup action yang bener.
+
+Diskusiin bahasa-nya di [feature request](/id/contribute/issues) dulu. Bahasa baru itu komitmen mirror yang gede, karena tiap perubahan contoh ke depannya harus di-translate enam atau tujuh kali.
+
+## Jalanin contoh, buat referensi
+
+```bash
+cd typescript/object-storage
+npm install
+pulumi stack init dev
+pulumi config set --secret consolePassword "<password>"   # only examples with a VM
+export BIZNETGIO_API_KEY="<token>"
+pulumi preview
+pulumi up
+```
+
+`preview` itu plan; `up` itu apply. Walkthrough lengkap buat user adalah [Pulumi quickstart](/id/pulumi-quickstart), dan halaman contoh nge-list apa aja yang dicover tiap folder.
