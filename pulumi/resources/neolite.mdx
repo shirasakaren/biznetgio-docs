@@ -583,8 +583,8 @@ Outputs: `orderId`, `status`. **Deleting this resource deletes the restored VM -
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | from `/neolites/disks/products` |
-| `cycle` | string | yes | |
+| `productId` | int64 | yes | from `/neolites/disks/products`; see warning below |
+| `cycle` | string | yes | see warning below |
 | `neoliteAccountId` | int64 | yes | target VM |
 | `serviceName` | string | no | default `service-name` |
 | `size` | int64 | no | default `60` GB, grow-only |
@@ -592,6 +592,10 @@ Outputs: `orderId`, `status`. **Deleting this resource deletes the restored VM -
 | `payWithCreditCard` | bool | no | default `true` |
 
 Outputs: `orderId`, `status`, `raw` (secret). Update upgrades size only - the API receives the increment (`newSize - oldSize`), not the absolute target; shrinking errors.
+
+<Warning>
+  `productId` and `cycle` have no `replaceOnChanges` tag. If you change either without also changing `size`, `Update` discards the change and writes the *old* value back into state, so the next `pulumi preview` shows the same diff again - it never resolves and never errors. The Terraform equivalent (`biznetgio_neolite_disk`) correctly marks both `RequiresReplace()`. If you need a different disk product or cycle in Pulumi, destroy and recreate the resource.
+</Warning>
 
 ## Functions
 

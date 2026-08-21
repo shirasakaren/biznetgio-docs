@@ -583,8 +583,8 @@ Outputs: `orderId`, `status`. **Hapus resource ini = hapus VM hasil restore - bu
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | dari `/neolites/disks/products` |
-| `cycle` | string | yes | |
+| `productId` | int64 | yes | dari `/neolites/disks/products`; liat warning di bawah |
+| `cycle` | string | yes | liat warning di bawah |
 | `neoliteAccountId` | int64 | yes | VM target |
 | `serviceName` | string | no | default `service-name` |
 | `size` | int64 | no | default `60` GB, cuma bisa naik |
@@ -592,6 +592,10 @@ Outputs: `orderId`, `status`. **Hapus resource ini = hapus VM hasil restore - bu
 | `payWithCreditCard` | bool | no | default `true` |
 
 Outputs: `orderId`, `status`, `raw` (secret). Update cuma upgrade size - API nerima increment (`newSize - oldSize`), bukan target absolut; ngecilin error.
+
+<Warning>
+  `productId` dan `cycle` gak punya tag `replaceOnChanges`. Kalau lu ganti salah satunya tanpa ganti `size` juga, `Update` bakal buang perubahannya dan nulis balik value yang *lama* ke state, jadi `pulumi preview` berikutnya nunjukin diff yang sama lagi - gak pernah keselesein dan gak pernah error. Terraform equivalent-nya (`biznetgio_neolite_disk`) bener nge-mark keduanya `RequiresReplace()`. Kalau lu butuh disk product atau cycle beda di Pulumi, destroy dan recreate resource-nya.
+</Warning>
 
 ## Functions
 

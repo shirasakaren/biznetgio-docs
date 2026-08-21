@@ -503,7 +503,7 @@ Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpI
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `productId` | int64 | yes | ganti = trigger change-package |
-| `cycle` | string | yes | `m` / `a` |
+| `cycle` | string | yes | `m` / `a`; liat warning di bawah |
 | `storageName` | string | yes | |
 | `metalAccountId` | int64 | yes | create-only - gak ada endpoint re-attach |
 | `size` | int64 | no | default `100` GB, cuma bisa naik |
@@ -511,6 +511,10 @@ Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpI
 | `payWithCreditCard` | bool | no | default `true` |
 
 Outputs: `status`, `createdAt`, `raw` (secret). Update: `size` → upgrade, `productId` → change-package.
+
+<Warning>
+  `cycle` itu satu-satunya input yang gak pernah dicek atau dikirim ke API sama sekali sama `Update` - beda dari `productId` dan `size`, `cycle` yang berubah ditulis ke state kayak berhasil, tanpa API call dan tanpa error, dan baik request change-package maupun upgrade emang gak punya field cycle buat itu. Kalau lu butuh billing cycle yang beda, destroy dan recreate resource-nya.
+</Warning>
 
 ## Functions
 

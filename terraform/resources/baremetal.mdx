@@ -164,6 +164,10 @@ resource "biznetgio_baremetal_elastic_storage" "main" {
 
 Import with the numeric account id.
 
+<Note>
+  `cycle` is correctly create-only here: a change destroys and recreates the volume. The [Pulumi provider](/pulumi/resources/baremetal#biznetgio:index:BaremetalElasticStorage)'s equivalent resource never checks or sends `cycle` to the API at all, in place or otherwise - a changed value there is silently written into state as if it succeeded.
+</Note>
+
 ## Data sources
 
 <Note>

@@ -39,6 +39,10 @@ resource "biznetgio_object_storage" "example" {
 
 Import pake numeric account id.
 
+<Note>
+  `product_id` dan `cycle` di sini bener create-only: kalau berubah, seluruh instance-nya di-destroy dan direcreate, ngehapus semua bucket, credential, dan object di dalemnya. Ini kebalikan dari behavior [Pulumi provider](/id/pulumi/resources/object-storage#biznetgio:index:ObjectStorage) buat field yang sama, yang diam-diam ngabaiin perubahan `productId`/`cycle` daripada replace resource-nya - kalau lu pake dua provider, jangan asumsiin behavior-nya sama di sini.
+</Note>
+
 ## `biznetgio_object_storage_bucket`
 
 Bucket di dalam instance. Cuma ACL yang bisa diubah.

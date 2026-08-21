@@ -39,6 +39,10 @@ resource "biznetgio_object_storage" "example" {
 
 Import with the numeric account id.
 
+<Note>
+  `product_id` and `cycle` are correctly create-only here: a change destroys and recreates the whole instance, deleting every bucket, credential, and object inside it. This is the opposite of the [Pulumi provider](/pulumi/resources/object-storage#biznetgio:index:ObjectStorage)'s behavior for the same fields, which silently ignores a `productId`/`cycle` change instead of replacing the resource - if you use both providers, do not assume they behave the same way here.
+</Note>
+
 ## `biznetgio_object_storage_bucket`
 
 A bucket inside an instance. Only the ACL is mutable.

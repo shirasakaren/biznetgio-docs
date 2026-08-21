@@ -449,6 +449,10 @@ Same shape as [`NeoliteDisk`](/pulumi/resources/neolite#biznetgioindexneolitedis
 
 Upgrades send the increment (`additional_size`); shrinking errors.
 
+<Warning>
+  `productId` and `cycle` have no `replaceOnChanges` tag. If you change either without also changing `size`, `Update` discards the change and writes the *old* value back into state, so the next `pulumi preview` shows the same diff again - it never resolves and never errors. The Terraform equivalent (`biznetgio_neolite_pro_disk`) correctly marks both `RequiresReplace()`. If you need a different disk product or cycle in Pulumi, destroy and recreate the resource.
+</Warning>
+
 ## Functions
 
 <Note>

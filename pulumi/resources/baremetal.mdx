@@ -503,7 +503,7 @@ Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpI
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `productId` | int64 | yes | change triggers change-package |
-| `cycle` | string | yes | `m` / `a` |
+| `cycle` | string | yes | `m` / `a`; see warning below |
 | `storageName` | string | yes | |
 | `metalAccountId` | int64 | yes | create-only - no re-attach endpoint |
 | `size` | int64 | no | default `100` GB, grow-only |
@@ -511,6 +511,10 @@ Outputs: `status`, `raw` (secret). Composite id `<metalAccountId>:<additionalIpI
 | `payWithCreditCard` | bool | no | default `true` |
 
 Outputs: `status`, `createdAt`, `raw` (secret). Update: `size` → upgrade, `productId` → change-package.
+
+<Warning>
+  `cycle` is the one input `Update` never checks or sends to the API at all - unlike `productId` and `size`, a changed `cycle` is written into state as if it succeeded, with no API call and no error, and neither the change-package nor the upgrade request even has a cycle field to carry it. If you need a different billing cycle, destroy and recreate the resource.
+</Warning>
 
 ## Functions
 

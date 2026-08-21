@@ -142,14 +142,18 @@ NEO Object Storage itu storage S3-compatible punya Biznet GIO (`/object-storages
 
 | Input | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `productId` | int64 | yes | |
-| `cycle` | string | yes | `m a q s b t p4 p5` |
+| `productId` | int64 | yes | liat warning di bawah - bukan create-only, tapi juga gak actionable |
+| `cycle` | string | yes | `m a q s b t p4 p5`; warning sama kayak `productId` |
 | `label` | string | yes | 6-16 char, `[a-zA-Z0-9-_]`; create-only |
 | `quota` | int64 | no | default `10` GB, cuma bisa naik |
 | `promocode` | string | no | create-only |
 | `payWithCreditCard` | bool | no | default `true` |
 
 Outputs: `orderId`, `status` (`Active`/`Pending`/`Suspended`/`Terminated`), `raw` (secret). Read error kalau status instance `terminated`. Import pake numeric account id.
+
+<Warning>
+  `productId` dan `cycle` gak punya tag `replaceOnChanges`, beda dari `label` dan `promocode` di resource yang sama - jadi kalau berubah, instance-nya GAK di-destroy dan direcreate kayak yang biasanya lu harapin dari field create-only lain di halaman ini. Pulumi malah manggil `Update`, yang cuma beraksi pas `quota` naik; `productId` atau `cycle` yang berubah langsung ditulis ke state tanpa API call apapun, jadi `pulumi up` lapor sukses dan preview *berikutnya* gak nunjukin diff, padahal instance beneran masih di plan dan cycle yang lama. Ini kebalikan dari behavior [Terraform provider](/id/terraform/resources/object-storage#biznetgio_object_storage) buat field yang sama, yang bener destroy dan recreate pas `product_id` berubah. Kalau lu butuh plan atau cycle beda di Pulumi, destroy dan recreate resource-nya sendiri - jangan ngandelin ganti dua input ini in-place.
+</Warning>
 
 ## `biznetgio:index:ObjectStorageBucket`
 
