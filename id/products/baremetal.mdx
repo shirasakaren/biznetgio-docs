@@ -1,0 +1,186 @@
+---
+title: "Katalog dan harga NEO Metal"
+description: "Semua SKU server NEO Metal, kenapa data source katalog cuma ngasih name dan JSON mentah, dan gimana kerja sama itu"
+---
+
+NEO Metal itu lini bare-metal dedicated Biznet GIO. Halaman ini soal **apa yang mau di-order dan kenapa** - buat schema resource dan kode lengkap, liat halaman referensi [Terraform](/id/terraform/resources/baremetal) dan [Pulumi](/id/pulumi/resources/baremetal). Baca [Paham katalog produk](/id/products/overview) dulu buat paham kenapa index `[0]` bahaya secara umum.
+
+<Warning>
+  Dua SKU di bawah (`a1.small.gpu.x86`, `a1.medium.gpu.x86`) punya kartu GPU di chassis-nya, tapi tetep di-order lewat **resource `biznetgio_baremetal` yang sama** - bukan `biznetgio_gpu_instance`. Resource itu buat produk yang beda banget, [NEO GPU](/id/products/gpu), lini GPU-as-a-Service H200 Biznet GIO. Server bare-metal ber-GPU itu satu mesin fisik penuh yang lu sewa utuh, dengan GPU yang dipasang di dalemnya; NEO GPU itu rental GPU shared infrastructure yang ditagih per subscription atau per jam. Jangan ketuker dua ini pas nentuin mau order apa.
+</Warning>
+
+## Harga (sumber: [biznetgio.com/pricelist#neo-metal](https://www.biznetgio.com/pricelist#neo-metal))
+
+| Paket | Prosesor | CPU | RAM | Storage | Network | GPU | Harga / bulan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| t1.small.x86 | Intel Xeon E-2278G | 8 core (3.4 GHz) | 32 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp4.699.000 |
+| t2.small.x86 | Intel Xeon E-2388G | 8 core (3.2 GHz) | 32 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp4.699.000 |
+| m1.small.x86 | AMD EPYC 7352 | 24 core (2.3 GHz) | 64 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp5.609.000 |
+| a1.small.x86 | AMD EPYC 7302P | 16 core (3.0 GHz) | 64 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp5.699.000 |
+| m2.small.x86 | AMD EPYC 7402P | 24 core (2.8 GHz) | 64 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp6.119.000 |
+| a1.medium.x86 | AMD EPYC 7313P | 16 core (3.0 GHz) | 128 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp6.599.000 |
+| m3.small.x86 | AMD EPYC 7443P | 24 core (2.85 GHz) | 128 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp7.199.000 |
+| a1.small.gpu.x86 | AMD EPYC 7302P | 16 core (3.0 GHz) | 64 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | NVIDIA T4 | Rp9.899.000 |
+| m1.medium.x86 | AMD EPYC 7702P | 64 core (2.0 GHz) | 128 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp10.559.000 |
+| m4.medium.x86 | AMD EPYC 7643P | 48 core (2.3 GHz) | 192 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp10.559.000 |
+| m1.large.x86 | AMD EPYC 7702P | 64 core (2.0 GHz) | 256 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp13.199.000 |
+| a1.medium.gpu.x86 | AMD EPYC 9124 | 16 core (3.0 GHz) | 128 GB | NVMe 480 GB x2 (RAID1) | up to 10 Gbps | NVIDIA L4 | Rp13.499.000 |
+| m5.small.x86 | AMD EPYC 9355P | 32 core (3.55 GHz) | 128 GB | NVMe 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp13.829.000 |
+| t3.medium.x86 | Intel Xeon Gold 5220 | 36 core (2.2 GHz) | 256 GB | SSD 960 GB x2 (RAID1) | up to 10 Gbps | - | Rp16.999.000 |
+| t4.xlarge.x86 | Intel Xeon Gold 6238R | 56 core (2.2 GHz) | 256 GB | SSD 960 GB x2 (RAID1) | up to 10 Gbps | - | Rp19.999.000 |
+| n1.small.x86 | AMD EPYC 9634 | 84 core (2.25 GHz) | 384 GB | NVMe 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp21.999.000 |
+| m1.xlarge.x86 | AMD EPYC 9554P | 64 core (3.1 GHz) | 512 GB | NVMe 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp22.799.000 |
+| n2.small.x86 | AMD EPYC 9654P | 96 core (2.4 GHz) | 384 GB | NVMe 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp22.999.000 |
+| m5.medium.x86 | AMD EPYC 9455P | 48 core (3.15 GHz) | 256 GB | NVMe 960 GB x2 (RAID1) | up to 10 Gbps | - | Rp25.999.000 |
+| t5.xlarge.x86 | Intel Xeon Gold 6238R | 56 core (2.2 GHz) | 512 GB | SSD 960 GB x2 (RAID1) | up to 10 Gbps | - | Rp26.999.000 |
+
+<Note>
+  Harga list publik, per saat ditulis (20 tier lengkap, sudah di-verify langsung dari data live pricelist-nya - beberapa cached scrape halaman ini cuma nunjukin subset 10 tier). NEO Metal cuma bisa ditagih `m` (bulanan) atau `a` (tahunan) - gak ada cycle lain. Confirm charge beneran dari output katalog akun lu sendiri; liat [dua sumber harga](/id/products/overview#dua-harga-berbeda-dua-kegunaan-berbeda).
+</Note>
+
+## Apa yang bener-bener dikasih `biznetgio_baremetal_products`
+
+Beda sama NEO Lite dan NEO Lite Pro, katalog bare-metal **gak fully typed**. Tiap item cuma punya:
+
+| Field | Artinya |
+| --- | --- |
+| `product_id` | Angka yang bener-bener dipake `biznetgio_baremetal.product_id` / `BaremetalArgs.productId` |
+| `name` | Nama produk, di-alias dari salah satu dari `name` / `product_name` / `label` yang dibalikin API |
+| `description` | Deskripsi teks bebas, kalau ada |
+| `raw` | JSON lengkap item produk itu, belum di-model |
+
+Gak ada `options.cores`, gak ada `memory`, gak ada field `storage` buat difilter secara programatik. Dua cara buat kerja dengan itu:
+
+### Inspect `raw` (direkomendasikan buat liat pertama kali)
+
+`raw` bawa apapun yang bener-bener dibalikin API buat produk itu, termasuk field yang belum di-model provider - bisa jadi detail CPU, RAM, dan storage yang matching sama tabel harga di atas.
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    data "biznetgio_baremetal_products" "all" {}
+
+    output "baremetal_catalog" {
+      value = [
+        for p in data.biznetgio_baremetal_products.all.products : {
+          product_id = p.product_id
+          name       = p.name
+          raw        = jsondecode(p.raw)
+        }
+      ]
+    }
+    ```
+
+    `terraform plan` nge-print JSON lengkap yang udah di-decode buat tiap produk, sekalian sama `product_id` dan `name`-nya.
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    import * as biznetgio from "@shirasakaren/biznetgio";
+
+    const products = biznetgio.baremetalProductsOutput();
+    export const baremetalCatalog = products.products.apply((items) =>
+      items.map((p) => ({
+        productId: p.productId,
+        name: p.name,
+        raw: JSON.parse(p.raw),
+      })),
+    );
+    ```
+  </Tab>
+</Tabs>
+
+Bentuk exact JSON yang ke-decode itu gak didokumentasiin di upstream dan bisa beda-beda per produk - baca apa yang bener-bener dibalikin akun lu sendiri, jangan asumsiin satu struktur.
+
+### Match berdasarkan name (satu-satunya field typed yang bisa difilter)
+
+Nilai `name` buat NEO Metal kebaca kayak identifier SKU literal, bukan copy marketing (`t2.small.x86`, `m5.small.x86`, dst) - lebih deket, dan lebih kemungkinan match exact, dibanding style nama NEO Lite yang lebih marketing kayak `"XS 1.1"`. Tetep confirm string exact-nya dari output katalog lu sendiri sebelum hardcode.
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    locals {
+      matches = [
+        for p in data.biznetgio_baremetal_products.all.products :
+        p if p.name == "m3.small.x86" # udah confirmed dari output katalog lu sendiri
+      ]
+      m3_product_id = local.matches[0].product_id
+    }
+
+    resource "biznetgio_baremetal_keypair" "main" {
+      name = "neo-metal-key"
+    }
+
+    resource "biznetgio_baremetal" "main" {
+      product_id = local.m3_product_id
+      cycle      = "m"
+      select_os  = "ubuntu-22"
+      keypair_id = biznetgio_baremetal_keypair.main.keypair_id
+      label      = "neo-metal-main"
+      public_ip  = 1
+    }
+    ```
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    const products = biznetgio.baremetalProductsOutput();
+    const m3ProductId = products.products.apply((items) => {
+      const match = items.find((p) => p.name === "m3.small.x86");
+      if (!match) throw new Error("no baremetal product named 'm3.small.x86' found");
+      return match.productId;
+    });
+
+    const keypair = new biznetgio.BaremetalKeypair("metal-keypair", { name: "neo-metal-key" });
+
+    const server = new biznetgio.Baremetal("metal-main", {
+      productId: m3ProductId,
+      cycle: "m",
+      selectOs: "ubuntu-22",
+      keypairId: keypair.keypairId,
+      label: "neo-metal-main",
+      publicIp: 1,
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## List OS rebuild
+
+`biznetgio_baremetal_rebuild_os_list` / `baremetalRebuildOsList` ambil `account_id` server yang udah lu punya dan balikin nilai valid buat `rebuild_os` / `rebuildOs` - list yang lebih sempit dari "semua OS yang bisa dijalanin hardware ini," di-scope ke yang cocok sama layout disk server itu saat ini. Balikin list string biasa (misalnya `centos7-base`) plus `raw`. Gak ada list yang setara buat `select_os` *awal* pas create - nilai itu gak divalidasi lawan data source apapun sama sekali; pastiin bener dari dokumentasi Biznet GIO atau portal sebelum order.
+
+## NEO Elastic Storage
+
+Volume storage SAN yang nempel ke satu server NEO Metal, di-order lewat `biznetgio_baremetal_elastic_storage` / `BaremetalElasticStorage`.
+
+| Paket | IOPS | Harga |
+| --- | --- | --- |
+| NEO Elastic Storage | 5.000 | Rp220.000 / 100 GB / bulan |
+| NEO Elastic Storage UltraFast | 10.000 | Rp330.000 / 100 GB / bulan |
+
+Sumber: [biznetgio.com/pricelist#neo-elastic-storage](https://www.biznetgio.com/pricelist#neo-elastic-storage).
+
+**Gak ada data source katalog sama sekali** buat elastic storage, walaupun API upstream punya satu (`GET /baremetal-neo-elastic-storages/products`). Cari manual:
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/baremetal-neo-elastic-storages/products | jq
+```
+
+Cocokin apa yang lu liat sama tier IOPS yang lu mau, terus hardcode `product_id` itu - [repo contoh](https://github.com/shirasakaren/biznetgio-example-terraform) ngelakuin yang sama (`product_id = 20`). `product_id` elastic storage juga trigger change-package kalau diubah setelah dibuat - bahaya yang sama kayak yang dijelasin di [overview katalog](/id/products/overview#kenapa-0-itu-bahaya-beneran-bukan-cuma-contoh-yang-kurang-jelas).
+
+## IP tambahan (mengambang)
+
+`biznetgio_baremetal_additional_ip` / `BaremetalAdditionalIp` order IP mengambang yang independen dari server manapun; `biznetgio_baremetal_additional_ip_assignment` nempelinnya. Baik `product_id` maupun `region` (`GET /baremetal-additional-ips/products` dan `GET /baremetal-additional-ips/regions` di upstream) gak punya data source katalog. Cari manual keduanya:
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/baremetal-additional-ips/products | jq
+
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/baremetal-additional-ips/regions | jq
+```
+
+Wrap salah satu dari tiga endpoint yang belum ke-wrap ini (produk elastic storage, produk additional IP, region additional IP) jadi data source yang proper itu kontribusi pertama yang bagus dan scope-nya jelas - liat [panduan provider Terraform](/id/contribute/terraform-guide) dan [panduan provider Pulumi](/id/contribute/pulumi-guide).
+
+## Akses out-of-band OpenVPN
+
+`biznetgio_baremetal_openvpn` / `baremetalOpenvpn` balikin konfigurasi client OpenVPN buat akses out-of-band ke server bare-metal lu, seluruh akun (gak ada argument). Balikin `config` (sensitive) dan `raw`. Liat referensi [Terraform](/id/terraform/resources/baremetal#biznetgio_baremetal_openvpn) buat detail.

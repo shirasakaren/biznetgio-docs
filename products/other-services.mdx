@@ -1,0 +1,89 @@
+---
+title: "Services outside these providers"
+description: "Real Biznet GIO pricing for products that Terraform and Pulumi cannot create, read, or manage"
+---
+
+The [Terraform](https://github.com/shirasakaren/terraform-provider-biznetgio) and [Pulumi](https://github.com/shirasakaren/pulumi-biznetgio) providers documented on this site cover five product lines: [NEO Lite](/products/neolite), [NEO Lite Pro](/products/neolite-pro), [NEO Metal](/products/baremetal) (including its Elastic Storage and additional-IP add-ons), [NEO GPU](/products/gpu), and [NEO Object Storage](/products/object-storage). Everything below is a real Biznet GIO service with real, current pricing, useful for cost comparison - but none of it is reachable through either provider's source code. Order it through the [Biznet GIO portal](https://portal.biznetgio.com) or by contacting Biznet GIO directly.
+
+## VPS Windows
+
+Windows Server VPS on the same hardware tiers as NEO Lite Pro, with a Windows Server license included.
+
+Source: [biznetgio.com/pricelist#vps-windows](https://www.biznetgio.com/pricelist#vps-windows)
+
+**Windows Server 2022**
+
+| Package | CPU | RAM | Disk | Price / month |
+| --- | --- | --- | --- | --- |
+| SS.2.1 | 1 core | 2 GB | 40 GB SSD NVMe | Rp368.000 |
+| MS.2.2 | 2 cores | 2 GB | 40 GB SSD NVMe | Rp498.000 |
+| MS.4.2 | 2 cores | 4 GB | 60 GB SSD NVMe | Rp668.000 |
+| MM.4.4 | 4 cores | 4 GB | 60 GB SSD NVMe | Rp908.000 |
+| MM.8.4 | 4 cores | 8 GB | 80 GB SSD NVMe | Rp1.208.000 |
+| ML.16.8 | 8 cores | 16 GB | 90 GB SSD NVMe | Rp2.208.000 |
+| ML.24.8 | 8 cores | 24 GB | 100 GB SSD NVMe | Rp2.508.000 |
+| LL.24.12 | 12 cores | 24 GB | 100 GB SSD NVMe | Rp2.898.000 |
+
+**Windows Server 2025**
+
+| Package | CPU | RAM | Disk | Price / month |
+| --- | --- | --- | --- | --- |
+| SS.2.1 | 1 core | 2 GB | 40 GB SSD NVMe | Rp378.000 |
+| MS.2.2 | 2 cores | 2 GB | 40 GB SSD NVMe | Rp518.000 |
+| MS.4.2 | 2 cores | 4 GB | 60 GB SSD NVMe | Rp688.000 |
+| MM.4.4 | 4 cores | 4 GB | 60 GB SSD NVMe | Rp948.000 |
+| MM.8.4 | 4 cores | 8 GB | 80 GB SSD NVMe | Rp1.248.000 |
+| ML.16.8 | 8 cores | 16 GB | 90 GB SSD NVMe | Rp2.288.000 |
+| ML.24.8 | 8 cores | 24 GB | 100 GB SSD NVMe | Rp2.588.000 |
+| LL.24.12 | 12 cores | 24 GB | 100 GB SSD NVMe | Rp2.988.000 |
+
+Neither provider's source code contains the word "Windows" anywhere - see the [NEO Lite Pro catalog](/products/neolite-pro#look-alike-not-confirmed-the-same-vps-windows) for how to check whether your account's NEO Lite Pro OS list happens to offer a Windows image before assuming it does not.
+
+## GIO Enterprise Cloud
+
+A high-performance, auto-scaling cloud platform aimed at enterprise workloads, priced by component rather than by fixed VM tier.
+
+Source: [biznetgio.com/pricelist#gio-enterprise-cloud](https://www.biznetgio.com/pricelist#gio-enterprise-cloud)
+
+| Component | Spec | List price / month | Promo price / month |
+| --- | --- | --- | --- |
+| Starter Package | 8 vCPU, 16 GB RAM, 200 GB disk | Rp4.800.000 | Rp3.999.000 |
+| Additional processor, up to 16 vCPU total | +2 vCPU | Rp500.000 | Rp349.000 |
+| Additional processor, above 16 vCPU total | +2 vCPU | Rp380.000 | Rp299.000 |
+| Additional RAM, up to 32 GB total | +4 GB | Rp1.200.000 | Rp699.000 |
+| Additional RAM, above 32 GB total | +4 GB | Rp1.000.000 | Rp399.000 |
+| Additional SSD storage | 100 GB | Rp440.000 | - |
+| Additional SSD storage | 1000 GB | Rp3.850.000 | - |
+| Virtual router - Compact | 1 vCPU, 512 MB, 5 GB | Rp240.000 | Rp159.000 |
+| Virtual router - Large | 2 vCPU, 1 GB, 5 GB | Rp440.000 | Rp299.000 |
+| Virtual router - X-Large | 6 vCPU, 8 GB, 10 GB | Rp1.400.000 | Rp999.000 |
+| Virtual router - Compact HA | 2 vCPU, 1 GB, 10 GB | Rp420.000 | Rp299.000 |
+| Virtual router - Large HA | 4 vCPU, 2 GB, 10 GB | Rp800.000 | Rp599.000 |
+| Virtual router - X-Large HA | 12 vCPU, 16 GB, 20 GB | Rp2.600.000 | Rp1.999.000 |
+| Public IP | 1 IP | Rp75.000 | - |
+
+## GIO Backup
+
+Cloud backup with built-in encryption and compression.
+
+Source: [biznetgio.com/pricelist#gio-backup](https://www.biznetgio.com/pricelist#gio-backup)
+
+| Package | Capacity | Price / month |
+| --- | --- | --- |
+| M-500 | 500 GB | Rp2.699.000 |
+| L-1000 | 1000 GB | Rp4.599.000 |
+
+## NEO Spark
+
+A dedicated NVIDIA DGX Spark unit for on-premises-feeling local AI development, hosted in Indonesia.
+
+Source: [biznetgio.com/pricelist#neo-spark](https://www.biznetgio.com/pricelist#neo-spark)
+
+| Package | GPU | Unified memory | Storage | Network | Price / month |
+| --- | --- | --- | --- | --- | --- |
+| 1x NEO Spark | 1x NVIDIA GB10 Grace Blackwell, 20-core ARM | 128 GB | 4 TB NVMe SSD | 1 dedicated public IP | Rp8.499.000 |
+| 2x NEO Spark | 2x NVIDIA GB10 Grace Blackwell, 20-core ARM | 256 GB | 8 TB NVMe SSD | 1 dedicated public IP | Rp15.999.999 |
+
+## Everything else on the pricelist
+
+Biznet GIO sells a considerable amount beyond what is listed above and beyond what either provider covers: NEO Virtual Compute, NEO Kubernetes Service, GIO Private, NEO WordPress, NEO Web Hosting (Personal and Business), NEO Dedicated Hosting, NEO Sense, NEO Domain, NEO DNS, NEO Inference, NEO Face Recognition, cPanel and Plesk licenses, SSL certificates, Windows Server licenses for NEO Metal, and Endpoint Security Protection, among others. None of it is manageable through Terraform or Pulumi. See the official [pricelist](https://www.biznetgio.com/pricelist) for current details on any of it.

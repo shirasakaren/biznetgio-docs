@@ -40,7 +40,7 @@ provider "biznetgio" {}
 
 Declares every input with types and defaults. The three recurring variables across folders:
 
-- `ssh_and_console_user`: string, default `"admin"` (or `"root"` in `gpu/`). The comments note the API rule: 6 to 32 characters, letters, numbers, dash, dot only.
+- `ssh_and_console_user`: string, default `"adminuser"` (or `"root"` in `gpu/`). The comments note the API rule: 6 to 32 characters, letters, numbers, dash, dot only.
 - `console_password`: string, `sensitive = true`, deliberately no default. The only ways in are `TF_VAR_console_password` or the gitignored `terraform.tfvars`. This exists in `neolite/`, `neolite-pro/`, `gpu/`, and `complete/`; `baremetal/` and `object-storage/` authenticate with a keypair only and have no such variable.
 - `pay_with_credit_card`: bool, default `false`. `false` still creates the real resource, it just leaves the invoice unpaid in the portal. See [Billing and orders](/guides/billing).
 
@@ -172,7 +172,7 @@ The root `main.tf` does catalog lookups then one module call with ten arguments;
 Inside `modules/app-stack/`:
 
 - `main.tf` declares five resources: `biznetgio_neolite_pro_keypair.this` (named `"${var.name}-key"`), `biznetgio_neolite_pro_vm.this` (`vm_name = var.name`), `biznetgio_object_storage.this`, `biznetgio_object_storage_bucket.this` (`"${var.name}-assets"`, `acl = "private"`), and `biznetgio_object_storage_credential.this`. All references use the module's own resources, so the module is fully self-contained.
-- `variables.tf` declares ten inputs: `name` (VM name and prefix for bucket and credential, 6 to 16 characters), `storage_label` (separate on purpose because the storage label has its own 6 to 16 character limit), `vm_product_id`, `select_os`, `storage_product_id`, `cycle` (default `"m"`), `ssh_and_console_user` (default `"admin"`), `console_password` (sensitive, no default), `pay_with_credit_card` (default `false`), `storage_quota` (default `10`).
+- `variables.tf` declares ten inputs: `name` (VM name and prefix for bucket and credential, 6 to 16 characters), `storage_label` (separate on purpose because the storage label has its own 6 to 16 character limit), `vm_product_id`, `select_os`, `storage_product_id`, `cycle` (default `"m"`), `ssh_and_console_user` (default `"adminuser"`), `console_password` (sensitive, no default), `pay_with_credit_card` (default `false`), `storage_quota` (default `10`).
 - `outputs.tf` exports `vm_status`, `bucket_name`, `access_key` (sensitive), `secret_key` (sensitive), `keypair_private_key` (sensitive). The comment on the sensitive ones says the module caller owns the responsibility of saving them.
 - Its own `terraform { required_providers { biznetgio = { source = "registry.terraform.io/shirasakaren/biznetgio" } } }` block. Without it, Terraform assumes the default `hashicorp/*` namespace for providers referenced inside a child module and fails with a missing provider error. Any module copied out of this repo must keep that block.
 

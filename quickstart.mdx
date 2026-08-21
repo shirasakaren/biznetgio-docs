@@ -47,7 +47,7 @@ From zero to a running NEO Lite VM in about five minutes.
     }
 
     resource "biznetgio_neolite_vm" "main" {
-      ssh_and_console_user = "admin"
+      ssh_and_console_user = "adminuser"
       console_password     = "s3cretP4ssw0rd"
       vm_name              = "neo-lite-1"
       product_id           = data.biznetgio_neolite_products.all.products[0].product_id

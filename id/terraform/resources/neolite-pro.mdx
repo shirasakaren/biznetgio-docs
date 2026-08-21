@@ -23,7 +23,7 @@ resource "biznetgio_neolite_pro_keypair" "main" {
 }
 
 resource "biznetgio_neolite_pro_vm" "main" {
-  ssh_and_console_user = "admin"
+  ssh_and_console_user = "adminuser"
   console_password     = "s3cretP4ssw0rd"
   vm_name              = "neo-pro-1"
   product_id           = data.biznetgio_neolite_pro_products.all.products[0].product_id
@@ -146,6 +146,10 @@ resource "biznetgio_neolite_pro_disk" "main" {
 Import pake disk account id.
 
 ## Data sources
+
+<Note>
+  Buat harga beneran dan cara milih paket tertentu, bukan asal percaya `[0]`, liat halaman [Katalog Produk](/id/products/neolite-pro).
+</Note>
 
 Kelima data source ini nyomot dari data source NEO Lite, nargetin group `/neolite-pros`:
 

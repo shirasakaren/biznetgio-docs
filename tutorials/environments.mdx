@@ -25,7 +25,7 @@ resource "biznetgio_neolite_vm" "main" {
   select_os            = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
   keypair_id           = biznetgio_neolite_keypair.main.keypair_id
   cycle                = "m"
-  ssh_and_console_user = "admin"
+  ssh_and_console_user = "adminuser"
   console_password     = var.console_password
 
   # cheap and reversible while testing, real money in production
@@ -72,7 +72,7 @@ const vm = new biznetgio.NeoliteVm("main", {
   selectOs: osList.oss[0].name,
   keypairId: keypair.keypairId,
   cycle: "m",
-  sshAndConsoleUser: "admin",
+  sshAndConsoleUser: "adminuser",
   consolePassword: config.requireSecret("consolePassword"),
   payWithCreditCard: stack === "production",
 });

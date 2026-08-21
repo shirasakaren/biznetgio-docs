@@ -1,0 +1,186 @@
+---
+title: "NEO Metal catalog and pricing"
+description: "Every NEO Metal server SKU, why the catalog data source only gives you a name and raw JSON, and how to work with that"
+---
+
+NEO Metal is Biznet GIO's dedicated bare-metal line. This page is about **what to order and why** - for the resource schema and full code, see the [Terraform](/terraform/resources/baremetal) and [Pulumi](/pulumi/resources/baremetal) reference pages. Read [Understanding the product catalog](/products/overview) first for why `[0]` indexing is risky in general.
+
+<Warning>
+  Two of the SKUs below (`a1.small.gpu.x86`, `a1.medium.gpu.x86`) have a GPU card in the chassis, but they are ordered through **this same `biznetgio_baremetal` resource** - not `biznetgio_gpu_instance`. That resource is for a completely different product, [NEO GPU](/products/gpu), Biznet GIO's H200 GPU-as-a-Service line. A GPU-equipped bare-metal server is a whole physical machine you rent outright, with a GPU installed in it; NEO GPU is a shared-infrastructure GPU rental billed by subscription or by the hour. Do not confuse the two when deciding what to order.
+</Warning>
+
+## Pricing (source: [biznetgio.com/pricelist#neo-metal](https://www.biznetgio.com/pricelist#neo-metal))
+
+| Package | Processor | CPU | RAM | Storage | Network | GPU | Price / month |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| t1.small.x86 | Intel Xeon E-2278G | 8 cores (3.4 GHz) | 32 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp4.699.000 |
+| t2.small.x86 | Intel Xeon E-2388G | 8 cores (3.2 GHz) | 32 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp4.699.000 |
+| m1.small.x86 | AMD EPYC 7352 | 24 cores (2.3 GHz) | 64 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp5.609.000 |
+| a1.small.x86 | AMD EPYC 7302P | 16 cores (3.0 GHz) | 64 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp5.699.000 |
+| m2.small.x86 | AMD EPYC 7402P | 24 cores (2.8 GHz) | 64 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp6.119.000 |
+| a1.medium.x86 | AMD EPYC 7313P | 16 cores (3.0 GHz) | 128 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp6.599.000 |
+| m3.small.x86 | AMD EPYC 7443P | 24 cores (2.85 GHz) | 128 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp7.199.000 |
+| a1.small.gpu.x86 | AMD EPYC 7302P | 16 cores (3.0 GHz) | 64 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | NVIDIA T4 | Rp9.899.000 |
+| m1.medium.x86 | AMD EPYC 7702P | 64 cores (2.0 GHz) | 128 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp10.559.000 |
+| m4.medium.x86 | AMD EPYC 7643P | 48 cores (2.3 GHz) | 192 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp10.559.000 |
+| m1.large.x86 | AMD EPYC 7702P | 64 cores (2.0 GHz) | 256 GB | SSD 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp13.199.000 |
+| a1.medium.gpu.x86 | AMD EPYC 9124 | 16 cores (3.0 GHz) | 128 GB | NVMe 480 GB x2 (RAID1) | up to 10 Gbps | NVIDIA L4 | Rp13.499.000 |
+| m5.small.x86 | AMD EPYC 9355P | 32 cores (3.55 GHz) | 128 GB | NVMe 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp13.829.000 |
+| t3.medium.x86 | Intel Xeon Gold 5220 | 36 cores (2.2 GHz) | 256 GB | SSD 960 GB x2 (RAID1) | up to 10 Gbps | - | Rp16.999.000 |
+| t4.xlarge.x86 | Intel Xeon Gold 6238R | 56 cores (2.2 GHz) | 256 GB | SSD 960 GB x2 (RAID1) | up to 10 Gbps | - | Rp19.999.000 |
+| n1.small.x86 | AMD EPYC 9634 | 84 cores (2.25 GHz) | 384 GB | NVMe 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp21.999.000 |
+| m1.xlarge.x86 | AMD EPYC 9554P | 64 cores (3.1 GHz) | 512 GB | NVMe 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp22.799.000 |
+| n2.small.x86 | AMD EPYC 9654P | 96 cores (2.4 GHz) | 384 GB | NVMe 480 GB x2 (RAID1) | up to 10 Gbps | - | Rp22.999.000 |
+| m5.medium.x86 | AMD EPYC 9455P | 48 cores (3.15 GHz) | 256 GB | NVMe 960 GB x2 (RAID1) | up to 10 Gbps | - | Rp25.999.000 |
+| t5.xlarge.x86 | Intel Xeon Gold 6238R | 56 cores (2.2 GHz) | 512 GB | SSD 960 GB x2 (RAID1) | up to 10 Gbps | - | Rp26.999.000 |
+
+<Note>
+  Public list prices, current as of this writing (all 20 tiers, verified directly against the live pricelist page's own data - some cached scrapes of this page only show a 10-tier subset). NEO Metal bills `m` (monthly) or `a` (annual) only - no other cycle. Confirm the actual charge against your own account's catalog output; see [the two price sources](/products/overview#two-different-prices-two-different-jobs).
+</Note>
+
+## What `biznetgio_baremetal_products` actually gives you
+
+Unlike NEO Lite and NEO Lite Pro, the bare-metal catalog is **not fully typed**. Each item only has:
+
+| Field | Meaning |
+| --- | --- |
+| `product_id` | The number `biznetgio_baremetal.product_id` / `BaremetalArgs.productId` actually uses |
+| `name` | Product name, aliased from whichever of `name` / `product_name` / `label` the API returns |
+| `description` | Free-text description, when present |
+| `raw` | The full JSON of that product item, unmodeled |
+
+There is no `options.cores`, no `memory`, no `storage` field to filter on programmatically. Two ways to work with that:
+
+### Inspect `raw` (recommended for a first look)
+
+`raw` carries whatever the API actually returned for that product, including fields the provider has not modeled yet - quite possibly CPU, RAM, and storage details matching the pricing table above.
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    data "biznetgio_baremetal_products" "all" {}
+
+    output "baremetal_catalog" {
+      value = [
+        for p in data.biznetgio_baremetal_products.all.products : {
+          product_id = p.product_id
+          name       = p.name
+          raw        = jsondecode(p.raw)
+        }
+      ]
+    }
+    ```
+
+    `terraform plan` prints every product's full decoded JSON body alongside its `product_id` and `name`.
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    import * as biznetgio from "@shirasakaren/biznetgio";
+
+    const products = biznetgio.baremetalProductsOutput();
+    export const baremetalCatalog = products.products.apply((items) =>
+      items.map((p) => ({
+        productId: p.productId,
+        name: p.name,
+        raw: JSON.parse(p.raw),
+      })),
+    );
+    ```
+  </Tab>
+</Tabs>
+
+The exact shape of that decoded JSON is not documented upstream and may vary by product - read what your own account actually returns rather than assuming a structure.
+
+### Match on name (the only typed, filterable field)
+
+The `name` values for NEO Metal read like literal SKU identifiers rather than marketing copy (`t2.small.x86`, `m5.small.x86`, and so on) - closer, and more likely to match exactly, than NEO Lite's more marketing-flavored `"XS 1.1"` style names. Still confirm the exact string against your own catalog output before hardcoding it.
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    locals {
+      matches = [
+        for p in data.biznetgio_baremetal_products.all.products :
+        p if p.name == "m3.small.x86" # confirmed against your own catalog output
+      ]
+      m3_product_id = local.matches[0].product_id
+    }
+
+    resource "biznetgio_baremetal_keypair" "main" {
+      name = "neo-metal-key"
+    }
+
+    resource "biznetgio_baremetal" "main" {
+      product_id = local.m3_product_id
+      cycle      = "m"
+      select_os  = "ubuntu-22"
+      keypair_id = biznetgio_baremetal_keypair.main.keypair_id
+      label      = "neo-metal-main"
+      public_ip  = 1
+    }
+    ```
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    const products = biznetgio.baremetalProductsOutput();
+    const m3ProductId = products.products.apply((items) => {
+      const match = items.find((p) => p.name === "m3.small.x86");
+      if (!match) throw new Error("no baremetal product named 'm3.small.x86' found");
+      return match.productId;
+    });
+
+    const keypair = new biznetgio.BaremetalKeypair("metal-keypair", { name: "neo-metal-key" });
+
+    const server = new biznetgio.Baremetal("metal-main", {
+      productId: m3ProductId,
+      cycle: "m",
+      selectOs: "ubuntu-22",
+      keypairId: keypair.keypairId,
+      label: "neo-metal-main",
+      publicIp: 1,
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Rebuild OS list
+
+`biznetgio_baremetal_rebuild_os_list` / `baremetalRebuildOsList` takes the `account_id` of a server you already own and returns the valid OS values for `rebuild_os` / `rebuildOs` - a narrower list than "every OS this hardware could run," scoped to what fits that specific server's current disk layout. It returns a plain list of strings (for example `centos7-base`) plus `raw`. There is no equivalent list for the *initial* `select_os` at create time - that value is not validated against a data source at all; get it right from Biznet GIO's documentation or the portal before you order.
+
+## NEO Elastic Storage
+
+SAN storage volumes that attach to one NEO Metal server, ordered through `biznetgio_baremetal_elastic_storage` / `BaremetalElasticStorage`.
+
+| Package | IOPS | Price |
+| --- | --- | --- |
+| NEO Elastic Storage | 5.000 | Rp220.000 / 100 GB / month |
+| NEO Elastic Storage UltraFast | 10.000 | Rp330.000 / 100 GB / month |
+
+Source: [biznetgio.com/pricelist#neo-elastic-storage](https://www.biznetgio.com/pricelist#neo-elastic-storage).
+
+There is **no catalog data source at all** for elastic storage products, even though the upstream API has one (`GET /baremetal-neo-elastic-storages/products`). Discover it manually:
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/baremetal-neo-elastic-storages/products | jq
+```
+
+Match what you see against the IOPS tier you want, then hardcode that `product_id` - the [example repo](https://github.com/shirasakaren/biznetgio-example-terraform) does the same (`product_id = 20`). Elastic storage's `product_id` also triggers change-package on change once created - the same hazard described in the [catalog overview](/products/overview#why-0-is-a-real-hazard-not-just-an-unclear-example).
+
+## Additional (floating) IPs
+
+`biznetgio_baremetal_additional_ip` / `BaremetalAdditionalIp` orders a floating IP independent of any server; `biznetgio_baremetal_additional_ip_assignment` attaches it. Neither the `product_id` nor the `region` (`GET /baremetal-additional-ips/products` and `GET /baremetal-additional-ips/regions` upstream) has a catalog data source. Discover both manually:
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/baremetal-additional-ips/products | jq
+
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/baremetal-additional-ips/regions | jq
+```
+
+Wrapping any of these three unwrapped endpoints (elastic storage products, additional IP products, additional IP regions) as a proper data source is a good, contained first contribution - see the [Terraform provider guide](/contribute/terraform-guide) and [Pulumi provider guide](/contribute/pulumi-guide).
+
+## OpenVPN out-of-band access
+
+`biznetgio_baremetal_openvpn` / `baremetalOpenvpn` returns the OpenVPN client configuration for out-of-band access to your bare-metal servers, account-wide (no arguments). Returns `config` (sensitive) and `raw`. See the [Terraform](/terraform/resources/baremetal#biznetgio_baremetal_openvpn) reference for details.

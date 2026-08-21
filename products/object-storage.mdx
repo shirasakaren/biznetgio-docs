@@ -1,0 +1,62 @@
+---
+title: "NEO Object Storage catalog and pricing"
+description: "Why there is no catalog data source for Object Storage plans, and how to discover a product_id manually"
+---
+
+NEO Object Storage is Biznet GIO's S3-compatible storage line. For the resource schema and full code, see the [Terraform](/terraform/resources/object-storage) and [Pulumi](/pulumi/resources/object-storage) reference pages.
+
+## Pricing (source: [biznetgio.com/pricelist#neo-object-storage](https://www.biznetgio.com/pricelist#neo-object-storage))
+
+| Package | Price |
+| --- | --- |
+| Single Region 1 | Rp1.000 / GB / month |
+| Single Region 2 | Rp1.000 / GB / month |
+| Multi Region 1 | Rp2.000 / GB / month |
+| Multi Region 2 | Rp2.000 / GB / month |
+| Multi Region 3 | Rp3.000 / GB / month |
+
+<Note>
+  Public list prices, current as of this writing. Object Storage bills by GB of `quota`, per month, at whichever cycle you choose (`m a q s b t p4 p5`); see the [billing guide](/guides/billing).
+</Note>
+
+## There is no catalog data source for this at all
+
+This is the one product line in these providers with **zero** typed catalog information. `biznetgio_object_storage.product_id` / `ObjectStorage.productId` is a plain required integer. There is no `name`, no region field, no quota tier exposed anywhere in the schema:
+
+```hcl
+resource "biznetgio_object_storage" "example" {
+  product_id = 8   # opaque - see below for how this number is chosen
+  cycle      = "m"
+  label      = "data-archive"
+  quota      = 10
+}
+```
+
+Notably, **the region names in the pricing table above** ("Single Region 1", "Multi Region 2", and so on) are not a separate input anywhere on the resource - `region` does not exist as an attribute. Whichever region and quota tier you get is entirely a function of which `product_id` you pick. There is no `region` argument to set independently.
+
+Neither provider wraps this catalog as a data source, even though the upstream API has the endpoint: `GET /object-storages/products`. Confirmed by reading both providers' source directly - the Terraform provider's `DataSources()` list only registers `biznetgio_object_storage_instances`, `biznetgio_object_storage_buckets`, and `biznetgio_object_storage_credentials`; none of them call the `/products` endpoint. The Pulumi provider's function list is the same, one-to-one.
+
+## Discover a `product_id` manually
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/object-storages/products | jq
+```
+
+Match what you see against the region/tier you want from the pricing table above, then hardcode that `product_id`. This is exactly what the [example repo](https://github.com/shirasakaren/biznetgio-example-terraform) does (`product_id = 8`) - there is currently no better way. If you place an order through the [portal](https://portal.biznetgio.com) first, the order confirmation or account page there is another way to learn the `product_id` you were assigned, without calling the API directly.
+
+<Warning>
+  `product_id` on `biznetgio_object_storage` / `ObjectStorage` is **create-only**. Changing it does not trigger an upgrade - it destroys and recreates the entire instance, deleting every bucket, credential, and object inside it. Get the right `product_id` before you `apply`, not after.
+</Warning>
+
+Wrapping `GET /object-storages/products` as a real `biznetgio_object_storage_products` data source is a good, contained first contribution, and arguably the highest-value one in either provider - see the [Terraform provider guide](/contribute/terraform-guide) and [Pulumi provider guide](/contribute/pulumi-guide).
+
+## What you *can* list
+
+Once an instance exists, three data sources give you real information about it:
+
+- **`biznetgio_object_storage_instances` / `objectStorageInstances`** - every instance on the account (optionally filtered by `status`), returning `id`, `label`, `status`, `product_id`, `quota`, `raw` per item. This confirms the `product_id` of instances you already own, but does not help you choose a new one.
+- **`biznetgio_object_storage_buckets` / `objectStorageBuckets`** - buckets inside a given instance (`name`, `acl`, `raw`).
+- **`biznetgio_object_storage_credentials` / `objectStorageCredentials`** - credentials on a given instance (`access_key`, `active` - secret keys are never returned by a list).
+
+Full schemas in the [Terraform](/terraform/resources/object-storage#data-sources) and [Pulumi](/pulumi/resources/object-storage#functions) reference pages.

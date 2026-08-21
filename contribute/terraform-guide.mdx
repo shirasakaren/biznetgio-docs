@@ -92,7 +92,7 @@ module "app" {
   select_os            = data.biznetgio_neolite_pro_os_list.ubuntu.oss[0].name
   storage_product_id   = 8
   cycle                = "m"
-  ssh_and_console_user = "admin"
+  ssh_and_console_user = "adminuser"
   console_password     = var.console_password
   pay_with_credit_card = var.pay_with_credit_card
 }

@@ -1,0 +1,190 @@
+---
+title: "Paham katalog produk"
+description: "Data.biznetgio_neolite_products.all.products[0] itu sebenernya apa, dan cara milih paket tertentu dengan sengaja"
+---
+
+Kalau lu pernah liat kode kayak ini dan bingung server apa yang sebenernya dibuat, bagian ini buat lu:
+
+```hcl
+data "biznetgio_neolite_products" "all" {}
+
+resource "biznetgio_neolite_vm" "main" {
+  product_id = data.biznetgio_neolite_products.all.products[0].product_id
+  select_os  = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
+  # ...
+}
+```
+
+`products[0]` dan `oss[0]` itu bukan placeholder buat "yang paling murah" atau "default yang masuk akal." Artinya persis apa yang ditulis: **item apapun yang dibalikin API Biznet GIO paling duluan, hari ini.** Halaman ini jelasin kenapa itu penting, gimana caranya liat apa yang bener-bener bakal lu dapetin sebelum order, dan gimana milih paket atau OS tertentu dengan sengaja, bukan asal percaya index `0`.
+
+## Kenapa `[0]` itu bahaya beneran, bukan cuma contoh yang kurang jelas
+
+Data source katalog (`biznetgio_neolite_products`, `biznetgio_neolite_pro_products`, `biznetgio_baremetal_products`, `biznetgio_gpu_products`) manggil endpoint `GET /.../products` di API Biznet GIO dan nge-append apapun yang balik, sesuai urutan balikannya, tanpa di-sort sama provider. Gak ada yang bilang urutan itu stabil. Kalau Biznet GIO nambah produk, hapus satu, atau API-nya balikin hasil dengan urutan beda di hari lain, `products[0]` bisa diam-diam jadi produk yang berbeda.
+
+Itu cuma bakal nyebelin doang kalau salah pilih gampang dibalikin. Biasanya gak:
+
+| Resource | Yang terjadi kalau `product_id` berubah di plan berikutnya |
+| --- | --- |
+| `biznetgio_neolite_vm` / `NeoliteVm` | Trigger order **change-package** yang beneran ke akun lu |
+| `biznetgio_neolite_pro_vm` / `NeoliteProVm` | Sama - order change-package |
+| `biznetgio_baremetal_elastic_storage` / `BaremetalElasticStorage` | Sama - order change-package |
+| `biznetgio_object_storage` / `ObjectStorage` | `product_id` create-only - perubahan bikin seluruh tenant S3 **dihapus dan dibuat ulang**, ngehapus semua bucket dan object di dalemnya |
+
+Gak ada satupun dari ini yang dry run. `terraform plan` yang keliatan kayak gak ngubah apa-apa cuma karena "katalognya kebetulan re-order" bisa jadi order ganti paket yang beneran dibayar atau storage tenant yang ke-hapus begitu lu `apply`. Liat [panduan billing](/id/guides/billing) buat paham "order berbayar beneran" itu maksudnya gimana.
+
+Solusinya simpel: jangan pernah biarin `[0]` yang nentuin produk beneran apa yang lu dapet. Lu yang tentuin sendiri, terus tulis filter yang nemuin itu.
+
+## Langkah 1: liat katalog lu sendiri sebelum filter apapun
+
+Pricelist dan nama paket di bagian ini asalnya dari halaman [pricelist](https://www.biznetgio.com/pricelist) publik Biznet GIO. Halaman itu materi marketing - deskripsinya deket dan gampang dipahami manusia soal apa yang dijual API, tapi bukan response API itu sendiri. Sebelum hardcode filter, print dulu apa yang bener-bener ada di katalog akun lu. Kedua baca katalog ini gratis: gak nge-order apapun.
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    data "biznetgio_neolite_products" "all" {}
+
+    output "neolite_catalog" {
+      value = [
+        for p in data.biznetgio_neolite_products.all.products : {
+          product_id = p.product_id
+          name       = p.name
+          cores      = p.options.cores
+          memory_mb  = p.options.memory
+        }
+      ]
+    }
+    ```
+
+    Jalanin `terraform plan` (gak perlu `apply` - data source dibaca pas plan, dan baca katalog gak nge-order apapun). Output-nya nge-print semua produk beneran di akun lu: id-nya, string `name` yang exact, jumlah core, dan memory dalam **megabyte**.
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    import * as biznetgio from "@shirasakaren/biznetgio";
+
+    const products = biznetgio.neoliteProductsOutput();
+    export const neoliteCatalog = products.products.apply((items) =>
+      items.map((p) => ({
+        productId: p.productId,
+        name: p.name,
+        cores: p.options.cores,
+        memoryMb: p.options.memory,
+      })),
+    );
+    ```
+
+    Jalanin `pulumi preview` (atau `pulumi up` - dua-duanya oke, karena ini cuma manggil function read-only, bukan resource). Output `neoliteCatalog` yang di-export nge-print informasi yang sama.
+  </Tab>
+</Tabs>
+
+Lakuin ini sekali, baca `name` dan `options` beneran yang dibalikin Biznet GIO buat akun lu, dan baru setelah itu tulis filter di langkah berikutnya. Jangan asumsiin nama paket di pricelist (misalnya `"XS 1.1"`) itu sama persis karakter-per-karakter sama field `name` - kemungkinan besar mirip, tapi confirm sendiri, jangan hardcode tebakan.
+
+## Langkah 2: filter dengan sengaja
+
+Ada dua cara milih item tertentu dari list katalog. Prioritasin yang pertama.
+
+### Match berdasarkan spec (direkomendasikan)
+
+`options.cores` dan `options.memory` itu integer yang typed, bukan label teks bebas, jadi filter spec gak bisa rusak cuma karena copy marketing berubah. `options.memory` dilaporin dalam **megabyte** - tampilan Biznet GIO sendiri (1 GB, 2 GB, dst) itu angka yang dibulatin biar gampang dibaca manusia. Pake angka exact yang lu liat di Langkah 1, bukan angka bulat yang diasumsiin.
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    locals {
+      # Angka di bawah cuma ilustrasi - pake angka beneran dari akun LU di Langkah 1.
+      matches = [
+        for p in data.biznetgio_neolite_products.all.products :
+        p if p.options.cores == 1 && p.options.memory <= 1100
+      ]
+
+      # local.matches[0] error pas plan ("invalid index") kalau gak ada yang
+      # match, bukannya diam-diam milih produk lain.
+      neolite_product_id = local.matches[0].product_id
+    }
+    ```
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    const products = biznetgio.neoliteProductsOutput();
+    const chosen = products.products.apply((items) => {
+      // Angka di bawah cuma ilustrasi - pake angka beneran dari akun LU di Langkah 1.
+      const match = items.find((p) => p.options.cores === 1 && p.options.memory <= 1100);
+      if (!match) {
+        throw new Error("no NEO Lite product matched the requested spec");
+      }
+      return match;
+    });
+    ```
+  </Tab>
+</Tabs>
+
+Dua idiom di atas ada buat alasan yang sama: match yang kosong harusnya jadi error pas plan/preview, bukan diam-diam fallback ke apapun yang ada di list. Error "invalid index" bawaan Terraform buat list kosong udah otomatis ngelakuin ini; di Pulumi TypeScript SDK, lu harus throw sendiri.
+
+### Match berdasarkan name (sekunder)
+
+Match berdasarkan string `name` yang exact itu oke, asal udah lu confirm string itu dari output katalog lu sendiri di Langkah 1. Jangan skip Langkah 1 dan asal tebak.
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    locals {
+      matches = [
+        for p in data.biznetgio_neolite_products.all.products :
+        p if p.name == "XS 1.1" # string exact yang udah lu confirm di Langkah 1
+      ]
+      neolite_product_id = local.matches[0].product_id
+    }
+    ```
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    const chosen = products.products.apply((items) => {
+      const match = items.find((p) => p.name === "XS 1.1"); // confirmed di Langkah 1
+      if (!match) throw new Error("no NEO Lite product named 'XS 1.1' was found");
+      return match;
+    });
+    ```
+  </Tab>
+  <Tab title="Pulumi (YAML)">
+    Pulumi YAML gak punya construct `find`/filter di atas list output function. Lakuin lookup-nya sekali pake CLI atau bahasa lain, catet `productId` yang keluar, terus taro angka literal itu di config stack lu:
+
+    ```yaml
+    config:
+      neoliteProductId: 123
+    ```
+
+    ```yaml
+    resources:
+      vm:
+        type: biznetgio:index:NeoliteVm
+        properties:
+          productId: ${neoliteProductId}
+    ```
+  </Tab>
+</Tabs>
+
+## Dua harga berbeda, dua kegunaan berbeda
+
+Lu bakal liat harga di dua tempat yang wajar kalau beda:
+
+- **Pricelist publik** (`biznetgio.com/pricelist`) itu harga list Biznet GIO. Ini cara paling cepet buat bandingin tier sebelum lu putusin apa yang mau di-order, dan ini yang jadi sumber setiap tabel harga di bagian Katalog Produk ini.
+- **Field `billing`** di item data source katalog (misalnya `biznetgio_neolite_products.all.products[0].billing`) itu yang API bilang akun lu bakal beneran dicharge buat produk itu, di cycle itu. Bisa beda dari harga list publik kalau akun lu punya promo, rate kontrak, atau Biznet GIO udah ganti harga sejak dokumentasi ini ditulis.
+
+Anggep pricelist sebagai cara buat paham dan bandingin produk. Anggep `billing` sebagai angka otoritatif buat apa yang bener-bener lu bayar - baca dari output katalog akun lu sendiri sebelum order yang harganya lu peduliin.
+
+## Apa yang dikasih tiap product line
+
+Gak semua produk punya data source katalog yang lengkap. Beberapa cuma expose `product_id` dan `name` doang tanpa spec typed; beberapa lagi gak punya lookup katalog sama sekali, karena provider-nya belum wrap endpoint itu.
+
+| Product line | Layanan Biznet GIO | Data source katalog | Yang lu dapet | Detail |
+| --- | --- | --- | --- | --- |
+| NEO Lite | KVM VPS | `biznetgio_neolite_products` | Lengkap: core, memory (MB), billing | [Katalog NEO Lite](/id/products/neolite) |
+| NEO Lite Pro | KVM VPS tier lebih tinggi | `biznetgio_neolite_pro_products` | Lengkap: core, memory (MB), billing | [Katalog NEO Lite Pro](/id/products/neolite-pro) |
+| NEO Metal | Bare metal dedicated (termasuk SKU ber-GPU) | `biznetgio_baremetal_products` | Parsial: cuma `name` + JSON mentah, gak ada spec typed | [Katalog NEO Metal](/id/products/baremetal) |
+| NEO GPU | H200 GPU-as-a-Service | `biznetgio_gpu_products` | Parsial: `name`, kategori, dan `flavors` per produk, gak ada spec typed | [Katalog NEO GPU](/id/products/gpu) |
+| NEO Object Storage | Storage S3-compatible | gak ada | Gak ada apa-apa - `product_id` opaque, cari manual | [Katalog Object Storage](/id/products/object-storage) |
+| NEO Elastic Storage | Volume SAN nempel ke NEO Metal | gak ada | Gak ada apa-apa - cari manual | [Katalog NEO Metal](/id/products/baremetal) |
+| Baremetal additional IP | IP mengambang buat NEO Metal | gak ada | Gak ada apa-apa - cari manual | [Katalog NEO Metal](/id/products/baremetal) |
+| NEO Lite / Pro additional disk, snapshot | Add-on di VM yang udah ada | gak ada | Gak ada apa-apa - cari manual | [Katalog NEO Lite](/id/products/neolite) |
+| VPS Windows, GIO Enterprise Cloud, GIO Backup, NEO Spark, dan lainnya | Macem-macem | gak di-expose provider manapun | Gak bisa dikelola lewat Terraform atau Pulumi sama sekali | [Layanan di luar provider ini](/id/products/other-services) |
+
+Kalau di tabel di atas ada "gak ada" atau "gak di-expose," biasanya API Biznet GIO di baliknya masih punya endpoint `/products` beneran - provider-nya cuma belum wrap jadi data source. Tiap halaman katalog di bawah nunjukin request HTTP terautentikasi yang exact buat dapetin informasi yang sama secara manual. Wrap salah satu endpoint itu jadi data source yang proper itu kontribusi pertama yang bagus dan scope-nya jelas - liat deep dive [Terraform](/id/contribute/terraform-guide) dan [Pulumi](/id/contribute/pulumi-guide), dan [panduan kontribusi](/id/contribute/introduction).

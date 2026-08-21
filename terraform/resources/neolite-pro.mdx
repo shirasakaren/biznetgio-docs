@@ -23,7 +23,7 @@ resource "biznetgio_neolite_pro_keypair" "main" {
 }
 
 resource "biznetgio_neolite_pro_vm" "main" {
-  ssh_and_console_user = "admin"
+  ssh_and_console_user = "adminuser"
   console_password     = "s3cretP4ssw0rd"
   vm_name              = "neo-pro-1"
   product_id           = data.biznetgio_neolite_pro_products.all.products[0].product_id
@@ -146,6 +146,10 @@ resource "biznetgio_neolite_pro_disk" "main" {
 Import with the disk account id.
 
 ## Data sources
+
+<Note>
+  For real pricing and how to pick a specific package instead of trusting `[0]`, see the [Product Catalog](/products/neolite-pro) page.
+</Note>
 
 All five mirror the NEO Lite data sources, targeting the `/neolite-pros` group:
 

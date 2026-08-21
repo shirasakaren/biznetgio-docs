@@ -1,0 +1,120 @@
+---
+title: "Katalog dan harga NEO Lite Pro"
+description: "Semua paket NEO Lite Pro, apa yang bener-bener dibalikin data source katalog, dan gimana milih satu dengan sengaja"
+---
+
+NEO Lite Pro itu lini VPS KVM tier lebih tinggi Biznet GIO: storage NVMe, CPU AMD EPYC, dan IOPS terjamin lebih tinggi dari NEO Lite biasa. Semua yang ada di [Paham katalog produk](/id/products/overview) berlaku di sini juga - `product_id` di `biznetgio_neolite_pro_vm` / `NeoliteProVm` trigger order change-package beneran kalau berubah, jadi jangan biarin `products[0]` nentuin itu buat lu. Buat schema resource lengkap dan kode multi-bahasa, liat halaman referensi [Terraform](/id/terraform/resources/neolite-pro) dan [Pulumi](/id/pulumi/resources/neolite-pro).
+
+## Harga (sumber: [biznetgio.com/pricelist#neo-lite-pro](https://www.biznetgio.com/pricelist#neo-lite-pro))
+
+| Paket | vCPU | RAM | Storage | Harga / bulan |
+| --- | --- | --- | --- | --- |
+| SS.1.1 | 1 core | 1 GB | 30 GB SSD NVMe | Rp209.000 |
+| SS.2.1 | 1 core | 2 GB | 40 GB SSD NVMe | Rp309.000 |
+| MS.2.2 | 2 core | 2 GB | 40 GB SSD NVMe | Rp389.000 |
+| MS.4.2 | 2 core | 4 GB | 60 GB SSD NVMe | Rp559.000 |
+| MM.4.4 | 4 core | 4 GB | 60 GB SSD NVMe | Rp699.000 |
+| MM.8.4 | 4 core | 8 GB | 80 GB SSD NVMe | Rp999.000 |
+| ML.16.8 | 8 core | 16 GB | 90 GB SSD NVMe | Rp1.799.000 |
+| ML.24.8 | 8 core | 24 GB | 100 GB SSD NVMe | Rp2.099.000 |
+| LL.24.12 | 12 core | 24 GB | 100 GB SSD NVMe | Rp2.299.000 |
+
+Add-on: additional disk Rp2.200/GB/bulan, snapshot Rp2.000/GB/bulan.
+
+<Note>
+  Harga list publik, per saat ditulis. Anggep `biznetgio_neolite_pro_products.all.products[].billing` di akun lu sendiri sebagai charge yang otoritatif - liat [dua sumber harga](/id/products/overview#dua-harga-berbeda-dua-kegunaan-berbeda).
+</Note>
+
+## Apa yang dikasih `biznetgio_neolite_pro_products`
+
+Bentuknya identik field-per-field sama katalog NEO Lite biasa: `product_id`, `name`, `description`, `category_id`, `category_name`, `options` (`type`, `cores`, `memory` dalam **megabyte**, `allow_downgrade`), dan `billing[]` per cycle. Liat halaman [katalog NEO Lite](/id/products/neolite#apa-yang-dikasih-biznetgio_neolite_products) buat tabel field lengkap - berlaku sama persis di sini, cuma lawan endpoint `_pro_`.
+
+## Contoh nyata: milih tier tertentu
+
+Resep yang sama kayak NEO Lite: print katalog lu sendiri dulu, terus filter berdasarkan field spec yang typed, bukan percaya posisi.
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    data "biznetgio_neolite_pro_products" "all" {}
+
+    locals {
+      # Ganti angka-angkanya sesuai apa yang lu liat di katalog tercetak lu
+      # sendiri - contoh ini nargetin tier MS.4.2 (2 core / 4 GB).
+      matches = [
+        for p in data.biznetgio_neolite_pro_products.all.products :
+        p if p.options.cores == 2 && p.options.memory <= 4200
+      ]
+
+      pro_product_id = local.matches[0].product_id
+    }
+
+    data "biznetgio_neolite_pro_os_list" "ubuntu" {
+      product_id = local.pro_product_id
+    }
+
+    resource "biznetgio_neolite_pro_keypair" "main" {
+      name = "neo-lite-pro-key"
+    }
+
+    resource "biznetgio_neolite_pro_vm" "main" {
+      ssh_and_console_user = "adminuser"
+      console_password     = "s3cretP4ssw0rd"
+      vm_name              = "neo-lite-pro-1"
+      product_id           = local.pro_product_id
+      select_os            = data.biznetgio_neolite_pro_os_list.ubuntu.oss[0].name
+      keypair_id           = biznetgio_neolite_pro_keypair.main.keypair_id
+      cycle                = "m"
+    }
+    ```
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    import * as biznetgio from "@shirasakaren/biznetgio";
+
+    const products = biznetgio.neoliteProProductsOutput();
+    const proProductId = products.products.apply((items) => {
+      const match = items.find((p) => p.options.cores === 2 && p.options.memory <= 4200);
+      if (!match) throw new Error("no matching NEO Lite Pro product found");
+      return match.productId;
+    });
+
+    const osList = biznetgio.neoliteProOsListOutput({ productId: proProductId });
+
+    const keypair = new biznetgio.NeoliteProKeypair("pro-keypair", { name: "neo-lite-pro-key" });
+
+    const vm = new biznetgio.NeoliteProVm("pro-vm", {
+      vmName: "neo-lite-pro-1",
+      productId: proProductId,
+      selectOs: osList.oss[0].name,
+      keypairId: keypair.keypairId,
+      cycle: "m",
+      sshAndConsoleUser: "adminuser",
+      consolePassword: "s3cretP4ssw0rd",
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Katalog yang belum di-wrap jadi data source
+
+Gap yang sama kayak NEO Lite: produk disk tambahan (`GET /neolite-pros/disks/products`) dan produk snapshot gak punya data source katalog. Cari manual:
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/neolite-pros/disks/products | jq
+```
+
+`biznetgio_neolite_pro_change_package_options` dan `biznetgio_neolite_pro_storage_upgrade_options` nutupin harga upgrade buat akun yang *udah ada*, sama kayak versi NEO Lite biasa - liat halaman [katalog NEO Lite](/id/products/neolite#lookup-katalog-neo-lite-lainnya).
+
+## Mirip, tapi belum confirmed sama: VPS Windows
+
+Pricelist publik Biznet GIO juga nge-list produk **VPS Windows** yang pake konvensi nama tier sama persis kayak NEO Lite Pro (`SS.2.1`, `MS.2.2`, `MM.4.4`, dst) dengan angka CPU/RAM yang sama, dengan harga lebih mahal yang kelihatannya nge-bundle lisensi Windows Server. Godaannya buat asumsiin ini cuma VM NEO Lite Pro dengan OS Windows yang dipilih lewat `select_os`.
+
+Itu belum confirmed. Source code kedua provider gak ada kata "Windows" di manapun - gak di schema resource, gak di client code, gak di handling OS-list. Sebelum asumsiin VPS Windows bisa diakses lewat `biznetgio_neolite_pro_vm`:
+
+1. Print output `neolite_pro_os_list` akun lu buat product id kandidat.
+2. Cari entry ber-flavor Windows di `oss[].name` (kayak `windows-2022` atau `windows-2025`).
+3. Kalau gak ada yang muncul, VPS Windows gak bisa di-order lewat provider ini di akun lu, dan lu harus order lewat [portal](https://portal.biznetgio.com) aja.
+
+Harga VPS Windows lengkap ada di halaman [Layanan di luar provider ini](/id/products/other-services).

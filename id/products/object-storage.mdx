@@ -1,0 +1,62 @@
+---
+title: "Katalog dan harga NEO Object Storage"
+description: "Kenapa gak ada data source katalog buat plan Object Storage, dan gimana cari product_id secara manual"
+---
+
+NEO Object Storage itu lini storage S3-compatible Biznet GIO. Buat schema resource dan kode lengkap, liat halaman referensi [Terraform](/id/terraform/resources/object-storage) dan [Pulumi](/id/pulumi/resources/object-storage).
+
+## Harga (sumber: [biznetgio.com/pricelist#neo-object-storage](https://www.biznetgio.com/pricelist#neo-object-storage))
+
+| Paket | Harga |
+| --- | --- |
+| Single Region 1 | Rp1.000 / GB / bulan |
+| Single Region 2 | Rp1.000 / GB / bulan |
+| Multi Region 1 | Rp2.000 / GB / bulan |
+| Multi Region 2 | Rp2.000 / GB / bulan |
+| Multi Region 3 | Rp3.000 / GB / bulan |
+
+<Note>
+  Harga list publik, per saat ditulis. Object Storage ditagih per GB `quota`, per bulan, di cycle apapun yang lu pilih (`m a q s b t p4 p5`); liat [panduan billing](/id/guides/billing).
+</Note>
+
+## Gak ada data source katalog buat ini sama sekali
+
+Ini satu-satunya product line di provider ini yang **nol** informasi katalog typed. `biznetgio_object_storage.product_id` / `ObjectStorage.productId` itu integer required biasa. Gak ada `name`, gak ada field region, gak ada tier quota yang di-expose di manapun di schema:
+
+```hcl
+resource "biznetgio_object_storage" "example" {
+  product_id = 8   # opaque - liat di bawah gimana angka ini dipilih
+  cycle      = "m"
+  label      = "data-archive"
+  quota      = 10
+}
+```
+
+Yang perlu dicatat, **nama region di tabel harga di atas** ("Single Region 1", "Multi Region 2", dst) itu bukan input terpisah di manapun di resource - `region` gak ada sebagai attribute. Region dan tier quota apapun yang lu dapet itu semata fungsi dari `product_id` mana yang lu pilih. Gak ada argument `region` yang bisa diset independen.
+
+Gak ada satupun provider yang wrap katalog ini jadi data source, walaupun API upstream punya endpoint-nya: `GET /object-storages/products`. Confirmed dari baca langsung source code kedua provider - list `DataSources()` provider Terraform cuma register `biznetgio_object_storage_instances`, `biznetgio_object_storage_buckets`, dan `biznetgio_object_storage_credentials`; gak satupun manggil endpoint `/products`. List function provider Pulumi sama, satu-satu identik.
+
+## Cari `product_id` secara manual
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/object-storages/products | jq
+```
+
+Cocokin apa yang lu liat sama region/tier yang lu mau dari tabel harga di atas, terus hardcode `product_id` itu. Ini persis yang dilakuin [repo contoh](https://github.com/shirasakaren/biznetgio-example-terraform) (`product_id = 8`) - saat ini belum ada cara yang lebih baik. Kalau lu order lewat [portal](https://portal.biznetgio.com) dulu, halaman konfirmasi order atau halaman akun di sana itu cara lain buat tau `product_id` yang di-assign ke lu, tanpa manggil API langsung.
+
+<Warning>
+  `product_id` di `biznetgio_object_storage` / `ObjectStorage` itu **create-only**. Ngubah itu gak trigger upgrade - itu ngehapus dan bikin ulang seluruh instance-nya, ngehapus semua bucket, credential, dan object di dalemnya. Pastiin `product_id`-nya bener sebelum `apply`, bukan sesudahnya.
+</Warning>
+
+Wrap `GET /object-storages/products` jadi data source `biznetgio_object_storage_products` beneran itu kontribusi pertama yang bagus dan scope-nya jelas, dan mungkin yang paling valuable di kedua provider - liat [panduan provider Terraform](/id/contribute/terraform-guide) dan [panduan provider Pulumi](/id/contribute/pulumi-guide).
+
+## Apa yang *bisa* lu list
+
+Begitu instance-nya udah ada, tiga data source ngasih informasi beneran soal itu:
+
+- **`biznetgio_object_storage_instances` / `objectStorageInstances`** - semua instance di akun (opsional difilter pake `status`), balikin `id`, `label`, `status`, `product_id`, `quota`, `raw` per item. Ini confirm `product_id` instance yang udah lu punya, tapi gak bantu milih yang baru.
+- **`biznetgio_object_storage_buckets` / `objectStorageBuckets`** - bucket di dalem satu instance (`name`, `acl`, `raw`).
+- **`biznetgio_object_storage_credentials` / `objectStorageCredentials`** - credential di satu instance (`access_key`, `active` - secret key gak pernah dibalikin lewat list).
+
+Schema lengkap ada di halaman referensi [Terraform](/id/terraform/resources/object-storage#data-sources) dan [Pulumi](/id/pulumi/resources/object-storage#functions).

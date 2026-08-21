@@ -1,0 +1,120 @@
+---
+title: "NEO Lite Pro catalog and pricing"
+description: "Every NEO Lite Pro package, what the catalog data source actually returns, and how to pick one on purpose"
+---
+
+NEO Lite Pro is Biznet GIO's higher-tier KVM VPS line: NVMe storage, AMD EPYC CPUs, and higher guaranteed IOPS than plain NEO Lite. Everything on [Understanding the product catalog](/products/overview) applies here too - `product_id` on `biznetgio_neolite_pro_vm` / `NeoliteProVm` triggers a real change-package order if it changes, so do not let `products[0]` decide it for you. For the full resource schemas and multi-language code, see the [Terraform](/terraform/resources/neolite-pro) and [Pulumi](/pulumi/resources/neolite-pro) reference pages.
+
+## Pricing (source: [biznetgio.com/pricelist#neo-lite-pro](https://www.biznetgio.com/pricelist#neo-lite-pro))
+
+| Package | vCPU | RAM | Storage | Price / month |
+| --- | --- | --- | --- | --- |
+| SS.1.1 | 1 core | 1 GB | 30 GB SSD NVMe | Rp209.000 |
+| SS.2.1 | 1 core | 2 GB | 40 GB SSD NVMe | Rp309.000 |
+| MS.2.2 | 2 cores | 2 GB | 40 GB SSD NVMe | Rp389.000 |
+| MS.4.2 | 2 cores | 4 GB | 60 GB SSD NVMe | Rp559.000 |
+| MM.4.4 | 4 cores | 4 GB | 60 GB SSD NVMe | Rp699.000 |
+| MM.8.4 | 4 cores | 8 GB | 80 GB SSD NVMe | Rp999.000 |
+| ML.16.8 | 8 cores | 16 GB | 90 GB SSD NVMe | Rp1.799.000 |
+| ML.24.8 | 8 cores | 24 GB | 100 GB SSD NVMe | Rp2.099.000 |
+| LL.24.12 | 12 cores | 24 GB | 100 GB SSD NVMe | Rp2.299.000 |
+
+Add-ons: additional disk Rp2.200/GB/month, snapshot Rp2.000/GB/month.
+
+<Note>
+  Public list prices, current as of this writing. Treat your own account's `biznetgio_neolite_pro_products.all.products[].billing` as the authoritative charge - see [the two price sources](/products/overview#two-different-prices-two-different-jobs).
+</Note>
+
+## What `biznetgio_neolite_pro_products` gives you
+
+Field-for-field identical shape to plain NEO Lite's catalog: `product_id`, `name`, `description`, `category_id`, `category_name`, `options` (`type`, `cores`, `memory` in **megabytes**, `allow_downgrade`), and `billing[]` per cycle. See the [NEO Lite catalog](/products/neolite#what-biznetgio_neolite_products-actually-gives-you) page for the full field table - it applies here unchanged, just against the `_pro_` products endpoint.
+
+## Worked example: picking a specific tier
+
+Same recipe as NEO Lite: print your own catalog first, then filter on the typed spec fields rather than trusting position.
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    data "biznetgio_neolite_pro_products" "all" {}
+
+    locals {
+      # Replace the exact figures with what you saw in your own printed
+      # catalog - this example targets the MS.4.2 tier (2 cores / 4 GB).
+      matches = [
+        for p in data.biznetgio_neolite_pro_products.all.products :
+        p if p.options.cores == 2 && p.options.memory <= 4200
+      ]
+
+      pro_product_id = local.matches[0].product_id
+    }
+
+    data "biznetgio_neolite_pro_os_list" "ubuntu" {
+      product_id = local.pro_product_id
+    }
+
+    resource "biznetgio_neolite_pro_keypair" "main" {
+      name = "neo-lite-pro-key"
+    }
+
+    resource "biznetgio_neolite_pro_vm" "main" {
+      ssh_and_console_user = "adminuser"
+      console_password     = "s3cretP4ssw0rd"
+      vm_name              = "neo-lite-pro-1"
+      product_id           = local.pro_product_id
+      select_os            = data.biznetgio_neolite_pro_os_list.ubuntu.oss[0].name
+      keypair_id           = biznetgio_neolite_pro_keypair.main.keypair_id
+      cycle                = "m"
+    }
+    ```
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    import * as biznetgio from "@shirasakaren/biznetgio";
+
+    const products = biznetgio.neoliteProProductsOutput();
+    const proProductId = products.products.apply((items) => {
+      const match = items.find((p) => p.options.cores === 2 && p.options.memory <= 4200);
+      if (!match) throw new Error("no matching NEO Lite Pro product found");
+      return match.productId;
+    });
+
+    const osList = biznetgio.neoliteProOsListOutput({ productId: proProductId });
+
+    const keypair = new biznetgio.NeoliteProKeypair("pro-keypair", { name: "neo-lite-pro-key" });
+
+    const vm = new biznetgio.NeoliteProVm("pro-vm", {
+      vmName: "neo-lite-pro-1",
+      productId: proProductId,
+      selectOs: osList.oss[0].name,
+      keypairId: keypair.keypairId,
+      cycle: "m",
+      sshAndConsoleUser: "adminuser",
+      consolePassword: "s3cretP4ssw0rd",
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Catalogs not wrapped as data sources
+
+Same gap as NEO Lite: additional disk products (`GET /neolite-pros/disks/products`) and snapshot products have no catalog data source. Discover manually:
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/neolite-pros/disks/products | jq
+```
+
+`biznetgio_neolite_pro_change_package_options` and `biznetgio_neolite_pro_storage_upgrade_options` cover upgrade pricing for an *existing* account, the same way their plain NEO Lite counterparts do - see the [NEO Lite catalog](/products/neolite#other-neo-lite-catalog-lookups) page.
+
+## Look-alike, not confirmed the same: VPS Windows
+
+Biznet GIO's public pricelist also lists a **VPS Windows** product using the exact same tier naming convention as NEO Lite Pro (`SS.2.1`, `MS.2.2`, `MM.4.4`, and so on) with the same CPU/RAM numbers, at a higher price that presumably bundles a Windows Server license. It is tempting to assume this is just a NEO Lite Pro VM with a Windows OS selected via `select_os`.
+
+That is not confirmed. Neither provider's source code contains the word "Windows" anywhere - not in the resource schemas, not in the client code, not in the OS-list handling. Before assuming VPS Windows is reachable through `biznetgio_neolite_pro_vm`:
+
+1. Print your account's `neolite_pro_os_list` output for a candidate product id.
+2. Look for a Windows-flavored entry in `oss[].name` (something like `windows-2022` or `windows-2025`).
+3. If nothing appears, VPS Windows is not orderable through this provider on your account, and you should order it through the [portal](https://portal.biznetgio.com) instead.
+
+Full VPS Windows pricing is on the [Services outside these providers](/products/other-services) page.

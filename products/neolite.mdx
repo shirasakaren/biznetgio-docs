@@ -1,0 +1,149 @@
+---
+title: "NEO Lite catalog and pricing"
+description: "Every NEO Lite package, what the catalog data source actually returns, and how to pick one on purpose"
+---
+
+NEO Lite is Biznet GIO's entry-level KVM VPS line. This page is about **what to order and why** - for the resource schemas and full multi-language code, see the [Terraform](/terraform/resources/neolite) and [Pulumi](/pulumi/resources/neolite) reference pages. Read [Understanding the product catalog](/products/overview) first if you have not - it explains why `products[0]` is risky and how to inspect your own account's catalog before filtering it.
+
+## Pricing (source: [biznetgio.com/pricelist#neo-lite](https://www.biznetgio.com/pricelist#neo-lite))
+
+| Package | vCPU | RAM | Storage | Price / month |
+| --- | --- | --- | --- | --- |
+| XS 1.1 | 1 core | 1 GB | 60 GB | Rp59.000 |
+| SS 2.1 | 1 core | 2 GB | 60 GB | Rp80.000 |
+| SS 2.2 | 2 cores | 2 GB | 60 GB | Rp109.000 |
+| MS 4.2 | 2 cores | 4 GB | 60 GB | Rp139.000 |
+| MS 4.4 | 4 cores | 4 GB | 60 GB | Rp179.000 |
+| MM 8.4 | 4 cores | 8 GB | 60 GB | Rp269.000 |
+| MM 8.8 | 8 cores | 8 GB | 60 GB | Rp289.000 |
+| LL 16.8 | 8 cores | 16 GB | 60 GB | Rp459.000 |
+| LL 16.16 | 16 cores | 16 GB | 60 GB | Rp499.000 |
+
+Add-ons: additional disk Rp1.650/GB/month, snapshot Rp1.500/GB/month. Storage is fixed at 60 GB per tier; you grow it afterward with `biznetgio_neolite_disk` / `NeoliteDisk`, billed separately at the add-on rate above.
+
+<Note>
+  These are Biznet GIO's public list prices, current as of this writing. The `billing` field on your own account's `biznetgio_neolite_products` output is the authoritative number for what you will actually be charged - see [the two price sources](/products/overview#two-different-prices-two-different-jobs).
+</Note>
+
+## What `biznetgio_neolite_products` actually gives you
+
+Each item in `products` is one row like the table above, plus the exact billing terms:
+
+| Field | Meaning |
+| --- | --- |
+| `product_id` | The number every create/upgrade call actually uses |
+| `name` | Biznet GIO's label for the product, e.g. something close to `"XS 1.1"` - confirm the exact string against your own output, do not assume it matches the pricelist verbatim |
+| `description` | Free-text description |
+| `category_id` / `category_name` | Product grouping |
+| `options.cores` | vCPU count - the "1" / "2" / "4" / "8" / "16" in the table above |
+| `options.memory` | RAM **in megabytes**, not gigabytes - a "1 GB" tier is reported as a number close to 1024, not `1` |
+| `options.allow_downgrade` | `1` if downgrading this product is allowed, else `0` |
+| `billing[]` | One entry per supported cycle (`label`, `cycle`, `price`, and per-quantity-tier `components` for anything billed by volume, like extra disk) |
+
+## Worked example: picking XS 1.1 for the lowest cost
+
+Say you want the cheapest NEO Lite tier - `XS 1.1`, 1 vCPU, 1 GB RAM - and you want to be sure that is really what gets ordered, not whatever is first in the list. First, print your own catalog (see [Step 1](/products/overview#step-1-look-at-your-own-catalog-before-you-filter-anything)) and confirm the real `name` and `options.memory` value for the smallest tier on your account. Then write the filter:
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    data "biznetgio_neolite_products" "all" {}
+
+    locals {
+      # Replace the exact memory ceiling with what you saw in your own
+      # printed catalog for the 1-core / ~1 GB tier.
+      xs_matches = [
+        for p in data.biznetgio_neolite_products.all.products :
+        p if p.options.cores == 1 && p.options.memory <= 1100
+      ]
+
+      # Errors at plan time if nothing matched, instead of guessing.
+      xs_product_id = local.xs_matches[0].product_id
+    }
+
+    data "biznetgio_neolite_os_list" "ubuntu" {
+      product_id = local.xs_product_id
+    }
+
+    resource "biznetgio_neolite_keypair" "main" {
+      name = "neo-lite-key"
+    }
+
+    resource "biznetgio_neolite_vm" "cheap" {
+      ssh_and_console_user = "adminuser"
+      console_password     = "s3cretP4ssw0rd"
+      vm_name              = "neo-lite-xs"
+      product_id           = local.xs_product_id
+      select_os            = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
+      keypair_id           = biznetgio_neolite_keypair.main.keypair_id
+      cycle                = "m"
+    }
+    ```
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    import * as biznetgio from "@shirasakaren/biznetgio";
+
+    const products = biznetgio.neoliteProductsOutput();
+    const xsProductId = products.products.apply((items) => {
+      const match = items.find((p) => p.options.cores === 1 && p.options.memory <= 1100);
+      if (!match) throw new Error("no 1-core / ~1GB NEO Lite product found");
+      return match.productId;
+    });
+
+    const osList = biznetgio.neoliteOsListOutput({ productId: xsProductId });
+
+    const keypair = new biznetgio.NeoliteKeypair("cheap-keypair", { name: "neo-lite-key" });
+
+    const vm = new biznetgio.NeoliteVm("cheap-vm", {
+      vmName: "neo-lite-xs",
+      productId: xsProductId,
+      selectOs: osList.oss[0].name,
+      keypairId: keypair.keypairId,
+      cycle: "m",
+      sshAndConsoleUser: "adminuser",
+      consolePassword: "s3cretP4ssw0rd",
+    });
+    ```
+  </Tab>
+</Tabs>
+
+The `select_os` / `selectOs` line still uses `oss[0]` here - that is a much smaller risk than `products[0]`, because `select_os` only decides the OS image, not a paid change-package order, and OS lists are typically short and dominated by one obvious choice (for example a single `ubuntu-22` entry). Apply the same filter discipline to it if your product has several OS options and you care which one you get - see the OS list section below.
+
+## The OS list
+
+`biznetgio_neolite_os_list` (Terraform) / `neoliteOsList` (Pulumi) takes the `product_id` you just resolved and returns every OS image available for that specific product:
+
+| Field | Meaning |
+| --- | --- |
+| `vmid` | Internal template id |
+| `node` | The Proxmox node backing that template |
+| `name` | The exact string to pass as `select_os` / `selectOs` |
+| `maxmem` | Memory ceiling of the OS template (MB) |
+| `maxcpu` | CPU ceiling of the OS template |
+
+Different products can offer different OS lists. Print `oss[].name` for your chosen `product_id` the same way you printed the product catalog, and match on the exact string - illustrative examples you are likely to see include Ubuntu, Debian, CentOS/AlmaLinux, and Rocky Linux images, but the only way to know the exact literal names on your account is to read your own `oss` output.
+
+## Catalogs that exist upstream but are not wrapped as data sources
+
+Two more product lists exist in the Biznet GIO API but are **not exposed** through `biznetgio_neolite_*` or `pulumi_biznetgio.neolite*` at all:
+
+- **Additional disk products** (`GET /neolites/disks/products`) - the `product_id` on `biznetgio_neolite_disk` / `NeoliteDisk` has no catalog data source. The [example repo](https://github.com/shirasakaren/biznetgio-example-terraform) hardcodes `product_id = 60` for this reason.
+- **Snapshot products** (`GET /neolites/snapshots/products`) - same gap; `biznetgio_neolite_snapshot` itself does not take a `product_id` (it snapshots an existing VM), but restoring one into a new VM via `biznetgio_neolite_vm_from_snapshot` does, and again there is no data source for it.
+
+Discover either one manually with a direct, authenticated request:
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/neolites/disks/products | jq
+```
+
+Match what you see against the add-on price on the pricing table above, then hardcode the `product_id` you want, exactly like the example repo does. Wrapping either endpoint as a real data source is a good, contained first contribution - see the [Terraform provider guide](/contribute/terraform-guide) and [Pulumi provider guide](/contribute/pulumi-guide).
+
+## Other NEO Lite catalog lookups
+
+- **`biznetgio_neolite_ip_availability` / `neoliteIPAvailability`** - takes `product_id`, returns whether a public IP is currently available for that specific product. Worth checking before you order if IP availability matters to you.
+- **`biznetgio_neolite_change_package_options` / `neoliteChangePackageOptions`** - takes the `account_id` of an *existing* VM, returns the valid target packages and prices for a change-package operation on that account, as unmodeled `raw` JSON. This is about upgrading a VM you already own, not about picking your first one.
+- **`biznetgio_neolite_storage_upgrade_options` / `neoliteStorageUpgradeOptions`** - same idea, for storage upgrade pricing on an existing account.
+
+Full input/output schemas for every resource on this page are in the [Terraform](/terraform/resources/neolite) and [Pulumi](/pulumi/resources/neolite) reference.

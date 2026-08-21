@@ -40,7 +40,7 @@ provider "biznetgio" {}
 
 Ngedeklarasiin semua input dengan types dan defaults. Tiga variable yang berulang di semua folder:
 
-- `ssh_and_console_user`: string, default `"admin"` (atau `"root"` di `gpu/`). Komentarnya nyatet aturan API: 6 sampai 32 karakter, cuma huruf, angka, dash, dan dot.
+- `ssh_and_console_user`: string, default `"adminuser"` (atau `"root"` di `gpu/`). Komentarnya nyatet aturan API: 6 sampai 32 karakter, cuma huruf, angka, dash, dan dot.
 - `console_password`: string, `sensitive = true`, sengaja gak ada default. Satu-satunya cara masuk cuma `TF_VAR_console_password` atau `terraform.tfvars` yang di-gitignore. Variable ini ada di `neolite/`, `neolite-pro/`, `gpu/`, dan `complete/`; `baremetal/` dan `object-storage/` autentikasi cuma pake keypair dan gak punya variable kayak gini.
 - `pay_with_credit_card`: bool, default `false`. `false` tetep bikin resource beneran, cuma invoice-nya dibiarin gak kebayar di portal. Liat [Billing dan order](/id/guides/billing).
 
@@ -172,7 +172,7 @@ Outputs: `storage_status`, `bucket_name`, `access_key` (sensitive), `secret_key`
 Di dalam `modules/app-stack/`:
 
 - `main.tf` ngedeklarasiin lima resources: `biznetgio_neolite_pro_keypair.this` (dinamain `"${var.name}-key"`), `biznetgio_neolite_pro_vm.this` (`vm_name = var.name`), `biznetgio_object_storage.this`, `biznetgio_object_storage_bucket.this` (`"${var.name}-assets"`, `acl = "private"`), dan `biznetgio_object_storage_credential.this`. Semua referensi pake resource module-nya sendiri, jadi module-nya fully self-contained.
-- `variables.tf` ngedeklarasiin sepuluh inputs: `name` (nama VM dan prefix buat bucket dan credential, 6 sampai 16 karakter), `storage_label` (dipisah sengaja karena storage label punya limit 6 sampai 16 karakter sendiri), `vm_product_id`, `select_os`, `storage_product_id`, `cycle` (default `"m"`), `ssh_and_console_user` (default `"admin"`), `console_password` (sensitive, gak ada default), `pay_with_credit_card` (default `false`), `storage_quota` (default `10`).
+- `variables.tf` ngedeklarasiin sepuluh inputs: `name` (nama VM dan prefix buat bucket dan credential, 6 sampai 16 karakter), `storage_label` (dipisah sengaja karena storage label punya limit 6 sampai 16 karakter sendiri), `vm_product_id`, `select_os`, `storage_product_id`, `cycle` (default `"m"`), `ssh_and_console_user` (default `"adminuser"`), `console_password` (sensitive, gak ada default), `pay_with_credit_card` (default `false`), `storage_quota` (default `10`).
 - `outputs.tf` nge-export `vm_status`, `bucket_name`, `access_key` (sensitive), `secret_key` (sensitive), `keypair_private_key` (sensitive). Komentar di yang sensitive bilang caller module-nya yang pegang tanggung jawab buat nyimpen.
 - Block `terraform { required_providers { biznetgio = { source = "registry.terraform.io/shirasakaren/biznetgio" } } }` miliknya sendiri. Tanpa itu, Terraform nganggep namespace default `hashicorp/*` buat provider yang di-referensiin di dalam child module dan gagal dengan error missing provider. Module apa pun yang di-copy keluar dari repo ini harus nahan block itu.
 

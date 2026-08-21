@@ -83,7 +83,7 @@ From zero to a running NEO Lite VM in about five minutes, in any supported langu
           selectOs: osList.oss[0].name,
           keypairId: keypair.keypairId,
           cycle: "m",
-          sshAndConsoleUser: "admin",
+          sshAndConsoleUser: "adminuser",
           consolePassword: "s3cretP4ssw0rd",
         });
 
@@ -112,7 +112,7 @@ From zero to a running NEO Lite VM in about five minutes, in any supported langu
             select_os=os_list.oss[0].name,
             keypair_id=keypair.keypair_id,
             cycle="m",
-            ssh_and_console_user="admin",
+            ssh_and_console_user="adminuser",
             console_password="s3cretP4ssw0rd",
         )
 
@@ -154,7 +154,7 @@ From zero to a running NEO Lite VM in about five minutes, in any supported langu
                     SelectOs:          pulumi.String(osList.Oss[0].Name),
                     KeypairId:         keypair.KeypairId,
                     Cycle:             pulumi.String("m"),
-                    SshAndConsoleUser: pulumi.String("admin"),
+                    SshAndConsoleUser: pulumi.String("adminuser"),
                     ConsolePassword:   pulumi.String("s3cretP4ssw0rd"),
                 })
                 if err != nil {
@@ -194,7 +194,7 @@ From zero to a running NEO Lite VM in about five minutes, in any supported langu
                 SelectOs = osList.Apply(o => o.Oss[0].Name),
                 KeypairId = keypair.KeypairId,
                 Cycle = "m",
-                SshAndConsoleUser = "admin",
+                SshAndConsoleUser = "adminuser",
                 ConsolePassword = "s3cretP4ssw0rd",
             });
 
@@ -238,7 +238,7 @@ From zero to a running NEO Lite VM in about five minutes, in any supported langu
                         .selectOs(osList.applyValue(o -> o.oss().get(0).name()))
                         .keypairId(keypair.keypairId())
                         .cycle("m")
-                        .sshAndConsoleUser("admin")
+                        .sshAndConsoleUser("adminuser")
                         .consolePassword("s3cretP4ssw0rd")
                         .build());
 

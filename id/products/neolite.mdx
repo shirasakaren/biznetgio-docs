@@ -1,0 +1,149 @@
+---
+title: "Katalog dan harga NEO Lite"
+description: "Semua paket NEO Lite, apa yang bener-bener dibalikin data source katalog, dan gimana milih satu dengan sengaja"
+---
+
+NEO Lite itu lini VPS KVM entry-level Biznet GIO. Halaman ini soal **apa yang mau di-order dan kenapa** - buat schema resource dan kode lengkap multi-bahasa, liat halaman referensi [Terraform](/id/terraform/resources/neolite) dan [Pulumi](/id/pulumi/resources/neolite). Baca [Paham katalog produk](/id/products/overview) dulu kalau belum - itu jelasin kenapa index `products[0]` bahaya dan gimana cara liat katalog akun lu sendiri sebelum di-filter.
+
+## Harga (sumber: [biznetgio.com/pricelist#neo-lite](https://www.biznetgio.com/pricelist#neo-lite))
+
+| Paket | vCPU | RAM | Storage | Harga / bulan |
+| --- | --- | --- | --- | --- |
+| XS 1.1 | 1 core | 1 GB | 60 GB | Rp59.000 |
+| SS 2.1 | 1 core | 2 GB | 60 GB | Rp80.000 |
+| SS 2.2 | 2 core | 2 GB | 60 GB | Rp109.000 |
+| MS 4.2 | 2 core | 4 GB | 60 GB | Rp139.000 |
+| MS 4.4 | 4 core | 4 GB | 60 GB | Rp179.000 |
+| MM 8.4 | 4 core | 8 GB | 60 GB | Rp269.000 |
+| MM 8.8 | 8 core | 8 GB | 60 GB | Rp289.000 |
+| LL 16.8 | 8 core | 16 GB | 60 GB | Rp459.000 |
+| LL 16.16 | 16 core | 16 GB | 60 GB | Rp499.000 |
+
+Add-on: additional disk Rp1.650/GB/bulan, snapshot Rp1.500/GB/bulan. Storage-nya fixed 60 GB per tier; lu tambahin belakangan pake `biznetgio_neolite_disk` / `NeoliteDisk`, ditagih terpisah sesuai rate add-on di atas.
+
+<Note>
+  Ini harga list publik Biznet GIO, per saat dokumentasi ini ditulis. Field `billing` di output `biznetgio_neolite_products` akun lu sendiri itu angka otoritatif buat yang bener-bener lu bayar - liat [dua sumber harga](/id/products/overview#dua-harga-berbeda-dua-kegunaan-berbeda).
+</Note>
+
+## Apa yang dikasih `biznetgio_neolite_products`
+
+Tiap item di `products` itu satu baris kayak tabel di atas, plus ketentuan billing yang exact:
+
+| Field | Artinya |
+| --- | --- |
+| `product_id` | Angka yang bener-bener dipake setiap call create/upgrade |
+| `name` | Label Biznet GIO buat produk itu, kira-kira deket sama `"XS 1.1"` - confirm string exact-nya dari output lu sendiri, jangan asumsiin sama persis sama pricelist |
+| `description` | Deskripsi teks bebas |
+| `category_id` / `category_name` | Grouping produk |
+| `options.cores` | Jumlah vCPU - angka "1" / "2" / "4" / "8" / "16" di tabel atas |
+| `options.memory` | RAM dalam **megabyte**, bukan gigabyte - tier "1 GB" dilaporin sebagai angka deket 1024, bukan `1` |
+| `options.allow_downgrade` | `1` kalau downgrade produk ini dibolehin, kalau gak `0` |
+| `billing[]` | Satu entry per cycle yang didukung (`label`, `cycle`, `price`, dan `components` per-tier-kuantitas buat yang ditagih per volume, kayak disk tambahan) |
+
+## Contoh nyata: milih XS 1.1 buat harga paling murah
+
+Katakanlah lu mau tier NEO Lite paling murah - `XS 1.1`, 1 vCPU, 1 GB RAM - dan lu mau mastiin itu beneran yang keorder, bukan apapun yang duluan di list. Pertama, print katalog lu sendiri (liat [Langkah 1](/id/products/overview#langkah-1-liat-katalog-lu-sendiri-sebelum-filter-apapun)) dan confirm `name` beneran dan nilai `options.memory` buat tier terkecil di akun lu. Baru tulis filter-nya:
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    data "biznetgio_neolite_products" "all" {}
+
+    locals {
+      # Ganti angka batas memory-nya sesuai apa yang lu liat di katalog
+      # tercetak lu sendiri buat tier 1-core / ~1 GB.
+      xs_matches = [
+        for p in data.biznetgio_neolite_products.all.products :
+        p if p.options.cores == 1 && p.options.memory <= 1100
+      ]
+
+      # Error pas plan kalau gak ada yang match, daripada asal nebak.
+      xs_product_id = local.xs_matches[0].product_id
+    }
+
+    data "biznetgio_neolite_os_list" "ubuntu" {
+      product_id = local.xs_product_id
+    }
+
+    resource "biznetgio_neolite_keypair" "main" {
+      name = "neo-lite-key"
+    }
+
+    resource "biznetgio_neolite_vm" "cheap" {
+      ssh_and_console_user = "adminuser"
+      console_password     = "s3cretP4ssw0rd"
+      vm_name              = "neo-lite-xs"
+      product_id           = local.xs_product_id
+      select_os            = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
+      keypair_id           = biznetgio_neolite_keypair.main.keypair_id
+      cycle                = "m"
+    }
+    ```
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    import * as biznetgio from "@shirasakaren/biznetgio";
+
+    const products = biznetgio.neoliteProductsOutput();
+    const xsProductId = products.products.apply((items) => {
+      const match = items.find((p) => p.options.cores === 1 && p.options.memory <= 1100);
+      if (!match) throw new Error("no 1-core / ~1GB NEO Lite product found");
+      return match.productId;
+    });
+
+    const osList = biznetgio.neoliteOsListOutput({ productId: xsProductId });
+
+    const keypair = new biznetgio.NeoliteKeypair("cheap-keypair", { name: "neo-lite-key" });
+
+    const vm = new biznetgio.NeoliteVm("cheap-vm", {
+      vmName: "neo-lite-xs",
+      productId: xsProductId,
+      selectOs: osList.oss[0].name,
+      keypairId: keypair.keypairId,
+      cycle: "m",
+      sshAndConsoleUser: "adminuser",
+      consolePassword: "s3cretP4ssw0rd",
+    });
+    ```
+  </Tab>
+</Tabs>
+
+Baris `select_os` / `selectOs` di atas masih pake `oss[0]` - itu risiko yang jauh lebih kecil dibanding `products[0]`, karena `select_os` cuma nentuin image OS, bukan order change-package berbayar, dan list OS biasanya pendek dan didominasi satu pilihan yang obvious (misalnya cuma ada satu entry `ubuntu-22`). Terapin disiplin filter yang sama kalau produk lu punya beberapa opsi OS dan lu peduli dapet yang mana - liat bagian list OS di bawah.
+
+## List OS
+
+`biznetgio_neolite_os_list` (Terraform) / `neoliteOsList` (Pulumi) ambil `product_id` yang udah lu resolve dan balikin semua image OS yang tersedia buat produk itu:
+
+| Field | Artinya |
+| --- | --- |
+| `vmid` | Id template internal |
+| `node` | Node Proxmox yang jadi backend template itu |
+| `name` | String exact buat dipasang sebagai `select_os` / `selectOs` |
+| `maxmem` | Batas memory template OS (MB) |
+| `maxcpu` | Batas CPU template OS |
+
+Produk berbeda bisa nawarin list OS berbeda. Print `oss[].name` buat `product_id` yang lu pilih, sama kayak lu print katalog produk, dan match string exact-nya - contoh ilustratif yang mungkin lu liat termasuk image Ubuntu, Debian, CentOS/AlmaLinux, dan Rocky Linux, tapi satu-satunya cara tau nama literal exact di akun lu ya baca output `oss` lu sendiri.
+
+## Katalog yang ada di upstream tapi belum di-wrap jadi data source
+
+Ada dua list produk lagi yang ada di API Biznet GIO tapi **gak di-expose** lewat `biznetgio_neolite_*` atau `pulumi_biznetgio.neolite*` sama sekali:
+
+- **Produk disk tambahan** (`GET /neolites/disks/products`) - `product_id` di `biznetgio_neolite_disk` / `NeoliteDisk` gak punya data source katalog. [Repo contoh](https://github.com/shirasakaren/biznetgio-example-terraform) hardcode `product_id = 60` karena ini.
+- **Produk snapshot** (`GET /neolites/snapshots/products`) - gap yang sama; `biznetgio_neolite_snapshot` sendiri gak nerima `product_id` (dia snapshot VM yang udah ada), tapi restore snapshot itu jadi VM baru lewat `biznetgio_neolite_vm_from_snapshot` iya, dan lagi-lagi gak ada data source buat itu.
+
+Cari manual pake request langsung yang terautentikasi:
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/neolites/disks/products | jq
+```
+
+Cocokin apa yang lu liat sama harga add-on di tabel harga atas, terus hardcode `product_id` yang lu mau, sama kayak repo contoh. Wrap salah satu endpoint itu jadi data source beneran itu kontribusi pertama yang bagus dan scope-nya jelas - liat [panduan provider Terraform](/id/contribute/terraform-guide) dan [panduan provider Pulumi](/id/contribute/pulumi-guide).
+
+## Lookup katalog NEO Lite lainnya
+
+- **`biznetgio_neolite_ip_availability` / `neoliteIPAvailability`** - ambil `product_id`, balikin apakah public IP available sekarang buat produk spesifik itu. Worth dicek sebelum order kalau ketersediaan IP penting buat lu.
+- **`biznetgio_neolite_change_package_options` / `neoliteChangePackageOptions`** - ambil `account_id` dari VM yang *udah ada*, balikin paket target yang valid dan harganya buat operasi change-package di akun itu, sebagai JSON `raw` yang belum di-model. Ini soal upgrade VM yang udah lu punya, bukan soal milih yang pertama.
+- **`biznetgio_neolite_storage_upgrade_options` / `neoliteStorageUpgradeOptions`** - ide yang sama, buat harga upgrade storage di akun yang udah ada.
+
+Schema input/output lengkap buat setiap resource di halaman ini ada di referensi [Terraform](/id/terraform/resources/neolite) dan [Pulumi](/id/pulumi/resources/neolite).

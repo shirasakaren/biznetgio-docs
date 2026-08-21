@@ -31,7 +31,7 @@ NEO Lite Pro itu tier VPS premium (`/neolite-pros` API group). Set resourcenya m
       selectOs: osList.oss[0].name,
       keypairId: keypair.id.apply((id) => Number(id)),
       cycle: "m",
-      sshAndConsoleUser: "admin",
+      sshAndConsoleUser: "adminuser",
       consolePassword: "s3cretP4ssw0rd",
       // optional in-place actions (change value to fire):
       // powerState: "stop",
@@ -64,7 +64,7 @@ NEO Lite Pro itu tier VPS premium (`/neolite-pros` API group). Set resourcenya m
         select_os=os_list.oss[0].name,
         keypair_id=pulumi.Output.from_input(keypair.id).apply(int),
         cycle="m",
-        ssh_and_console_user="admin",
+        ssh_and_console_user="adminuser",
         console_password="s3cretP4ssw0rd",
         # power_state="stop",
         # rebuild_os="ubuntu-22",
@@ -109,7 +109,7 @@ NEO Lite Pro itu tier VPS premium (`/neolite-pros` API group). Set resourcenya m
                 SelectOs:          pulumi.String(osList.Oss[0].Name),
                 KeypairId:         keypair.ID().ToIntOutput(),
                 Cycle:             pulumi.String("m"),
-                SshAndConsoleUser: pulumi.String("admin"),
+                SshAndConsoleUser: pulumi.String("adminuser"),
                 ConsolePassword:   pulumi.String("s3cretP4ssw0rd"),
                 // PowerState: pulumi.String("stop"),
                 // RebuildOs:  pulumi.String("ubuntu-22"),
@@ -152,7 +152,7 @@ NEO Lite Pro itu tier VPS premium (`/neolite-pros` API group). Set resourcenya m
             SelectOs = osList.Apply(o => o.Oss[0].Name),
             KeypairId = keypair.Id.Apply(v => int.Parse(v)),
             Cycle = "m",
-            SshAndConsoleUser = "admin",
+            SshAndConsoleUser = "adminuser",
             ConsolePassword = "s3cretP4ssw0rd",
             // PowerState = "stop",
             // RebuildOs = "ubuntu-22",
@@ -199,7 +199,7 @@ NEO Lite Pro itu tier VPS premium (`/neolite-pros` API group). Set resourcenya m
                     .selectOs(osList.applyValue(o -> o.oss().get(0).name()))
                     .keypairId(keypair.id().applyValue(Integer::parseInt))
                     .cycle("m")
-                    .sshAndConsoleUser("admin")
+                    .sshAndConsoleUser("adminuser")
                     .consolePassword("s3cretP4ssw0rd")
                     // .powerState("stop")
                     // .rebuildOs("ubuntu-22")
@@ -450,6 +450,10 @@ Bentuknya sama kayak [`NeoliteDisk`](/id/pulumi/resources/neolite#biznetgioindex
 Upgrade ngirim increment (`additional_size`); ngecilin error.
 
 ## Functions
+
+<Note>
+  Buat harga beneran dan cara milih paket tertentu, bukan asal percaya `[0]`, liat halaman [Katalog Produk](/id/products/neolite-pro).
+</Note>
 
 Semua lima nge-mirror function NEO Lite ke `/neolite-pros`:
 

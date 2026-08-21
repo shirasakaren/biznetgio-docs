@@ -92,7 +92,7 @@ module "web_staging" {
   product_id            = data.biznetgio_neolite_products.all.products[0].product_id
   select_os              = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
   cycle                 = "m"
-  ssh_and_console_user  = "admin"
+  ssh_and_console_user  = "adminuser"
   console_password      = var.console_password
   pay_with_credit_card  = false
 }
@@ -103,7 +103,7 @@ module "web_production" {
   product_id            = data.biznetgio_neolite_products.all.products[0].product_id
   select_os              = data.biznetgio_neolite_os_list.ubuntu.oss[0].name
   cycle                 = "m"
-  ssh_and_console_user  = "admin"
+  ssh_and_console_user  = "adminuser"
   console_password      = var.console_password
   pay_with_credit_card  = true
 }
@@ -168,7 +168,7 @@ const web = new NeoliteWebServer(`web-${stack}`, {
   productId: products.products[0].productId,
   selectOs: osList.oss[0].name,
   cycle: "m",
-  sshAndConsoleUser: "admin",
+  sshAndConsoleUser: "adminuser",
   consolePassword: config.requireSecret("consolePassword"),
   payWithCreditCard: stack === "production",
 });

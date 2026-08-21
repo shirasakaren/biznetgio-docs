@@ -1,0 +1,118 @@
+---
+title: "Katalog dan harga NEO GPU"
+description: "Katalog GPU-as-a-Service H200, biaya subscription vs on-demand, dan apa yang confirmed vs belum soal itu"
+---
+
+NEO GPU itu lini GPU-as-a-Service NVIDIA H200 Biznet GIO, ditagih per cycle subscription atau per jam. Buat schema resource dan kode lengkap, liat halaman referensi [Terraform](/id/terraform/resources/gpu) dan [Pulumi](/id/pulumi/resources/gpu).
+
+<Note>
+  Ini produk yang beda dari dua SKU bare-metal ber-GPU NEO Metal (`a1.small.gpu.x86` dengan NVIDIA T4, `a1.medium.gpu.x86` dengan NVIDIA L4). Itu server fisik utuh dengan kartu GPU terpasang, di-order lewat `biznetgio_baremetal` - liat [katalog NEO Metal](/id/products/baremetal). NEO GPU, yang dijelasin di halaman ini, itu kapasitas H200 shared yang di-order lewat `biznetgio_gpu_instance` / `GpuInstance`.
+</Note>
+
+## Harga (sumber: [biznetgio.com/pricelist#neo-gpu](https://www.biznetgio.com/pricelist#neo-gpu))
+
+| Paket | CPU | RAM | Disk | GPU RAM | Harga / jam | Harga / bulan |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 GPU H200 | 22 core | 224 GB | 750 GB | 141 GB | Rp74.000 | Rp52.999.000 |
+| 2 GPU H200 | 44 core | 448 GB | 1500 GB | 282 GB | Rp147.000 | Rp105.999.000 |
+| 3 GPU H200 | 66 core | 672 GB | 2250 GB | 423 GB | Rp219.000 | Rp158.999.000 |
+| 4 GPU H200 | 88 core | 896 GB | 3000 GB | 564 GB | Rp299.000 | Rp211.999.000 |
+| 5 GPU H200 | 110 core | 1120 GB | 3750 GB | 705 GB | Rp369.000 | Rp264.999.000 |
+| 6 GPU H200 | 132 core | 1344 GB | 4500 GB | 846 GB | Rp439.000 | Rp317.999.000 |
+| 7 GPU H200 | 154 core | 1568 GB | 5250 GB | 987 GB | Rp509.000 | Rp369.999.000 |
+| 8 GPU H200 | 176 core | 1792 GB | 6000 GB | 1128 GB | Rp589.000 | Rp423.999.000 |
+
+<Note>
+  Harga list publik, per saat ditulis. Angka **per jam** berlaku buat instance `on_demand` (numpuk terus sampe di-delete); angka **per bulan** berlaku buat instance `subscription` yang ditagih di `cycle = "m"`. Confirm charge beneran dari output katalog akun lu sendiri - liat [dua sumber harga](/id/products/overview#dua-harga-berbeda-dua-kegunaan-berbeda).
+</Note>
+
+## Apa yang dikasih `biznetgio_gpu_products`, dan apa yang beneran belum jelas
+
+```
+products[] = {
+  product_id, name, description, category_name, raw,
+  flavors[] = { flavor_id, name, raw }
+}
+```
+
+`product_id` dan `name` kerjanya sama kayak katalog lain: `product_id` itu yang dipasang di `biznetgio_gpu_instance.product_id`. Yang **gak** didokumentasiin di manapun di upstream, dan bukan sesuatu yang mau ditebak-tebak dokumentasi ini, itu persisnya "flavor" itu representasi apa. Bisa jadi tier jumlah-GPU yang matching sama tabel harga di atas, region, varian konfigurasi, atau sesuatu yang lain sama sekali - source code provider cuma bilang itu dari `GET /neo-gpus/products/{product_id}/flavors` dan lewatin field-nya begitu aja tanpa diubah.
+
+Sebelum lu bangun apapun yang gantung ke `flavors`, print output akun lu sendiri dan baca langsung:
+
+<Tabs>
+  <Tab title="Terraform">
+    ```hcl
+    data "biznetgio_gpu_products" "all" {}
+
+    output "gpu_catalog" {
+      value = [
+        for p in data.biznetgio_gpu_products.all.products : {
+          product_id = p.product_id
+          name       = p.name
+          raw        = jsondecode(p.raw)
+          flavors = [
+            for f in p.flavors : {
+              flavor_id = f.flavor_id
+              name      = f.name
+              raw       = jsondecode(f.raw)
+            }
+          ]
+        }
+      ]
+    }
+    ```
+  </Tab>
+  <Tab title="Pulumi (TypeScript)">
+    ```typescript
+    import * as biznetgio from "@shirasakaren/biznetgio";
+
+    const products = biznetgio.gpuProductsOutput();
+    export const gpuCatalog = products.products.apply((items) =>
+      items.map((p) => ({
+        productId: p.productId,
+        name: p.name,
+        raw: JSON.parse(p.raw),
+        flavors: p.flavors.map((f) => ({ flavorId: f.flavorId, name: f.name, raw: JSON.parse(f.raw) })),
+      })),
+    );
+    ```
+  </Tab>
+</Tabs>
+
+Cocokin `product_id` sama tabel harga di atas berdasarkan `name` setelah lu confirm string exact-nya, sama caranya kayak [NEO Metal](/id/products/baremetal#match-berdasarkan-name-satu-satunya-field-typed-yang-bisa-difilter). Perhatiin `biznetgio_gpu_instance` / `GpuInstance` sendiri cuma nerima `product_id`, bukan `flavor_id` - list flavors di-expose buat lu baca, tapi gak ada apapun di schema resource sekarang yang make itu. Apapun yang berubah dari sebuah "flavor," itu bukan sesuatu yang lu pilih lewat provider ini hari ini.
+
+## Subscription vs on-demand
+
+Persis satu dari `subscription` atau `on_demand` harus diset di `biznetgio_gpu_instance` / `GpuInstance` - provider-nya nolak kalau dua-duanya diset, dan nolak kalau gak ada satupun.
+
+```hcl
+subscription = {
+  cycle = "m" # atau "a" - NEO GPU gak nerima nilai cycle lain
+}
+```
+
+```hcl
+on_demand = {
+  additional_hours = 0
+}
+```
+
+`subscription` nagih angka bulanan atau tahunan dari tabel harga di atas. `on_demand` numpuk angka per jam terus-terusan dari saat dibuat sampe lu hapus instance-nya; `reserve_additional_hours_trigger` itu aksi one-shot yang reserve blok jam tambahan yang discrete di instance on-demand yang udah jalan. Liat [panduan billing](/id/guides/billing) buat model cycle/pembayaran umum dan referensi [Terraform](/id/terraform/resources/gpu) / [Pulumi](/id/pulumi/resources/gpu) buat schema input lengkap.
+
+## Gap list OS
+
+Beda sama NEO Lite, NEO Lite Pro, dan NEO Metal, **NEO GPU gak punya data source list OS sama sekali**, walaupun API upstream punya endpoint-nya: `GET /neo-gpus/products/{product_id}/select-os`. `select_os` di `biznetgio_gpu_instance` itu string required biasa tanpa katalog buat divalidasi. Cari nilai valid secara manual:
+
+```bash
+curl -sH "x-token: $BIZNETGIO_API_KEY" \
+  https://api.portal.biznetgio.com/v1/neo-gpus/products/<product_id>/select-os | jq
+```
+
+Wrap endpoint ini jadi data source `biznetgio_gpu_os_list` beneran itu kontribusi pertama yang bagus dan scope-nya jelas - liat [panduan provider Terraform](/id/contribute/terraform-guide) dan [panduan provider Pulumi](/id/contribute/pulumi-guide).
+
+## Console dan monitoring
+
+- **`biznetgio_gpu_console` / `gpuConsole`** - mint URL akses console buat instance yang jalan. **Side-effecting**: setiap baca bisa bikin session baru. Jangan referensiin di manapun yang dievaluasi pas plan diffing rutin.
+- **`biznetgio_gpu_graph` / `gpuGraph`** - data graph monitoring buat instance, per `hour` / `day` / `week` / `month` / `year`.
+
+Schema lengkap ada di halaman referensi [Terraform](/id/terraform/resources/gpu#data-sources) dan [Pulumi](/id/pulumi/resources/gpu#functions).

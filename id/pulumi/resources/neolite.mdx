@@ -31,7 +31,7 @@ Resource NEO Lite di bawah package `biznetgio` (API group `/neolites`). Alur bia
       selectOs: osList.oss[0].name,
       keypairId: keypair.keypairId,
       cycle: "m",
-      sshAndConsoleUser: "admin",
+      sshAndConsoleUser: "adminuser",
       consolePassword: "s3cretP4ssw0rd",
       // optional in-place actions (change value to fire):
       // powerState: "stop",
@@ -65,7 +65,7 @@ Resource NEO Lite di bawah package `biznetgio` (API group `/neolites`). Alur bia
         select_os=os_list.oss[0].name,
         keypair_id=keypair.keypair_id,
         cycle="m",
-        ssh_and_console_user="admin",
+        ssh_and_console_user="adminuser",
         console_password="s3cretP4ssw0rd",
         # optional in-place actions (change value to fire):
         # power_state="stop",
@@ -112,7 +112,7 @@ Resource NEO Lite di bawah package `biznetgio` (API group `/neolites`). Alur bia
                 SelectOs:          pulumi.String(osList.Oss[0].Name),
                 KeypairId:         keypair.KeypairId,
                 Cycle:             pulumi.String("m"),
-                SshAndConsoleUser: pulumi.String("admin"),
+                SshAndConsoleUser: pulumi.String("adminuser"),
                 ConsolePassword:   pulumi.String("s3cretP4ssw0rd"),
                 // optional in-place actions (change value to fire):
                 // PowerState: pulumi.String("stop"),
@@ -157,7 +157,7 @@ Resource NEO Lite di bawah package `biznetgio` (API group `/neolites`). Alur bia
             SelectOs = osList.Apply(o => o.Oss[0].Name),
             KeypairId = keypair.KeypairId,
             Cycle = "m",
-            SshAndConsoleUser = "admin",
+            SshAndConsoleUser = "adminuser",
             ConsolePassword = "s3cretP4ssw0rd",
             // optional in-place actions (change value to fire):
             // PowerState = "stop",
@@ -206,7 +206,7 @@ Resource NEO Lite di bawah package `biznetgio` (API group `/neolites`). Alur bia
                     .selectOs(osList.applyValue(o -> o.oss().get(0).name()))
                     .keypairId(keypair.keypairId())
                     .cycle("m")
-                    .sshAndConsoleUser("admin")
+                    .sshAndConsoleUser("adminuser")
                     .consolePassword("s3cretP4ssw0rd")
                     // optional in-place actions (change value to fire):
                     // .powerState("stop")
@@ -415,7 +415,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
       cycle: "m",
       keypairId: keypair.keypairId,
       name: "restored-1",
-      sshAndConsoleUser: "admin",
+      sshAndConsoleUser: "adminuser",
       consolePassword: "s3cretP4ssw0rd",
     });
     ```
@@ -429,7 +429,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
         cycle="m",
         keypair_id=keypair.keypair_id,
         name="restored-1",
-        ssh_and_console_user="admin",
+        ssh_and_console_user="adminuser",
         console_password="s3cretP4ssw0rd",
     )
     ```
@@ -442,7 +442,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
         Cycle:             pulumi.String("m"),
         KeypairId:         keypair.KeypairId,
         Name:              pulumi.String("restored-1"),
-        SshAndConsoleUser: pulumi.String("admin"),
+        SshAndConsoleUser: pulumi.String("adminuser"),
         ConsolePassword:   pulumi.String("s3cretP4ssw0rd"),
     })
     ```
@@ -456,7 +456,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
         Cycle = "m",
         KeypairId = keypair.KeypairId,
         Name = "restored-1",
-        SshAndConsoleUser = "admin",
+        SshAndConsoleUser = "adminuser",
         ConsolePassword = "s3cretP4ssw0rd",
     });
     ```
@@ -470,7 +470,7 @@ Outputs: `orderId`, `status`. Gak ada update - perubahan input apa pun ganti sna
             .cycle("m")
             .keypairId(keypair.keypairId())
             .name("restored-1")
-            .sshAndConsoleUser("admin")
+            .sshAndConsoleUser("adminuser")
             .consolePassword("s3cretP4ssw0rd")
             .build());
     ```
@@ -594,6 +594,10 @@ Outputs: `orderId`, `status`. **Hapus resource ini = hapus VM hasil restore - bu
 Outputs: `orderId`, `status`, `raw` (secret). Update cuma upgrade size - API nerima increment (`newSize - oldSize`), bukan target absolut; ngecilin error.
 
 ## Functions
+
+<Note>
+  Buat harga beneran dan cara milih paket tertentu, bukan asal percaya `[0]`, liat halaman [Katalog Produk](/id/products/neolite).
+</Note>
 
 ### `biznetgio:index:neoliteProducts`
 
