@@ -56,4 +56,4 @@ Changes pushed to the default branch deploy automatically via the Mintlify GitHu
 
 ## License
 
-[Apache-2.0](LICENSE)
+[MIT](LICENSE)
